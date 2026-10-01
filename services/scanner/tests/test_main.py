@@ -34,7 +34,7 @@ def _lines(capsys: pytest.CaptureFixture[str]) -> list[dict[str, object]]:
 
 @pytest.mark.usefixtures("database_url")
 def test_main_checks_schema(capsys: pytest.CaptureFixture[str]) -> None:
-    main_module.main()
+    main_module.main(start_scheduler=False)
     lines = _lines(capsys)
     assert lines[0]["msg"] == "scanner starting"
     assert lines[-1]["msg"] == "schema ok"
@@ -49,6 +49,6 @@ def test_main_exits_when_schema_is_behind(
 
     monkeypatch.setattr(db, "check_schema", behind)
     with pytest.raises(SystemExit) as exc:
-        main_module.main()
+        main_module.main(start_scheduler=False)
     assert exc.value.code == 1
     assert _lines(capsys)[-1]["msg"] == "schema check failed"

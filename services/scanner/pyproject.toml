@@ -50,3 +50,8 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+
+[[tool.mypy.overrides]]
+# APScheduler 3 ships without type information.
+module = ["apscheduler.*"]
+ignore_missing_imports = true

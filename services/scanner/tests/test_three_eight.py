@@ -181,3 +181,27 @@ def test_only_completed_bars_are_used() -> None:
     ctx = context(WORKED)
     s = three_eight.evaluate(ctx).signals[0]
     assert s.bar_ts == ctx.bars.ts[-1]
+
+
+def test_range_mode_long_near_the_range_low() -> None:
+    fx = load_fixture("range_mode.json")
+    [s] = three_eight.evaluate(context(fx)).signals
+    assert s.direction == "long" and s.range_mode and not s.is_countertrend
+    assert s.context["plan"]["target_from"] == "range edge"
+    assert s.explanation.endswith("Market is ranging.")
+    off = disabled("three_eight.range_mode")
+    assert "three_eight.trend_alignment" in failed(three_eight.evaluate(context(fx, rules=off)))
+
+
+def test_range_mode_minimum_is_a_setting() -> None:
+    fx = load_fixture("range_mode.json")
+    rs = with_params("three_eight.range_mode", range_minimum=6)
+    assert failed(three_eight.evaluate(context(fx, rules=rs))) == ["three_eight.min_indicators"]
+
+
+def test_weekly_pivot_countertrend_targets_the_opposite_weekly_pivot() -> None:
+    fx = load_fixture("countertrend_slow_move.json")
+    levels = {**fx["levels"], "weekly": {"P": 1.0870, "R1": 1.0884, "S1": 1.0850}}
+    [s] = three_eight.evaluate(context({**fx, "levels": levels})).signals
+    assert s.context["trigger"] == "weekly.R1"
+    assert s.context["plan"]["target_from"] == "weekly.S1" and s.target == 1.085

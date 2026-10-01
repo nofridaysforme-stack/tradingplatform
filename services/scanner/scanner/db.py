@@ -240,6 +240,142 @@ def sync_tickers(conn: Conn, refs: Iterable[TickerRef]) -> tuple[int, int]:
     return len(rows), retired
 
 
+# Strategy runs
+
+
+def recent_candles(
+    conn: Conn, instrument_id: UUID, granularity: str, upto: datetime, limit: int
+) -> list[tuple[datetime, float, float, float, float]]:
+    """The last `limit` completed candles with ts <= upto, oldest first."""
+    rows = conn.execute(
+        "SELECT ts, o, h, l, c FROM candles WHERE instrument_id = %s AND granularity = %s "
+        "AND ts <= %s ORDER BY ts DESC LIMIT %s",
+        (instrument_id, granularity, upto, limit),
+    ).fetchall()
+    return [(r[0], float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in reversed(rows)]
+
+
+def strategy_configs(conn: Conn) -> dict[str, tuple[bool, list[UUID] | None]]:
+    rows = conn.execute("SELECT strategy::text, enabled, instrument_ids FROM strategy_configs")
+    return {r[0]: (bool(r[1]), r[2]) for r in rows}
+
+
+def econ_events(conn: Conn, since: datetime, until: datetime) -> list[tuple[datetime, str, str]]:
+    rows = conn.execute(
+        "SELECT at, currency, impact::text FROM econ_events WHERE at BETWEEN %s AND %s",
+        (since, until),
+    )
+    return [(r[0], str(r[1]).strip(), r[2]) for r in rows]
+
+
+def heartbeat(conn: Conn, version: str) -> None:
+    conn.execute(
+        "INSERT INTO worker_heartbeat (id, at, version) VALUES (true, now(), %s) "
+        "ON CONFLICT (id) DO UPDATE SET at = now(), version = EXCLUDED.version",
+        (version,),
+    )
+
+
+# Stocks: screener inputs and outputs
+
+
+def stock_bars_since(
+    conn: Conn, since: date, tickers: list[str] | None = None
+) -> list[tuple[Any, ...]]:
+    """(ticker, session_date, h, l, c, volume) ordered by ticker then date."""
+    sql = (
+        "SELECT b.ticker, b.session_date, b.h, b.l, b.c, b.volume FROM stock_daily_bars b "
+        "JOIN stock_tickers t ON t.ticker = b.ticker AND t.active "
+        "WHERE b.session_date >= %s"
+    )
+    args: list[Any] = [since]
+    if tickers is not None:
+        sql += " AND b.ticker = ANY(%s)"
+        args.append(tickers)
+    sql += " ORDER BY b.ticker, b.session_date"
+    return list(conn.execute(sql, args).fetchall())
+
+
+def active_tickers(conn: Conn, exchanges: list[str]) -> list[str]:
+    rows = conn.execute(
+        "SELECT ticker FROM stock_tickers WHERE active AND exchange = ANY(%s)", (exchanges,)
+    )
+    return [r[0] for r in rows]
+
+
+def stock_sessions_before(conn: Conn, session: date, count: int) -> list[date]:
+    rows = conn.execute(
+        "SELECT DISTINCT session_date FROM stock_daily_bars WHERE session_date < %s "
+        "ORDER BY session_date DESC LIMIT %s",
+        (session, count),
+    )
+    return [r[0] for r in rows]
+
+
+def upsert_screen_results(conn: Conn, rows: list[dict[str, Any]]) -> int:
+    if not rows:
+        return 0
+    cols = list(rows[0])
+    placeholders = ", ".join(["%s"] * len(cols))
+    updates = ", ".join(f"{c} = EXCLUDED.{c}" for c in cols if c not in ("session_date", "ticker"))
+    with conn.cursor() as cur:
+        cur.executemany(
+            f"INSERT INTO stock_screen_results ({', '.join(cols)}) VALUES ({placeholders}) "
+            f"ON CONFLICT (session_date, ticker) DO UPDATE SET {updates}",
+            [[Jsonb(r[c]) if c == "version_set" else r[c] for c in cols] for r in rows],
+        )
+    return len(rows)
+
+
+def confirmed_between(conn: Conn, first: date, last: date) -> set[str]:
+    rows = conn.execute(
+        "SELECT DISTINCT ticker FROM stock_screen_results WHERE status = 'trend_confirmed' "
+        "AND session_date BETWEEN %s AND %s",
+        (first, last),
+    )
+    return {r[0] for r in rows}
+
+
+def open_holdings(conn: Conn) -> list[tuple[Any, ...]]:
+    """(id, user_id, ticker, purchase_price, purchase_date, expected_profit_pct, horizon)."""
+    return list(
+        conn.execute(
+            "SELECT id, user_id, ticker, purchase_price, purchase_date, expected_profit_pct, "
+            "horizon_sessions FROM holdings WHERE NOT closed"
+        ).fetchall()
+    )
+
+
+# Retention (spec 09)
+
+RETENTION_SQL = (
+    (
+        "candles_m15",
+        "DELETE FROM candles WHERE granularity = 'M15' AND ts < now() - interval '2 years'",
+    ),
+    (
+        "stock_screen_results",
+        "DELETE FROM stock_screen_results WHERE session_date < current_date - interval '2 years'",
+    ),
+    ("notifications", "DELETE FROM notifications WHERE created_at < now() - interval '180 days'"),
+    ("job_runs", "DELETE FROM job_runs WHERE started_at < now() - interval '90 days'"),
+    (
+        "stock_daily_bars",
+        "DELETE FROM stock_daily_bars WHERE session_date < ("
+        "SELECT min(d) FROM (SELECT DISTINCT session_date AS d FROM stock_daily_bars "
+        "ORDER BY d DESC LIMIT 400) recent)",
+    ),
+)
+
+
+def apply_retention(conn: Conn) -> dict[str, int]:
+    deleted: dict[str, int] = {}
+    for name, sql in RETENTION_SQL:
+        cur = conn.execute(sql)
+        deleted[name] = cur.rowcount
+    return deleted
+
+
 # Job runs
 
 
