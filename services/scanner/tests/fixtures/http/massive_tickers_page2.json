@@ -1,0 +1,8 @@
+{
+  "count": 1,
+  "request_id": "e5",
+  "status": "OK",
+  "results": [
+    {"ticker": "IBM", "name": "International Business Machines", "market": "stocks", "locale": "us", "primary_exchange": "XNYS", "type": "CS", "active": true}
+  ]
+}

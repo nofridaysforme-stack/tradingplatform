@@ -1,0 +1,10 @@
+{
+  "count": 2,
+  "request_id": "e4",
+  "status": "OK",
+  "next_url": "https://api.massive.com/v3/reference/tickers?cursor=YWN0aXZlPXRydWU",
+  "results": [
+    {"ticker": "AAPL", "name": "Apple Inc.", "market": "stocks", "locale": "us", "primary_exchange": "XNAS", "type": "CS", "active": true},
+    {"ticker": "CAMP", "name": "CalAmp Corp.", "market": "stocks", "locale": "us", "primary_exchange": "XNAS", "type": "CS", "active": true}
+  ]
+}

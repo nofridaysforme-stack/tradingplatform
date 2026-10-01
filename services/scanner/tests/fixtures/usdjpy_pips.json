@@ -1,0 +1,9 @@
+{
+  "spec": "04, pip math with a 0.01 pip size",
+  "pip_size": "0.01",
+  "cases": [
+    {"pips": "20", "price_distance": "0.20"},
+    {"pips": "55", "price_distance": "0.55"},
+    {"pips": "0.5", "price_distance": "0.005"}
+  ]
+}
