@@ -214,3 +214,13 @@ def test_split_refetch_replaces_history(conn: Conn) -> None:
         (date(2026, 9, 25), Decimal("4.550000")),
         (date(2026, 9, 29), Decimal("9.100000")),
     ]
+
+
+def test_rules_snapshot_matches_the_database(conn: Conn) -> None:
+    """Strategy tests read tests/fixtures/rules_snapshot.json; it must match the migrations.
+    Regenerate it after a rule migration."""
+    from scanner.rules.registry import load_ruleset  # noqa: PLC0415
+
+    rs = load_ruleset(conn)
+    live = {k: rs.rule(k).model_dump() for k in sorted(rs.version_set())}
+    assert live == load_fixture("rules_snapshot.json")["rules"]
