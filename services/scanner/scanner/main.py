@@ -42,6 +42,8 @@ def configure_logging() -> None:
     root.setLevel(os.environ.get("LOG_LEVEL", "info").upper())
     # httpx logs full request URLs at info level; keep them out of the logs.
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    # APScheduler logs every scheduling step at info; keep its warnings and errors.
+    logging.getLogger("apscheduler").setLevel(logging.WARNING)
 
 
 def main(*, start_scheduler: bool = True) -> None:

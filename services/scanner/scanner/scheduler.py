@@ -146,7 +146,9 @@ def build(
     sched = scheduler or BlockingScheduler(timezone=UTC, job_defaults=JOB_DEFAULTS)
     w = Worker(pool, settings, sched)
     ny = NEW_YORK
-    sched.add_job(w.heartbeat, IntervalTrigger(seconds=60), id="heartbeat")
+    sched.add_job(
+        w.heartbeat, IntervalTrigger(seconds=60), id="heartbeat", next_run_time=datetime.now(UTC)
+    )
     # The job itself skips when forex is closed (weekends and holidays).
     sched.add_job(
         w.bar_close, CronTrigger(minute="0,15,30,45", second=5, timezone=UTC), id="forex_bar_close"
