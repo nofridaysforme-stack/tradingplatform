@@ -75,6 +75,29 @@ class RuleSet:
         return {r.key: r.version for r in sorted(chosen, key=lambda r: r.key)}
 
 
+def derive(
+    ruleset: RuleSet,
+    params: dict[str, dict[str, Any]] | None = None,
+    disabled: set[str] | None = None,
+) -> RuleSet:
+    """A copy with some parameters changed or rules switched off. Used by the backtester's
+    sweeps; never written back. Version numbers stay as loaded, so reports record which
+    versions were varied and how."""
+    rules = {}
+    for key in ruleset._rules:
+        rule = ruleset.rule(key)
+        update: dict[str, Any] = {}
+        if params and key in params:
+            update["params"] = {**rule.params, **params[key]}
+        if disabled and key in disabled:
+            update["enabled"] = False
+        rules[key] = rule.model_copy(update=update) if update else rule
+    unknown = (set(params or {}) | set(disabled or set())) - set(rules)
+    if unknown:
+        raise UnknownRuleError(", ".join(sorted(unknown)))
+    return RuleSet(rules, ruleset._overrides, ruleset.revision)
+
+
 def load_ruleset(conn: db.Conn) -> RuleSet:
     with conn.cursor(row_factory=dict_row) as cur:
         rows = cur.execute(
