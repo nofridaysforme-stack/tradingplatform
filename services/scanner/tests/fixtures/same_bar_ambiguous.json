@@ -1,0 +1,8 @@
+{
+  "spec": "10 outcome tracking; 17 same_bar_ambiguous",
+  "signal": {"strategy": "three_eight", "direction": "long", "bar_ts": "2026-10-05T08:00:00+00:00",
+             "trading_day": "2026-10-05", "entry": 1.0842, "stop": 1.0819, "target": 1.0905,
+             "pip_size": 0.0001},
+  "bar": ["2026-10-05T08:15:00+00:00", 1.0842, 1.0910, 1.0815, 1.0850],
+  "expected": {"state": "ambiguous", "exit_price": 1.0819, "result_pips": -23.0}
+}
