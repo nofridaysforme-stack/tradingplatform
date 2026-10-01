@@ -25,6 +25,12 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | A17 | Stock alert timing | Not stated | Evening digest of newly trend-confirmed stocks | Provisional | 08 |
 | A18 | Daily target 60 to 75 pips | Stated | Kept as default, flagged because current EUR/USD daily ranges average about 50 pips; backtest tests lower bands | Approved, under review | 06, 12 |
 | A19 | Rule 2 and Rule 3 overlap | Listed as separate rules | Both kept; identical at defaults | Approved | 08 |
+| A20 | Which pivots the 3/8 planner uses | "Nearest pivot", "furthest pivot" | Daily pivots only for stop and target; weekly and monthly still count as indicator touches | Decided 2026-10-01 | 06 |
+| A21 | Daily target minimum (60 pips) | Daily target 60 to 75 pips | Setting `reject_below_min` on the Target rule; off by default, so the minimum is shown only | Owners decide in Settings | 06 |
+| A22 | "Price trades within N pips" | Not defined | Any part of the bar (high to low) within N pips of the level; the signal shows the distance from the close | Decided 2026-10-01 | 06 |
+| A23 | Several trigger levels on one bar | Not stated | At most one long and one short candidate per bar, each from its nearest fired trigger level | Decided 2026-10-01 | 06 |
+| A24 | Worked example levels | Daily S1 1.08360, S2 1.08200, R1 1.09100 and PDH 1.09050 | These pivots imply a prior-day high of 1.09520, so they cannot come from the same day as PDH 1.09050. The fixture supplies the levels directly. | Noted | 06, 17 |
+| A25 | 3/8 cooldown | Spec 10 only | Rule `three_eight.cooldown`, 4 bars, provisional | Provisional | 10 |
 
 ## Missing materials
 
