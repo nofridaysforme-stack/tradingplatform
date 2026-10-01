@@ -1,0 +1,5 @@
+{
+  "spec": "08, Financial Wealth Building 1 example (CalAmp)",
+  "high_52w": "9.72", "low_52w": "3.42", "close": "9.10",
+  "expected": {"rule1_threshold": "8.748", "rule1": true, "rule2": true, "apr": "1.842"}
+}

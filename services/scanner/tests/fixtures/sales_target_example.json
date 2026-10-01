@@ -1,0 +1,5 @@
+{
+  "spec": "08, Entry Points and Sales Targets example (the document rounds to 30.06, 6.93, .34, 1.73)",
+  "purchase_price": "23.13", "expected_profit_pct": "30", "horizon_sessions": 20,
+  "expected": {"target": "30.069", "earnings": "6.939", "daily": "0.34695", "weekly": "1.73475"}
+}
