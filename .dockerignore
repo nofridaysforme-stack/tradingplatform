@@ -1,0 +1,13 @@
+# Used by builds whose context is the repository root (the web image).
+**/node_modules
+**/.next
+**/.venv
+**/__pycache__
+**/coverage
+**/*.tsbuildinfo
+**/next-env.d.ts
+**/.env
+**/.env.*
+.git
+docs
+services

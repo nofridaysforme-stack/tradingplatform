@@ -1,0 +1,14 @@
+{
+  "name": "db",
+  "private": true,
+  "description": "Migration tooling: dbmate and the admin seed",
+  "type": "module",
+  "scripts": {
+    "migrate": "./migrate.sh",
+    "seed-admin": "node seed-admin.mjs"
+  },
+  "dependencies": {
+    "dbmate": "2.36.0",
+    "postgres": "^3.4.5"
+  }
+}

@@ -6,11 +6,11 @@ One Railway project per environment (`portal-staging`, `portal-production`), eac
 
 | Service | Build | Start | Notes |
 |---|---|---|---|
-| web | `apps/web` Dockerfile (Node LTS, pnpm build, standalone output) | `node server.js` | Public domain with HTTPS |
+| web | `apps/web/Dockerfile`, built from the repository root (Node LTS, pnpm build, standalone output, plus dbmate and `db/`) | `node server.js` | Public domain with HTTPS |
 | scanner | `services/scanner` Dockerfile (Python 3.12 slim, `uv sync --frozen`) | `python -m scanner.main` | No public domain. One replica only (the scheduler must not run twice). |
 | postgres | Railway Postgres | | Backups enabled |
 
-Migrations run as a pre-deploy command on the web service: `dbmate --wait up`. The scanner waits for the expected schema version at startup and exits with a clear error if it is behind.
+Migrations run as a pre-deploy command on the web service: `/app/db/migrate.sh` (runs `dbmate --wait up`, then adds `SEED_ADMIN_EMAIL` to the allowlist). The scanner waits for the expected schema version at startup and exits with a clear error if it is behind.
 
 Accounts (OANDA, Massive, Railway, Resend, Telegram bot) are opened in the client's business name. Jana is added as a collaborator during the build and support period.
 
