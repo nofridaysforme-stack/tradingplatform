@@ -29,6 +29,37 @@ jobs:
               - 'apps/web/**'
               - '.github/workflows/ci.yml'
             scanner:
+              - 'services/scanner/**'
+              - 'db/migrations/**'
+              - '.github/workflows/ci.yml'
+            db:
+              - 'db/**'
+              - '.github/workflows/ci.yml'
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  scanner:
     needs: changes
     if: needs.changes.outputs.scanner == 'true'
     runs-on: ubuntu-latest
@@ -71,53 +102,6 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy --strict scanner tests
       - run: uv run pytest --cov=scanner --cov-report=term
-
-  db:
-              - 'db/**'
-              - '.github/workflows/ci.yml'
-
-  web:
-    needs: changes
-    if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          package_json_file: apps/web/package.json
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: apps/web/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
-
-  scanner:
-    needs: changes
-    if: needs.changes.outputs.scanner == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services/scanner
-    steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
-        with:
-          python-version: "3.12"
-          enable-cache: true
-          cache-dependency-glob: services/scanner/uv.lock
-      - run: uv sync --frozen
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy --strict scanner tests
-      - run: uv run pytest
 
   db:
     needs: changes
