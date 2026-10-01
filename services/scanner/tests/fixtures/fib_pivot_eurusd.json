@@ -1,0 +1,12 @@
+{
+  "spec": "07, forex example",
+  "h": "1.08950", "l": "1.08290", "c": "1.08700", "unit": "0.0001",
+  "expected": {
+    "range_units": "66",
+    "fib": 55,
+    "offsets": [55, 89, 144, 233],
+    "pivot": "1.08700",
+    "up": {"break": "1.09250", "confirmation": "1.09590", "take_profit": "1.10140", "reset": "1.11030"},
+    "down": {"break": "1.08150", "confirmation": "1.07810", "take_profit": "1.07260", "reset": "1.06370"}
+  }
+}
