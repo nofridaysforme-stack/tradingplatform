@@ -1,0 +1,6 @@
+{
+  "spec": "08, five line chart worked example",
+  "note": "ACC_5 is 0.3922077...; spec 08 shows it truncated to 6 places. Compared within 0.000001.",
+  "close_today": "5.36", "close_5": "3.85", "trader_year": 260,
+  "expected": {"acc_5": "0.392207", "apr_5": "20.394805"}
+}

@@ -1,0 +1,16 @@
+{
+  "spec": "07 trade plan on the EUR/USD ladder (Pivot 1.08700, Break 1.09250 and 1.08150)",
+  "instrument": {"symbol": "EUR/USD", "pip_size": 0.0001, "display_decimals": 5},
+  "trading_day": "2026-10-05",
+  "levels": {"fib_pivot": {"pivot": 1.087, "fib": 55, "offsets": [55, 89, 144, 233], "unit": 0.0001,
+    "range_units": 66.0,
+    "up": {"break": 1.0925, "confirmation": 1.0959, "take_profit": 1.1014, "reset": 1.1103},
+    "down": {"break": 1.0815, "confirmation": 1.0781, "take_profit": 1.0726, "reset": 1.0637}}},
+  "bars": [
+    ["2026-10-05T07:45:00+00:00", 1.0918, 1.0924, 1.0915, 1.0922],
+    ["2026-10-05T08:00:00+00:00", 1.0922, 1.0930, 1.0920, 1.0928]
+  ],
+  "expected": {"direction": "long", "entry": 1.0928, "stop": 1.087, "target": 1.1014,
+    "risk_pips": 58.0, "reward_pips": 86.0,
+    "dedupe_key": "fib_pivot:EUR/USD:long:2026-10-05"}
+}

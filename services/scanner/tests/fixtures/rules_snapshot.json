@@ -1,0 +1,1504 @@
+{
+ "note": "Snapshot of the seeded rules (db/migrations). test_db checks it matches the database.",
+ "rules": {
+  "fib_pivot.confirmation": {
+   "counts_toward_minimum": false,
+   "description": "When price reaches the Confirmation level in the trade direction, the signal is marked confirmed and an update is sent.",
+   "enabled": true,
+   "key": "fib_pivot.confirmation",
+   "kind": "lifecycle",
+   "name": "Confirmation",
+   "params": {
+    "notify_on_confirm": true
+   },
+   "params_schema": {
+    "notify_on_confirm": {
+     "default": true,
+     "type": "boolean"
+    }
+   },
+   "source": "Spec 07 interpretation",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.confluence": {
+   "counts_toward_minimum": false,
+   "description": "When a 3/8 signal and a Fibonacci Pivot signal agree in direction on the same pair within confluence_bars, both show a confluence marker. Does not change either signal.",
+   "enabled": true,
+   "key": "fib_pivot.confluence",
+   "kind": "lifecycle",
+   "name": "Confluence marker",
+   "params": {
+    "confluence_bars": 4
+   },
+   "params_schema": {
+    "confluence_bars": {
+     "default": 4,
+     "max": 96,
+     "min": 0,
+     "type": "bars"
+    }
+   },
+   "source": "Spec 07 interpretation",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.entry": {
+   "counts_toward_minimum": false,
+   "description": "Long when a completed 15-minute bar closes above the upper Break, short on a close below the lower Break. Entry is that bar close.",
+   "enabled": true,
+   "key": "fib_pivot.entry",
+   "kind": "plan",
+   "name": "Entry",
+   "params": {
+    "trigger": "close_beyond"
+   },
+   "params_schema": {
+    "trigger": {
+     "default": "close_beyond",
+     "options": [
+      "close_beyond",
+      "touch"
+     ],
+     "type": "enum"
+    }
+   },
+   "source": "Spec 07 interpretation (notes give no entry)",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.expiry": {
+   "counts_toward_minimum": false,
+   "description": "Open signals expire at the 17:00 New York roll.",
+   "enabled": true,
+   "key": "fib_pivot.expiry",
+   "kind": "lifecycle",
+   "name": "Expiry",
+   "params": {
+    "expire_at_day_roll": true
+   },
+   "params_schema": {
+    "expire_at_day_roll": {
+     "default": true,
+     "type": "boolean"
+    }
+   },
+   "source": "Spec 07 interpretation",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.levels": {
+   "counts_toward_minimum": false,
+   "description": "Range in units = prior day high minus low. Take the closest Fibonacci number (ties go to the larger), clamped to min_fib and max_fib, and the next three as offsets. Pivot = prior day close. Break, Confirmation, Take Profit, Reset at Pivot plus and minus each offset.",
+   "enabled": true,
+   "key": "fib_pivot.levels",
+   "kind": "plan",
+   "name": "Level calculation",
+   "params": {
+    "max_fib": 987,
+    "min_fib": 13
+   },
+   "params_schema": {
+    "max_fib": {
+     "default": 987,
+     "max": 987,
+     "min": 1,
+     "type": "integer"
+    },
+    "min_fib": {
+     "default": 13,
+     "max": 987,
+     "min": 1,
+     "type": "integer"
+    }
+   },
+   "source": "Fibonacci Pivot Point notes",
+   "status": "approved",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.one_per_side": {
+   "counts_toward_minimum": false,
+   "description": "At most max_per_side_per_day long and short signals per pair per day.",
+   "enabled": true,
+   "key": "fib_pivot.one_per_side",
+   "kind": "lifecycle",
+   "name": "One signal per side per day",
+   "params": {
+    "max_per_side_per_day": 1
+   },
+   "params_schema": {
+    "max_per_side_per_day": {
+     "default": 1,
+     "max": 10,
+     "min": 1,
+     "type": "integer"
+    }
+   },
+   "source": "Spec 07 interpretation",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.reset": {
+   "counts_toward_minimum": false,
+   "description": "If price reaches Reset, the signal is marked extended and an update is sent.",
+   "enabled": true,
+   "key": "fib_pivot.reset",
+   "kind": "lifecycle",
+   "name": "Reset reached",
+   "params": {
+    "notify_on_reset": true
+   },
+   "params_schema": {
+    "notify_on_reset": {
+     "default": true,
+     "type": "boolean"
+    }
+   },
+   "source": "Spec 07 interpretation",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.stop": {
+   "counts_toward_minimum": false,
+   "description": "Stop at the Pivot (prior close), or at the opposite Break.",
+   "enabled": true,
+   "key": "fib_pivot.stop",
+   "kind": "plan",
+   "name": "Stop",
+   "params": {
+    "stop_at": "pivot"
+   },
+   "params_schema": {
+    "stop_at": {
+     "default": "pivot",
+     "options": [
+      "pivot",
+      "opposite_break"
+     ],
+     "type": "enum"
+    }
+   },
+   "source": "Spec 07 interpretation (notes give no stop)",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.target": {
+   "counts_toward_minimum": false,
+   "description": "Target at the chosen level.",
+   "enabled": true,
+   "key": "fib_pivot.target",
+   "kind": "plan",
+   "name": "Target",
+   "params": {
+    "target_at": "take_profit"
+   },
+   "params_schema": {
+    "target_at": {
+     "default": "take_profit",
+     "options": [
+      "confirmation",
+      "take_profit",
+      "reset"
+     ],
+     "type": "enum"
+    }
+   },
+   "source": "Spec 07 interpretation (notes give no target)",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.unit": {
+   "counts_toward_minimum": false,
+   "description": "Unit used to convert the range to a Fibonacci number. Forex uses pips.",
+   "enabled": true,
+   "key": "fib_pivot.unit",
+   "kind": "plan",
+   "name": "Unit",
+   "params": {
+    "forex_unit": "pip"
+   },
+   "params_schema": {
+    "forex_unit": {
+     "default": "pip",
+     "options": [
+      "pip"
+     ],
+     "type": "enum"
+    }
+   },
+   "source": "Fibonacci Pivot Point notes (example in dollars and cents); spec 07 interpretation",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "fib_pivot.window": {
+   "counts_toward_minimum": false,
+   "description": "Triggers are checked during the 3/8 trading window so the two systems share a schedule.",
+   "enabled": true,
+   "key": "fib_pivot.window",
+   "kind": "gate",
+   "name": "Trading window",
+   "params": {
+    "window": "primary"
+   },
+   "params_schema": {
+    "window": {
+     "default": "primary",
+     "options": [
+      "primary",
+      "alternative",
+      "both"
+     ],
+     "type": "enum"
+    }
+   },
+   "source": "Spec 07 interpretation",
+   "status": "provisional",
+   "strategy": "fib_pivot",
+   "version": 1
+  },
+  "stocks.alert_new_confirmed": {
+   "counts_toward_minimum": false,
+   "description": "One evening digest lists stocks that reached trend confirmed today and were not confirmed in the prior cooldown_sessions, up to max_in_digest.",
+   "enabled": true,
+   "key": "stocks.alert_new_confirmed",
+   "kind": "lifecycle",
+   "name": "Newly confirmed digest",
+   "params": {
+    "cooldown_sessions": 10,
+    "max_in_digest": 25
+   },
+   "params_schema": {
+    "cooldown_sessions": {
+     "default": 10,
+     "max": 260,
+     "min": 0,
+     "type": "sessions"
+    },
+    "max_in_digest": {
+     "default": 25,
+     "max": 500,
+     "min": 1,
+     "type": "integer"
+    }
+   },
+   "source": "Spec 08 interpretation (alert timing not stated)",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.alert_target_reached": {
+   "counts_toward_minimum": false,
+   "description": "Alert when a holding closes at or above its sales target.",
+   "enabled": true,
+   "key": "stocks.alert_target_reached",
+   "kind": "lifecycle",
+   "name": "Sales target reached",
+   "params": {},
+   "params_schema": {},
+   "source": "Entry Points and Sales Targets",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.alert_time_elapsed": {
+   "counts_toward_minimum": false,
+   "description": "Alert when a holding reaches horizon_sessions without hitting its target.",
+   "enabled": true,
+   "key": "stocks.alert_time_elapsed",
+   "kind": "lifecycle",
+   "name": "Time elapsed",
+   "params": {
+    "horizon_sessions": 20
+   },
+   "params_schema": {
+    "horizon_sessions": {
+     "default": 20,
+     "max": 260,
+     "min": 1,
+     "type": "sessions"
+    }
+   },
+   "source": "Spec 08 interpretation",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.five_line": {
+   "counts_toward_minimum": false,
+   "description": "For N in periods: ACC_N = (C0 minus CN) / CN; APR_N = ACC_N / N times trader_year.",
+   "enabled": true,
+   "key": "stocks.five_line",
+   "kind": "plan",
+   "name": "Five line chart",
+   "params": {
+    "periods": [
+     5,
+     10,
+     20,
+     50
+    ],
+    "trader_year": 260
+   },
+   "params_schema": {
+    "periods": {
+     "default": [
+      5,
+      10,
+      20,
+      50
+     ],
+     "options": [
+      5,
+      10,
+      20,
+      50
+     ],
+     "type": "list"
+    },
+    "trader_year": {
+     "default": 260,
+     "max": 366,
+     "min": 200,
+     "type": "integer"
+    }
+   },
+   "source": "Financial Wealth Building 1, five line chart",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.history_required": {
+   "counts_toward_minimum": false,
+   "description": "A stock needs at least min_sessions of history. 52-week high and low use the highest high and lowest low over lookback_sessions.",
+   "enabled": true,
+   "key": "stocks.history_required",
+   "kind": "filter",
+   "name": "History required",
+   "params": {
+    "lookback_sessions": 252,
+    "min_sessions": 252
+   },
+   "params_schema": {
+    "lookback_sessions": {
+     "default": 252,
+     "max": 400,
+     "min": 51,
+     "type": "sessions"
+    },
+    "min_sessions": {
+     "default": 252,
+     "max": 400,
+     "min": 51,
+     "type": "sessions"
+    }
+   },
+   "source": "Financial Wealth Building, 52-week figures",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.liquidity": {
+   "counts_toward_minimum": false,
+   "description": "Exclude stocks below min_price or with average volume over avg_volume_sessions below min_avg_volume. Set both to 0 to switch off.",
+   "enabled": true,
+   "key": "stocks.liquidity",
+   "kind": "filter",
+   "name": "Liquidity",
+   "params": {
+    "avg_volume_sessions": 20,
+    "min_avg_volume": 100000,
+    "min_price": 1.0
+   },
+   "params_schema": {
+    "avg_volume_sessions": {
+     "default": 20,
+     "max": 252,
+     "min": 1,
+     "type": "sessions"
+    },
+    "min_avg_volume": {
+     "default": 100000,
+     "max": 100000000,
+     "min": 0,
+     "type": "integer"
+    },
+    "min_price": {
+     "default": 1.0,
+     "max": 1000,
+     "min": 0,
+     "type": "price"
+    }
+   },
+   "source": "Spec 08 interpretation (documents set no filter)",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.rule1_near_high": {
+   "counts_toward_minimum": false,
+   "description": "Last close at least the 52-week high times ratio.",
+   "enabled": true,
+   "key": "stocks.rule1_near_high",
+   "kind": "filter",
+   "name": "Close near the 52-week high",
+   "params": {
+    "ratio": 0.9
+   },
+   "params_schema": {
+    "ratio": {
+     "default": 0.9,
+     "max": 1,
+     "min": 0,
+     "type": "ratio"
+    }
+   },
+   "source": "Financial Wealth Building 1, Rule 1",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.rule2_double": {
+   "counts_toward_minimum": false,
+   "description": "52-week high at least the 52-week low times multiple.",
+   "enabled": true,
+   "key": "stocks.rule2_double",
+   "kind": "filter",
+   "name": "High at least twice the low",
+   "params": {
+    "multiple": 2.0
+   },
+   "params_schema": {
+    "multiple": {
+     "default": 2.0,
+     "max": 20,
+     "min": 1,
+     "type": "ratio"
+    }
+   },
+   "source": "Financial Wealth Building 1, Rule 2",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.rule3_apr": {
+   "counts_toward_minimum": false,
+   "description": "APR = (52-week high minus 52-week low) / 52-week low, at least min_apr.",
+   "enabled": true,
+   "key": "stocks.rule3_apr",
+   "kind": "filter",
+   "name": "Annual percentage rate",
+   "params": {
+    "min_apr": 1.0
+   },
+   "params_schema": {
+    "min_apr": {
+     "default": 1.0,
+     "max": 20,
+     "min": 0,
+     "type": "ratio"
+    }
+   },
+   "source": "Financial Wealth Building 1, Rule 3",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.sales_target": {
+   "counts_toward_minimum": false,
+   "description": "Sales target = purchase price times (1 + expected profit). Daily target = earnings / horizon_sessions; weekly = daily times 5. Defaults for new holdings.",
+   "enabled": true,
+   "key": "stocks.sales_target",
+   "kind": "plan",
+   "name": "Sales target",
+   "params": {
+    "expected_profit_pct": 30,
+    "horizon_sessions": 20
+   },
+   "params_schema": {
+    "expected_profit_pct": {
+     "default": 30,
+     "max": 1000,
+     "min": 1,
+     "type": "percent"
+    },
+    "horizon_sessions": {
+     "default": 20,
+     "max": 260,
+     "min": 1,
+     "type": "sessions"
+    }
+   },
+   "source": "Entry Points and Sales Targets",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.trend_confirmed": {
+   "counts_toward_minimum": false,
+   "description": "The 50-day confirms the trend: ACC_50 greater than min_acc while the 20-day condition holds.",
+   "enabled": true,
+   "key": "stocks.trend_confirmed",
+   "kind": "gate",
+   "name": "Trend confirmed",
+   "params": {
+    "min_acc": 0
+   },
+   "params_schema": {
+    "min_acc": {
+     "default": 0,
+     "max": 10,
+     "min": -1,
+     "type": "ratio"
+    }
+   },
+   "source": "Financial Wealth Building, Steps 3 to 5",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.trend_consistent": {
+   "counts_toward_minimum": false,
+   "description": "ACC_5 and ACC_10 both greater than min_acc. Shown as a flag; required for an alert only when required_for_alert is on.",
+   "enabled": true,
+   "key": "stocks.trend_consistent",
+   "kind": "indicator",
+   "name": "Consistent movement",
+   "params": {
+    "min_acc": 0,
+    "required_for_alert": false
+   },
+   "params_schema": {
+    "min_acc": {
+     "default": 0,
+     "max": 10,
+     "min": -1,
+     "type": "ratio"
+    },
+    "required_for_alert": {
+     "default": false,
+     "type": "boolean"
+    }
+   },
+   "source": "Financial Wealth Building, Steps 3 to 5; spec 08 interpretation",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.trend_established": {
+   "counts_toward_minimum": false,
+   "description": "The 20-day establishes a trend: ACC_20 greater than min_acc.",
+   "enabled": true,
+   "key": "stocks.trend_established",
+   "kind": "gate",
+   "name": "Trend established",
+   "params": {
+    "min_acc": 0
+   },
+   "params_schema": {
+    "min_acc": {
+     "default": 0,
+     "max": 10,
+     "min": -1,
+     "type": "ratio"
+    }
+   },
+   "source": "Financial Wealth Building, Steps 3 to 5",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.universe": {
+   "counts_toward_minimum": false,
+   "description": "Active common stocks on NYSE, Nasdaq, and NYSE American. OTC excluded.",
+   "enabled": true,
+   "key": "stocks.universe",
+   "kind": "filter",
+   "name": "Universe",
+   "params": {
+    "exchanges": [
+     "XNYS",
+     "XNAS",
+     "XASE"
+    ]
+   },
+   "params_schema": {
+    "exchanges": {
+     "default": [
+      "XNYS",
+      "XNAS",
+      "XASE"
+     ],
+     "options": [
+      "XNYS",
+      "XNAS",
+      "XASE"
+     ],
+     "type": "list"
+    }
+   },
+   "source": "Financial Wealth Building, comb through the entire NYSE and the Nasdaq",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "three_eight.candlestick": {
+   "counts_toward_minimum": true,
+   "description": "A listed pattern completes on the signal bar or the bar before it, in the signal direction. Shaved head or bottom: upper (or lower) shadow at most shaved_max_shadow_pct of the bar range. Doji and spinning top count in the trigger direction.",
+   "enabled": true,
+   "key": "three_eight.candlestick",
+   "kind": "indicator",
+   "name": "Candlestick formation",
+   "params": {
+    "lookback_bars": 2,
+    "patterns": [
+     "CDLDOJI",
+     "CDLHAMMER",
+     "CDLINVERTEDHAMMER",
+     "CDLHARAMICROSS",
+     "CDLHANGINGMAN",
+     "CDLDARKCLOUDCOVER",
+     "CDLPIERCING",
+     "CDLSPINNINGTOP",
+     "CDLENGULFING",
+     "SHAVED"
+    ],
+    "shaved_max_shadow_pct": 5
+   },
+   "params_schema": {
+    "lookback_bars": {
+     "default": 2,
+     "max": 5,
+     "min": 1,
+     "type": "bars"
+    },
+    "patterns": {
+     "default": [
+      "CDLDOJI",
+      "CDLHAMMER",
+      "CDLINVERTEDHAMMER",
+      "CDLHARAMICROSS",
+      "CDLHANGINGMAN",
+      "CDLDARKCLOUDCOVER",
+      "CDLPIERCING",
+      "CDLSPINNINGTOP",
+      "CDLENGULFING",
+      "SHAVED"
+     ],
+     "options": [
+      "CDLDOJI",
+      "CDLHAMMER",
+      "CDLINVERTEDHAMMER",
+      "CDLHARAMICROSS",
+      "CDLHANGINGMAN",
+      "CDLDARKCLOUDCOVER",
+      "CDLPIERCING",
+      "CDLSPINNINGTOP",
+      "CDLENGULFING",
+      "SHAVED"
+     ],
+     "type": "list"
+    },
+    "shaved_max_shadow_pct": {
+     "default": 5,
+     "max": 50,
+     "min": 0,
+     "type": "percent"
+    }
+   },
+   "source": "3/8 Formula, Candlestick formations",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.cooldown": {
+   "counts_toward_minimum": false,
+   "description": "No new 3/8 signal on the same pair and direction within bars of the previous one, even at a different level.",
+   "enabled": true,
+   "key": "three_eight.cooldown",
+   "kind": "lifecycle",
+   "name": "Cooldown",
+   "params": {
+    "bars": 4
+   },
+   "params_schema": {
+    "bars": {
+     "default": 4,
+     "max": 96,
+     "min": 0,
+     "type": "bars"
+    }
+   },
+   "source": "Spec 10 interpretation (dedupe)",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.countertrend": {
+   "counts_toward_minimum": false,
+   "description": "A countertrend candidate needs a move of at least min_move_pips in the trend direction since the last opposite swing, not made within fast_move_bars bars (a fast_move_pips move that fast blocks it). After a consolidation of new_trend_consolidation_hours that resolves the other way, the move is a new trend.",
+   "enabled": true,
+   "key": "three_eight.countertrend",
+   "kind": "gate",
+   "name": "Countertrend exception",
+   "params": {
+    "fast_move_bars": 4,
+    "fast_move_pips": 50,
+    "min_move_pips": 50,
+    "new_trend_consolidation_hours": 8
+   },
+   "params_schema": {
+    "fast_move_bars": {
+     "default": 4,
+     "max": 20,
+     "min": 1,
+     "type": "bars"
+    },
+    "fast_move_pips": {
+     "default": 50,
+     "max": 300,
+     "min": 5,
+     "type": "pips"
+    },
+    "min_move_pips": {
+     "default": 50,
+     "max": 300,
+     "min": 5,
+     "type": "pips"
+    },
+    "new_trend_consolidation_hours": {
+     "default": 8,
+     "max": 48,
+     "min": 1,
+     "type": "hours"
+    }
+   },
+   "source": "3/8 Formula, Countertrend trades",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.daily_goal": {
+   "counts_toward_minimum": false,
+   "description": "Daily goal of goal_min_pips to goal_max_pips from closed signal outcomes. When suppress_after_goal is on, new 3/8 alerts on a pair stop once the goal is reached that day.",
+   "enabled": true,
+   "key": "three_eight.daily_goal",
+   "kind": "gate",
+   "name": "Daily target",
+   "params": {
+    "goal_max_pips": 75,
+    "goal_min_pips": 60,
+    "suppress_after_goal": false
+   },
+   "params_schema": {
+    "goal_max_pips": {
+     "default": 75,
+     "max": 500,
+     "min": 0,
+     "type": "pips"
+    },
+    "goal_min_pips": {
+     "default": 60,
+     "max": 500,
+     "min": 0,
+     "type": "pips"
+    },
+    "suppress_after_goal": {
+     "default": false,
+     "type": "boolean"
+    }
+   },
+   "source": "3/8 Formula, Daily target 60 to 75 pips; suppression is spec 06 interpretation",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.econ": {
+   "counts_toward_minimum": false,
+   "description": "Within window_minutes after a logged high-impact event for either currency: countertrend only off a single 15-minute bar of at least large_bar_pips; a large move followed by a reversing candle is always allowed regardless of stop distance; Fibonacci levels may not be targets.",
+   "enabled": true,
+   "key": "three_eight.econ",
+   "kind": "gate",
+   "name": "Econ reports",
+   "params": {
+    "large_bar_pips": 25,
+    "window_minutes": 60
+   },
+   "params_schema": {
+    "large_bar_pips": {
+     "default": 25,
+     "max": 200,
+     "min": 5,
+     "type": "pips"
+    },
+    "window_minutes": {
+     "default": 60,
+     "max": 240,
+     "min": 5,
+     "type": "minutes"
+    }
+   },
+   "source": "3/8 Formula, Econ reports; large bar size is spec 06 interpretation",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.entry": {
+   "counts_toward_minimum": false,
+   "description": "Entry is the close of the signal bar (reference mid price). Broker adjustment is applied later.",
+   "enabled": true,
+   "key": "three_eight.entry",
+   "kind": "plan",
+   "name": "Entry",
+   "params": {},
+   "params_schema": {},
+   "source": "Spec 06 interpretation",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.expiry": {
+   "counts_toward_minimum": false,
+   "description": "An open signal expires at the end of the trading window or after max_bars bars, whichever comes first.",
+   "enabled": true,
+   "key": "three_eight.expiry",
+   "kind": "lifecycle",
+   "name": "Signal expiry",
+   "params": {
+    "max_bars": 16
+   },
+   "params_schema": {
+    "max_bars": {
+     "default": 16,
+     "max": 200,
+     "min": 1,
+     "type": "bars"
+    }
+   },
+   "source": "Spec 06 interpretation",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.fibonacci": {
+   "counts_toward_minimum": true,
+   "description": "Price trades within tolerance_pips of a retracement of the last leg. ratio_set fib uses 0.382, 0.5, 0.618; thirds uses 1/3, 1/2, 2/3.",
+   "enabled": true,
+   "key": "three_eight.fibonacci",
+   "kind": "indicator",
+   "name": "Fibonacci",
+   "params": {
+    "ratio_set": "fib",
+    "tolerance_pips": 5
+   },
+   "params_schema": {
+    "ratio_set": {
+     "default": "fib",
+     "options": [
+      "fib",
+      "thirds"
+     ],
+     "type": "enum"
+    },
+    "tolerance_pips": {
+     "default": 5,
+     "max": 30,
+     "min": 0,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Fibonacci",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.flag_pennant_triangle": {
+   "counts_toward_minimum": true,
+   "description": "Pole: a move of at least pole_min_pips within pole_max_bars. Consolidation: cons_min_bars to cons_max_bars bars fitting converging or parallel lines. Fires on a close beyond the consolidation in the pattern direction. Projected target: pole length from the breakout.",
+   "enabled": true,
+   "key": "three_eight.flag_pennant_triangle",
+   "kind": "indicator",
+   "name": "Flags, pennants, triangles",
+   "params": {
+    "cons_max_bars": 20,
+    "cons_min_bars": 4,
+    "pole_max_bars": 6,
+    "pole_min_pips": 30
+   },
+   "params_schema": {
+    "cons_max_bars": {
+     "default": 20,
+     "max": 100,
+     "min": 2,
+     "type": "bars"
+    },
+    "cons_min_bars": {
+     "default": 4,
+     "max": 40,
+     "min": 2,
+     "type": "bars"
+    },
+    "pole_max_bars": {
+     "default": 6,
+     "max": 40,
+     "min": 1,
+     "type": "bars"
+    },
+    "pole_min_pips": {
+     "default": 30,
+     "max": 200,
+     "min": 5,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Flags, pennants, triangles; spec 06 interpretation",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.hl_failure": {
+   "counts_toward_minimum": true,
+   "description": "Price tests the high of the most recent up leg (for shorts) or the low of the most recent down leg (for longs) within test_tolerance_pips and the bar closes without exceeding it.",
+   "enabled": true,
+   "key": "three_eight.hl_failure",
+   "kind": "indicator",
+   "name": "New high/low failure",
+   "params": {
+    "test_tolerance_pips": 5
+   },
+   "params_schema": {
+    "test_tolerance_pips": {
+     "default": 5,
+     "max": 30,
+     "min": 0,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, New high/low failure",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.hook_reversal": {
+   "counts_toward_minimum": false,
+   "description": "After a leg of at least min_leg_pips, two consecutive bars form a reversal hook: the second bar opens beyond and closes back inside the first bar range.",
+   "enabled": true,
+   "key": "three_eight.hook_reversal",
+   "kind": "indicator",
+   "name": "Hook reversal / blended hook",
+   "params": {
+    "min_leg_pips": 60
+   },
+   "params_schema": {
+    "min_leg_pips": {
+     "default": 60,
+     "max": 300,
+     "min": 5,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Hook reversal (counts \"sometimes\")",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.min_indicators": {
+   "counts_toward_minimum": false,
+   "description": "The count of fired counting indicators in the candidate direction must be at least minimum. The trigger indicator counts.",
+   "enabled": true,
+   "key": "three_eight.min_indicators",
+   "kind": "gate",
+   "name": "Minimum indicators",
+   "params": {
+    "minimum": 3
+   },
+   "params_schema": {
+    "minimum": {
+     "default": 3,
+     "max": 8,
+     "min": 1,
+     "type": "integer"
+    }
+   },
+   "source": "3/8 Formula, 3 of 8",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.pdh": {
+   "counts_toward_minimum": true,
+   "description": "Price trades within tolerance_pips of the previous New York day high. Supports shorts at a rejection and longs on a confirmed break and retest.",
+   "enabled": true,
+   "key": "three_eight.pdh",
+   "kind": "indicator",
+   "name": "Previous day's high",
+   "params": {
+    "tolerance_pips": 10
+   },
+   "params_schema": {
+    "tolerance_pips": {
+     "default": 10,
+     "max": 50,
+     "min": 1,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Previous day's high",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.pdl": {
+   "counts_toward_minimum": true,
+   "description": "Price trades within tolerance_pips of the previous New York day low. Mirror of the previous day high rule.",
+   "enabled": true,
+   "key": "three_eight.pdl",
+   "kind": "indicator",
+   "name": "Previous day's low",
+   "params": {
+    "tolerance_pips": 10
+   },
+   "params_schema": {
+    "tolerance_pips": {
+     "default": 10,
+     "max": 50,
+     "min": 1,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Previous day's low",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.pivot_touch": {
+   "counts_toward_minimum": true,
+   "description": "Price trades within the tolerance of a pivot level: daily 10 pips, weekly 15, monthly 15. Daily and weekly (or monthly) levels within double_pivot_pips of each other are marked double pivot.",
+   "enabled": true,
+   "key": "three_eight.pivot_touch",
+   "kind": "indicator",
+   "name": "Pivots",
+   "params": {
+    "daily_tolerance_pips": 10,
+    "double_pivot_pips": 10,
+    "monthly_tolerance_pips": 15,
+    "weekly_tolerance_pips": 15
+   },
+   "params_schema": {
+    "daily_tolerance_pips": {
+     "default": 10,
+     "max": 50,
+     "min": 1,
+     "type": "pips"
+    },
+    "double_pivot_pips": {
+     "default": 10,
+     "max": 50,
+     "min": 0,
+     "type": "pips"
+    },
+    "monthly_tolerance_pips": {
+     "default": 15,
+     "max": 50,
+     "min": 1,
+     "type": "pips"
+    },
+    "weekly_tolerance_pips": {
+     "default": 15,
+     "max": 50,
+     "min": 1,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Pivots",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.range_detect": {
+   "counts_toward_minimum": false,
+   "description": "Ranging when, over the last lookback_bars, price retested the same high or low at least min_retests times within retest_tolerance_pips, and the range is at least min_width_pips wide.",
+   "enabled": true,
+   "key": "three_eight.range_detect",
+   "kind": "gate",
+   "name": "Range detection",
+   "params": {
+    "lookback_bars": 32,
+    "min_retests": 2,
+    "min_width_pips": 20,
+    "retest_tolerance_pips": 5
+   },
+   "params_schema": {
+    "lookback_bars": {
+     "default": 32,
+     "max": 200,
+     "min": 4,
+     "type": "bars"
+    },
+    "min_retests": {
+     "default": 2,
+     "max": 10,
+     "min": 1,
+     "type": "integer"
+    },
+    "min_width_pips": {
+     "default": 20,
+     "max": 300,
+     "min": 1,
+     "type": "pips"
+    },
+    "retest_tolerance_pips": {
+     "default": 5,
+     "max": 30,
+     "min": 0,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Transitioning market; thresholds are spec 06 interpretation",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.range_mode": {
+   "counts_toward_minimum": false,
+   "description": "In range mode: candidates inside the range, long near the low, short near the high; Fibonacci and countertrend allowed; minimum count is range_minimum; targets cap at the opposite side of the range.",
+   "enabled": true,
+   "key": "three_eight.range_mode",
+   "kind": "gate",
+   "name": "Range mode",
+   "params": {
+    "range_minimum": 3
+   },
+   "params_schema": {
+    "range_minimum": {
+     "default": 3,
+     "max": 8,
+     "min": 1,
+     "type": "integer"
+    }
+   },
+   "source": "3/8 Formula, Show more flexibility; settings are spec 06 interpretation",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.reward_risk": {
+   "counts_toward_minimum": false,
+   "description": "Target distance divided by stop distance must be at least min_ratio.",
+   "enabled": true,
+   "key": "three_eight.reward_risk",
+   "kind": "gate",
+   "name": "Target greater than risk",
+   "params": {
+    "min_ratio": 1.25
+   },
+   "params_schema": {
+    "min_ratio": {
+     "default": 1.25,
+     "max": 10,
+     "min": 0.5,
+     "type": "ratio"
+    }
+   },
+   "source": "3/8 Formula, Target greater than risk (example 25/20)",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.stop": {
+   "counts_toward_minimum": false,
+   "description": "At a pivot trigger: stop beyond the nearest pivot on the far side of entry, at pivot_stop_min_pips to pivot_stop_max_pips. Otherwise buffer_pips beyond the previous swing, using the smallest distance within fallback_min_pips to fallback_max_pips that clears it.",
+   "enabled": true,
+   "key": "three_eight.stop",
+   "kind": "plan",
+   "name": "Stop",
+   "params": {
+    "buffer_pips": 1,
+    "fallback_max_pips": 25,
+    "fallback_min_pips": 20,
+    "pivot_stop_max_pips": 25,
+    "pivot_stop_min_pips": 20
+   },
+   "params_schema": {
+    "buffer_pips": {
+     "default": 1,
+     "max": 20,
+     "min": 0,
+     "type": "pips"
+    },
+    "fallback_max_pips": {
+     "default": 25,
+     "max": 200,
+     "min": 1,
+     "type": "pips"
+    },
+    "fallback_min_pips": {
+     "default": 20,
+     "max": 200,
+     "min": 1,
+     "type": "pips"
+    },
+    "pivot_stop_max_pips": {
+     "default": 25,
+     "max": 200,
+     "min": 1,
+     "type": "pips"
+    },
+    "pivot_stop_min_pips": {
+     "default": 20,
+     "max": 200,
+     "min": 1,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Stop placement",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.stop_feasible": {
+   "counts_toward_minimum": false,
+   "description": "The planner must find a valid stop. If not, no trade.",
+   "enabled": true,
+   "key": "three_eight.stop_feasible",
+   "kind": "gate",
+   "name": "Stop placement possible",
+   "params": {},
+   "params_schema": {},
+   "source": "3/8 Formula, Stop placement",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.swing": {
+   "counts_toward_minimum": false,
+   "description": "Swing highs and lows come from a ZigZag that reverses after threshold_pips. Trend is up when the last two swing highs and lows are both higher, down when both lower, otherwise none.",
+   "enabled": true,
+   "key": "three_eight.swing",
+   "kind": "gate",
+   "name": "Swings and trend state",
+   "params": {
+    "threshold_pips": 20
+   },
+   "params_schema": {
+    "threshold_pips": {
+     "default": 20,
+     "max": 100,
+     "min": 5,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Trade with the trend; spec 06 context",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.target": {
+   "counts_toward_minimum": false,
+   "description": "Furthest pivot in the trade direction within daily_target_max_pips, capped at the previous day high (longs) or low (shorts) when that lies between. Countertrend: nearest Fibonacci level, then nearest pivot, capped at countertrend_target_max_pips. Pattern targets shown as an alternative. When reject_below_min is on, a target closer than daily_target_min_pips means no trade; when off, the minimum is shown only.",
+   "enabled": true,
+   "key": "three_eight.target",
+   "kind": "plan",
+   "name": "Target",
+   "params": {
+    "countertrend_target_max_pips": 25,
+    "countertrend_target_min_pips": 20,
+    "daily_target_max_pips": 75,
+    "daily_target_min_pips": 60,
+    "reject_below_min": false
+   },
+   "params_schema": {
+    "countertrend_target_max_pips": {
+     "default": 25,
+     "max": 200,
+     "min": 1,
+     "type": "pips"
+    },
+    "countertrend_target_min_pips": {
+     "default": 20,
+     "max": 200,
+     "min": 1,
+     "type": "pips"
+    },
+    "daily_target_max_pips": {
+     "default": 75,
+     "max": 500,
+     "min": 1,
+     "type": "pips"
+    },
+    "daily_target_min_pips": {
+     "default": 60,
+     "max": 500,
+     "min": 1,
+     "type": "pips"
+    },
+    "reject_below_min": {
+     "default": false,
+     "type": "boolean"
+    }
+   },
+   "source": "3/8 Formula, Target is always furthest pivot unless resistance; spec 06 interpretation",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 2
+  },
+  "three_eight.thrust_candle": {
+   "counts_toward_minimum": false,
+   "description": "A bar whose body is at least min_body_pips. Shown as supporting evidence; admins can switch on counting toward the minimum.",
+   "enabled": true,
+   "key": "three_eight.thrust_candle",
+   "kind": "indicator",
+   "name": "Thrust candle",
+   "params": {
+    "min_body_pips": 15
+   },
+   "params_schema": {
+    "min_body_pips": {
+     "default": 15,
+     "max": 100,
+     "min": 1,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Thrust candle (counts \"sometimes\")",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.trading_window": {
+   "counts_toward_minimum": false,
+   "description": "Bar close time must fall inside the active window. Primary 00:00 to 10:30, alternative 05:00 to 14:00, in the configured time zone.",
+   "enabled": true,
+   "key": "three_eight.trading_window",
+   "kind": "gate",
+   "name": "Trading hours",
+   "params": {
+    "alternative_end": "14:00",
+    "alternative_start": "05:00",
+    "primary_end": "10:30",
+    "primary_start": "00:00",
+    "timezone": "America/New_York",
+    "window": "primary"
+   },
+   "params_schema": {
+    "alternative_end": {
+     "default": "14:00",
+     "type": "time"
+    },
+    "alternative_start": {
+     "default": "05:00",
+     "type": "time"
+    },
+    "primary_end": {
+     "default": "10:30",
+     "type": "time"
+    },
+    "primary_start": {
+     "default": "00:00",
+     "type": "time"
+    },
+    "timezone": {
+     "default": "America/New_York",
+     "options": [
+      "America/New_York"
+     ],
+     "type": "enum"
+    },
+    "window": {
+     "default": "primary",
+     "options": [
+      "primary",
+      "alternative",
+      "both"
+     ],
+     "type": "enum"
+    }
+   },
+   "source": "3/8 Formula, Trading hours",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.trend_alignment": {
+   "counts_toward_minimum": false,
+   "description": "Direction must match the trend state. With no trend, candidates are allowed only in range mode.",
+   "enabled": true,
+   "key": "three_eight.trend_alignment",
+   "kind": "gate",
+   "name": "Trade with the trend",
+   "params": {},
+   "params_schema": {},
+   "source": "3/8 Formula, Trade with the trend",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.trendline_channel": {
+   "counts_toward_minimum": true,
+   "description": "A trendline joins swing highs (or lows) with at least min_touches touches within touch_tolerance_pips. Fires when price touches a valid line in the signal direction. A line is invalid after a close beyond it by more than the tolerance. A channel needs a parallel line within parallel_tolerance_pct.",
+   "enabled": true,
+   "key": "three_eight.trendline_channel",
+   "kind": "indicator",
+   "name": "Trendlines and channels",
+   "params": {
+    "max_line_age_bars": 480,
+    "min_touches": 3,
+    "parallel_tolerance_pct": 15,
+    "touch_tolerance_pips": 3
+   },
+   "params_schema": {
+    "max_line_age_bars": {
+     "default": 480,
+     "max": 5000,
+     "min": 10,
+     "type": "bars"
+    },
+    "min_touches": {
+     "default": 3,
+     "max": 10,
+     "min": 2,
+     "type": "integer"
+    },
+    "parallel_tolerance_pct": {
+     "default": 15,
+     "max": 100,
+     "min": 0,
+     "type": "percent"
+    },
+    "touch_tolerance_pips": {
+     "default": 3,
+     "max": 20,
+     "min": 0,
+     "type": "pips"
+    }
+   },
+   "source": "3/8 Formula, Trendlines and channels; spec 06 interpretation",
+   "status": "provisional",
+   "strategy": "three_eight",
+   "version": 1
+  },
+  "three_eight.trigger": {
+   "counts_toward_minimum": false,
+   "description": "A candidate exists only when the pivot or Fibonacci indicator fires on the bar. Long when the level is at or below the bar close, short when at or above.",
+   "enabled": true,
+   "key": "three_eight.trigger",
+   "kind": "gate",
+   "name": "Trigger location",
+   "params": {},
+   "params_schema": {},
+   "source": "3/8 Formula, Trades triggered off pivots; only exception FIBS",
+   "status": "approved",
+   "strategy": "three_eight",
+   "version": 1
+  }
+ }
+}

@@ -2,10 +2,13 @@ import json
 import os
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import psycopg
 import pytest
+
+if TYPE_CHECKING:
+    from scanner.rules.registry import RuleSet
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -25,3 +28,11 @@ def conn() -> Iterator[psycopg.Connection[Any]]:
         pytest.skip("TEST_DATABASE_URL not set")
     with psycopg.connect(url) as c, c.transaction(force_rollback=True):
         yield c
+
+
+def ruleset_from_snapshot() -> "RuleSet":
+    from scanner.rules.registry import RuleSet  # noqa: PLC0415
+    from scanner.rules.versions import RuleVersion  # noqa: PLC0415
+
+    data = load_fixture("rules_snapshot.json")["rules"]
+    return RuleSet({k: RuleVersion(**v) for k, v in data.items()})

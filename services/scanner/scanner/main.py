@@ -42,9 +42,11 @@ def configure_logging() -> None:
     root.setLevel(os.environ.get("LOG_LEVEL", "info").upper())
     # httpx logs full request URLs at info level; keep them out of the logs.
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    # APScheduler logs every scheduling step at info; keep its warnings and errors.
+    logging.getLogger("apscheduler").setLevel(logging.WARNING)
 
 
-def main() -> None:
+def main(*, start_scheduler: bool = True) -> None:
     configure_logging()
     log = logging.getLogger("scanner")
     log.info("scanner starting")
@@ -56,6 +58,14 @@ def main() -> None:
             log.error("schema check failed", extra={"reason": str(exc)})
             raise SystemExit(1) from exc
     log.info("schema ok", extra={"schema_version": version})
+    if not start_scheduler:
+        return
+    from scanner import scheduler  # noqa: PLC0415  (imports every job; only the worker needs it)
+
+    with db.make_pool(settings.database_url) as pool:
+        worker = scheduler.build(pool, settings)
+        log.info("scheduler starting", extra={"jobs": [j.id for j in worker.scheduler.get_jobs()]})
+        worker.scheduler.start()
 
 
 if __name__ == "__main__":
