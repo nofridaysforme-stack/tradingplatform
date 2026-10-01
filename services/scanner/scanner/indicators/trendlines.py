@@ -10,6 +10,8 @@ valid line on the opposite swings has a slope within parallel_tolerance_pct.
 from dataclasses import dataclass
 from itertools import combinations
 
+import numpy as np
+
 from scanner.indicators.base import Bars, Hit, bar_touches, direction_for_level, pips
 from scanner.indicators.swings import Swing
 
@@ -41,10 +43,9 @@ def _lines(
         if touches < min_touches:
             continue
         closes = bars.c[a.index : i]
-        values = [line.at(k) for k in range(a.index, i)]
-        broken = any(
-            (c < v - tol) if side == "support" else (c > v + tol)
-            for c, v in zip(closes, values, strict=True)
+        values = a.price + slope * np.arange(len(closes), dtype=np.float64)
+        broken = bool(
+            np.any(closes < values - tol) if side == "support" else np.any(closes > values + tol)
         )
         if not broken:
             lines.append(Line(side, a.index, slope, a.price, touches))

@@ -16,9 +16,14 @@ PARALLEL_SLACK = 0.25  # slopes within 25 percent of each other read as parallel
 
 
 def _fit(y: FloatArray) -> tuple[float, float]:
-    x = np.arange(len(y), dtype=np.float64)
-    slope, intercept = np.polyfit(x, y, 1)
-    return float(slope), float(intercept)
+    """Least-squares line through (0, y0), (1, y1), ...: (slope, intercept)."""
+    n = len(y)
+    x_mean = (n - 1) / 2
+    y_mean = float(y.mean())
+    sxx = n * (n * n - 1) / 12
+    sxy = float(np.dot(np.arange(n, dtype=np.float64) - x_mean, y - y_mean))
+    slope = sxy / sxx
+    return slope, y_mean - slope * x_mean
 
 
 def _shape(slope_hi: float, slope_lo: float, scale: float) -> str | None:
@@ -43,40 +48,39 @@ def flag_hits(
         pole_end = i - n - 1
         if pole_end < 1:
             break
+        p_start = max(0, pole_end - pole_max_bars + 1)  # the pole may be shorter
         cons_h: FloatArray = bars.h[i - n : i]
         cons_l: FloatArray = bars.l[i - n : i]
-        p_start = max(0, pole_end - pole_max_bars + 1)  # the pole may be shorter
+        pole_h: FloatArray = bars.h[p_start : pole_end + 1]
+        pole_l: FloatArray = bars.l[p_start : pole_end + 1]
+
+        # Bull: the pole rises into pole_end; the consolidation stays in its upper half.
+        top, base = float(bars.h[pole_end]), float(pole_l.min())
+        bull = (
+            pips(top - base, pip_size) + 1e-9 >= pole_min_pips
+            and top >= float(pole_h.max())
+            and float(cons_h.max()) <= top
+            and float(cons_l.min()) >= top - MAX_RETRACE * (top - base)
+        )
+        # Bear: the mirror.
+        bottom, peak = float(bars.l[pole_end]), float(pole_h.max())
+        bear = (
+            pips(peak - bottom, pip_size) + 1e-9 >= pole_min_pips
+            and bottom <= float(pole_l.min())
+            and float(cons_l.min()) >= bottom
+            and float(cons_h.max()) <= bottom + MAX_RETRACE * (peak - bottom)
+        )
+        if not (bull or bear):
+            continue  # cheap pole checks first; fit lines only when a pole qualifies
         slope_hi, icpt_hi = _fit(cons_h)
         slope_lo, icpt_lo = _fit(cons_l)
         shape = _shape(slope_hi, slope_lo, pip_size / 10)
         if shape is None:
             continue
-        upper = icpt_hi + slope_hi * n
-        lower = icpt_lo + slope_lo * n
-
-        pole_high = float(bars.h[pole_end])
-        pole_low = float(bars.l[p_start : pole_end + 1].min())
-        move = pole_high - pole_low
-        if (
-            pips(move, pip_size) + 1e-9 >= pole_min_pips
-            and pole_high >= float(bars.h[p_start : pole_end + 1].max())
-            and float(cons_h.max()) <= pole_high
-            and float(cons_l.min()) >= pole_high - MAX_RETRACE * move
-            and close > upper
-        ):
-            return [_hit("long", shape, move, n, close + move, pip_size)]
-
-        pole_low = float(bars.l[pole_end])
-        pole_high = float(bars.h[p_start : pole_end + 1].max())
-        move = pole_high - pole_low
-        if (
-            pips(move, pip_size) + 1e-9 >= pole_min_pips
-            and pole_low <= float(bars.l[p_start : pole_end + 1].min())
-            and float(cons_l.min()) >= pole_low
-            and float(cons_h.max()) <= pole_low + MAX_RETRACE * move
-            and close < lower
-        ):
-            return [_hit("short", shape, move, n, close - move, pip_size)]
+        if bull and close > icpt_hi + slope_hi * n:
+            return [_hit("long", shape, top - base, n, close + (top - base), pip_size)]
+        if bear and close < icpt_lo + slope_lo * n:
+            return [_hit("short", shape, peak - bottom, n, close - (peak - bottom), pip_size)]
     return []
 
 
