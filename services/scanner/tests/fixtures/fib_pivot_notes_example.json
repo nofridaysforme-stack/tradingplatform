@@ -1,0 +1,12 @@
+{
+  "spec": "07, worked example from the handwritten notes",
+  "h": "10.59", "l": "9.93", "c": "10.30", "unit": "0.01",
+  "note": "The notes give no close; 10.30 is illustrative. The notes fix range, Fibonacci number, and offsets.",
+  "expected": {
+    "range_units": "66",
+    "fib": 55,
+    "offsets": [55, 89, 144, 233],
+    "up": {"break": "10.85", "confirmation": "11.19", "take_profit": "11.74", "reset": "12.63"},
+    "down": {"break": "9.75", "confirmation": "9.41", "take_profit": "8.86", "reset": "7.97"}
+  }
+}
