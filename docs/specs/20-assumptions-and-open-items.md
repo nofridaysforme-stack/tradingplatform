@@ -56,3 +56,6 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | 2026-10-01 | Multiple broker profiles; no trade execution |
 | 2026-10-01 | Build with provisional definitions; approve later in Settings |
 | 2026-10-01 | Host on Railway |
+| 2026-10-01 | Add a `strategy_configs` table: one row per strategy with an on/off switch and the pairs it scans (resolves CLAUDE.md and spec 09 disagreement) |
+| 2026-10-01 | First admin email added by `db/seed-admin.sh`, not the SQL seed |
+| 2026-10-01 | Web image built from the repository root so it carries dbmate and the migrations for the pre-deploy step |

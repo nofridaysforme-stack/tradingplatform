@@ -1,10 +1,10 @@
-# Database Schema
+-- migrate:up
 
-Postgres. Migrations are plain SQL in `/db/migrations`, applied with dbmate. This file is the schema of record; the first migration implements it. All timestamps are `timestamptz` in UTC. Prices are `numeric(18,8)`.
+-- Schema of record: docs/specs/09-database-schema.md.
+-- All timestamps are timestamptz in UTC. Forex prices are numeric(18,8).
 
-## Enums
+-- Enums
 
-```sql
 CREATE TYPE user_role        AS ENUM ('owner', 'admin');
 CREATE TYPE strategy_key     AS ENUM ('three_eight', 'fib_pivot', 'stocks');
 CREATE TYPE rule_kind        AS ENUM ('indicator', 'gate', 'plan', 'filter', 'lifecycle');
@@ -16,11 +16,9 @@ CREATE TYPE delivery_status  AS ENUM ('queued', 'sent', 'failed', 'skipped');
 CREATE TYPE level_set        AS ENUM ('daily', 'weekly', 'monthly', 'prev_day', 'fib_pivot');
 CREATE TYPE econ_impact      AS ENUM ('high', 'medium', 'low');
 CREATE TYPE screen_status    AS ENUM ('qualified', 'trend_established', 'trend_confirmed');
-```
 
-## People and access
+-- People and access
 
-```sql
 CREATE TABLE users (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email           text UNIQUE NOT NULL,
@@ -31,18 +29,25 @@ CREATE TABLE users (
   active_broker_id uuid,
   acknowledged_notice_at timestamptz,
   created_at      timestamptz NOT NULL DEFAULT now(),
-  email_verified  timestamptz,                 -- required by the Auth.js adapter
-  image           text                         -- required by the Auth.js adapter
+  -- Required by the Auth.js adapter
+  email_verified  timestamptz,
+  image           text
 );
 
 -- Auth.js adapter tables (database sessions, email magic link)
+
 CREATE TABLE accounts (
   user_id             uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type                text NOT NULL,
   provider            text NOT NULL,
   provider_account_id text NOT NULL,
-  refresh_token text, access_token text, expires_at integer, token_type text,
-  scope text, id_token text, session_state text,
+  refresh_token       text,
+  access_token        text,
+  expires_at          integer,
+  token_type          text,
+  scope               text,
+  id_token            text,
+  session_state       text,
   PRIMARY KEY (provider, provider_account_id)
 );
 
@@ -64,11 +69,9 @@ CREATE TABLE allowlist (
   added_by    uuid REFERENCES users(id),
   added_at    timestamptz NOT NULL DEFAULT now()
 );
-```
 
-## Instruments and brokers
+-- Instruments and brokers
 
-```sql
 CREATE TABLE instruments (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   symbol        text UNIQUE NOT NULL,          -- 'EUR/USD'
@@ -106,11 +109,9 @@ CREATE TABLE market_holidays (
   market      text NOT NULL,                   -- 'forex' or 'us_stocks'
   note        text
 );
-```
 
-## Market data
+-- Market data
 
-```sql
 CREATE TABLE candles (
   instrument_id uuid REFERENCES instruments(id) ON DELETE CASCADE,
   granularity   text NOT NULL,                 -- 'M15', 'D', 'W', 'M'
@@ -158,11 +159,9 @@ CREATE TABLE econ_events (
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX econ_events_at_idx ON econ_events (at);
-```
 
-## Rules
+-- Rules
 
-```sql
 CREATE TABLE rule_definitions (
   key           text PRIMARY KEY,              -- 'three_eight.pivot_touch'
   strategy      strategy_key NOT NULL,
@@ -211,11 +210,9 @@ CREATE TABLE rule_config_revision (
   revision      bigint NOT NULL DEFAULT 1,
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
-```
 
-## Signals
+-- Signals
 
-```sql
 CREATE TABLE signals (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   strategy      strategy_key NOT NULL,
@@ -267,11 +264,9 @@ CREATE TABLE signal_events (
   price         numeric(18,8),
   note          text
 );
-```
 
-## Stocks
+-- Stocks
 
-```sql
 CREATE TABLE stock_screen_results (
   session_date  date NOT NULL,
   ticker        text NOT NULL,
@@ -300,11 +295,9 @@ CREATE TABLE holdings (
   notes         text,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
-```
 
-## Notifications
+-- Notifications
 
-```sql
 CREATE TABLE notification_prefs (
   user_id       uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   channels      channel_kind[] NOT NULL DEFAULT '{webpush,email}',
@@ -347,11 +340,9 @@ CREATE TABLE notifications (
   created_at    timestamptz NOT NULL DEFAULT now(),
   sent_at       timestamptz
 );
-```
 
-## Operations
+-- Operations
 
-```sql
 CREATE TABLE job_runs (
   id            bigserial PRIMARY KEY,
   job           text NOT NULL,                 -- 'forex_bar_close','forex_day_roll','stock_eod','heartbeat','backfill'
@@ -377,24 +368,19 @@ CREATE TABLE audit_log (
   before        jsonb,
   after         jsonb
 );
-```
 
-## Retention
+-- migrate:down
 
-| Table | Keep |
-|---|---|
-| candles M15 | 2 years (backtests fetch deeper history directly from OANDA) |
-| candles D, W, M | Indefinitely |
-| stock_daily_bars | 400 sessions |
-| stock_screen_results | 2 years |
-| signals and children | Indefinitely |
-| notifications | 180 days |
-| job_runs | 90 days |
+DROP TABLE IF EXISTS
+  audit_log, worker_heartbeat, job_runs,
+  notifications, telegram_links, push_subscriptions, notification_prefs,
+  holdings, stock_screen_results,
+  signal_events, signal_indicators, signals,
+  rule_config_revision, strategy_configs, strategy_param_overrides, rule_versions, rule_definitions,
+  econ_events, levels, stock_daily_bars, stock_tickers, candles,
+  market_holidays, broker_spreads, brokers, instruments,
+  allowlist, verification_tokens, sessions, accounts, users;
 
-A nightly `retention` job deletes expired rows.
-
-## Seed migration
-
-Seeds: the seven instruments, the rule definitions and version 1 rows from specs 06 to 08, one `strategy_configs` row per strategy (all enabled), `rule_config_revision`, and `worker_heartbeat`.
-
-The first admin email cannot come from a SQL migration, which cannot read environment variables. `db/seed-admin.sh` adds `SEED_ADMIN_EMAIL` to `allowlist`. It is idempotent and runs on each web deploy right after the migrations.
+DROP TYPE IF EXISTS
+  screen_status, econ_impact, level_set, delivery_status, channel_kind,
+  signal_state, direction, rule_status, rule_kind, strategy_key, user_role;
