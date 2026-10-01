@@ -29,10 +29,50 @@ jobs:
               - 'apps/web/**'
               - '.github/workflows/ci.yml'
             scanner:
-              - 'services/scanner/**'
-              - 'db/migrations/**'
-              - '.github/workflows/ci.yml'
-            db:
+    needs: changes
+    if: needs.changes.outputs.scanner == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: portal
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/portal
+    defaults:
+      run:
+        working-directory: services/scanner
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: db/package-lock.json
+      - name: Apply migrations
+        working-directory: db
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/portal?sslmode=disable
+          DBMATE_NO_DUMP_SCHEMA: "true"
+        run: |
+          npm ci
+          npx dbmate --migrations-dir migrations up
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: services/scanner/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy --strict scanner tests
+      - run: uv run pytest --cov=scanner --cov-report=term
+
+  db:
               - 'db/**'
               - '.github/workflows/ci.yml'
 
