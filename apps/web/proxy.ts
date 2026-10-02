@@ -15,6 +15,9 @@ export function proxy(request: NextRequest) {
     "img-src 'self' blob: data:",
     "font-src 'self'",
     "connect-src 'self'",
+    // strict-dynamic ignores 'self' for scripts, so the service worker needs its own rule.
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
