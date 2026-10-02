@@ -1,6 +1,8 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+import pytest
+
 from scanner.rules.registry import RuleSet
 from scanner.strategies.stock_screener import (
     DayBar,
@@ -104,3 +106,18 @@ def test_digest_skips_recent_and_ranks_by_apr_20() -> None:
     assert fast and slow
     assert [r.ticker for r in digest_candidates([slow, fast], set(), rs)] == ["FAST", "SLOW"]
     assert [r.ticker for r in digest_candidates([slow, fast], {"FAST"}, rs)] == ["SLOW"]
+
+
+def test_sales_target_shared_cases() -> None:
+    """The portal's TypeScript port is tested against the same cases."""
+    for c in load_fixture("holding_cases.json")["cases"]:
+        price, pct = Decimal(c["purchase_price"]), Decimal(c["expected_profit_pct"])
+        st = sales_target(price, pct, c["horizon_sessions"])
+        ck = check_holding(
+            price, pct, c["horizon_sessions"], Decimal(c["last_close"]), c["sessions_elapsed"]
+        )
+        e = c["expected"]
+        assert float(st.target) == pytest.approx(e["target"])
+        assert float(st.daily) == pytest.approx(e["daily"])
+        assert float(ck.progress) == pytest.approx(e["progress"])
+        assert (ck.target_reached, ck.time_elapsed) == (e["target_reached"], e["time_elapsed"])

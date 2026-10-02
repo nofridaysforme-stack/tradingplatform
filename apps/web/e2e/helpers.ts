@@ -30,6 +30,9 @@ export async function signIn(page: Page) {
 export async function expectNoAxeViolations(page: Page) {
   // Next streams page metadata, so the <title> can land just after the page loads.
   await expect(page).toHaveTitle(/\S/);
+  // Wide tables scroll inside their own box; the page itself never scrolls sideways.
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(0);
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).join(", ")})`)).toEqual([]);
 }

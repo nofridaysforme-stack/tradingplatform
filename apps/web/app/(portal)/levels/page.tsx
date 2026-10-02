@@ -22,7 +22,7 @@ export default async function LevelsPage({ searchParams }: PageProps<"/levels">)
       ) : (
         <>
           {/* Mobile: one pair at a time, chosen with chips. Desktop: every pair. */}
-          <nav aria-label="Pairs" className="overflow-x-auto px-5 pb-3 lg:hidden">
+          <nav aria-label="Pairs" className="relative overflow-x-auto px-5 pb-3 lg:hidden">
             <ul className="m-0 flex list-none gap-2 p-0">
               {pairs.map((p) => {
                 const on = p.id === selected?.id;

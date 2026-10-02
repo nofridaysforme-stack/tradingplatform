@@ -1,0 +1,85 @@
+{
+  "note": "Spec 08 sales targets. The scanner (Python) and the portal (TypeScript) are both tested against these cases.",
+  "cases": [
+    {
+      "purchase_price": "23.13",
+      "expected_profit_pct": "30",
+      "horizon_sessions": 20,
+      "last_close": "25.00",
+      "sessions_elapsed": 7,
+      "expected": {
+        "target": 30.069,
+        "earnings": 6.939,
+        "daily": 0.34695,
+        "weekly": 1.73475,
+        "progress": 0.26949128116443294,
+        "target_reached": false,
+        "time_elapsed": false
+      }
+    },
+    {
+      "purchase_price": "23.13",
+      "expected_profit_pct": "30",
+      "horizon_sessions": 20,
+      "last_close": "30.07",
+      "sessions_elapsed": 12,
+      "expected": {
+        "target": 30.069,
+        "earnings": 6.939,
+        "daily": 0.34695,
+        "weekly": 1.73475,
+        "progress": 1.0001441129845798,
+        "target_reached": true,
+        "time_elapsed": false
+      }
+    },
+    {
+      "purchase_price": "10.00",
+      "expected_profit_pct": "25",
+      "horizon_sessions": 20,
+      "last_close": "9.50",
+      "sessions_elapsed": 20,
+      "expected": {
+        "target": 12.5,
+        "earnings": 2.5,
+        "daily": 0.125,
+        "weekly": 0.625,
+        "progress": -0.2,
+        "target_reached": false,
+        "time_elapsed": true
+      }
+    },
+    {
+      "purchase_price": "48.20",
+      "expected_profit_pct": "30",
+      "horizon_sessions": 10,
+      "last_close": "50.00",
+      "sessions_elapsed": 10,
+      "expected": {
+        "target": 62.66,
+        "earnings": 14.46,
+        "daily": 1.446,
+        "weekly": 7.23,
+        "progress": 0.12448132780082988,
+        "target_reached": false,
+        "time_elapsed": true
+      }
+    },
+    {
+      "purchase_price": "5.36",
+      "expected_profit_pct": "50",
+      "horizon_sessions": 20,
+      "last_close": "5.36",
+      "sessions_elapsed": 0,
+      "expected": {
+        "target": 8.04,
+        "earnings": 2.68,
+        "daily": 0.134,
+        "weekly": 0.67,
+        "progress": 0.0,
+        "target_reached": false,
+        "time_elapsed": false
+      }
+    }
+  ]
+}

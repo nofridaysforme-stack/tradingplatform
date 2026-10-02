@@ -121,8 +121,67 @@ export async function seedMarket(sql: postgres.Sql, now = new Date()) {
     at: now.toISOString(), forex_open: true, trading_day: day, window_enabled: true, window: "primary",
     windows: [{ start: "00:00", end: "10:30" }], in_window: true, next_open: null, stale: ["GBP/USD"],
   };
+  await seedStocks(sql);
+  const nextWeek = new Date(now.getTime() + 3 * 86_400_000);
+  const lastWeek = new Date(now.getTime() - 2 * 86_400_000);
+  await sql`insert into econ_events (at, currency, title, impact) values
+    (${nextWeek}, 'USD', 'E2E Nonfarm payrolls', 'high'), (${lastWeek}, 'EUR', 'E2E ECB rate decision', 'high')`;
   await sql`insert into worker_heartbeat (id, at, version, market) values (true, ${now}, 'e2e', ${sql.json(market)})
     on conflict (id) do update set at = excluded.at, version = excluded.version, market = excluded.market`;
+}
+
+export const STOCKS = ["E2EA", "E2EB", "E2EC"] as const;
+export const SESSION = "2026-09-30";
+export const PREV_SESSION = "2026-09-29";
+
+function weekdays(end: string, count: number): string[] {
+  const out: string[] = [];
+  const d = new Date(`${end}T12:00:00Z`);
+  while (out.length < count) {
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) out.unshift(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() - 1);
+  }
+  return out;
+}
+
+/** Three made-up tickers with bars and two sessions of screen results. */
+export async function seedStocks(sql: postgres.Sql) {
+  await clearStocks(sql);
+  await sql`insert into stock_tickers (ticker, name, exchange) values
+    ('E2EA', 'E2E Alpha Industries', 'XNYS'), ('E2EB', 'E2E Beta Labs', 'XNAS'), ('E2EC', 'E2E Gamma Retail', 'XNAS')`;
+  const days = weekdays(SESSION, 60);
+  const bars = STOCKS.flatMap((ticker, k) =>
+    days.map((d, i) => {
+      const c = [30 + i * 0.35, 18 + i * 0.2, 12 + Math.sin(i / 4)][k]!;
+      return { ticker, session_date: d, o: c - 0.2, h: c + 0.4, l: c - 0.5, c, volume: 500_000 + i * 1000 };
+    }),
+  );
+  await sql`insert into stock_daily_bars ${sql(bars)}`;
+  const versions = sql.json({ "stocks.rule1_near_high": 1, "stocks.rule2_double": 1, "stocks.rule3_apr": 1 });
+  const row = (session_date: string, ticker: string, status: string, close: number, high: number, low: number, closes: [number, number, number, number], consistent: boolean) => {
+    const acc = closes.map((x) => (close - x) / x);
+    const apr = acc.map((a, i) => (a / [5, 10, 20, 50][i]!) * 260);
+    return {
+      session_date, ticker, status, close, high_52w: high, low_52w: low, apr_52w: (high - low) / low,
+      close_5: closes[0], close_10: closes[1], close_20: closes[2], close_50: closes[3],
+      acc_5: acc[0], acc_10: acc[1], acc_20: acc[2], acc_50: acc[3],
+      apr_5: apr[0], apr_10: apr[1], apr_20: apr[2], apr_50: apr[3],
+      consistent, version_set: versions,
+    };
+  };
+  await sql`insert into stock_screen_results ${sql([
+    row(PREV_SESSION, "E2EA", "qualified", 50.3, 52, 20, [48.5, 46.8, 43.4, 50.6], false),
+    row(SESSION, "E2EA", "trend_confirmed", 50.65, 52, 20, [48.9, 47.2, 43.7, 33.9], true),
+    row(SESSION, "E2EB", "qualified", 29.8, 32, 14, [30.1, 29, 26, 31], false),
+    row(SESSION, "E2EC", "trend_established", 12.5, 13.5, 6, [12.9, 12.2, 11.4, 13.1], false),
+  ])}`;
+}
+
+export async function clearStocks(sql: postgres.Sql) {
+  await sql`delete from stock_screen_results where ticker in ${sql([...STOCKS])}`;
+  await sql`delete from stock_daily_bars where ticker in ${sql([...STOCKS])}`;
+  await sql`delete from stock_tickers where ticker in ${sql([...STOCKS])}`;
+  await sql`delete from econ_events where title like 'E2E %'`;
 }
 
 export async function clearMarket(sql: postgres.Sql) {
@@ -135,4 +194,5 @@ export async function clearMarket(sql: postgres.Sql) {
   }
   await sql`delete from brokers where id = ${BROKER}`;
   await sql`delete from job_runs where detail->>'e2e' = 'true'`;
+  await clearStocks(sql);
 }

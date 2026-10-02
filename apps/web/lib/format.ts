@@ -67,3 +67,17 @@ export function nextBarClose(now: Date): Date {
   const bar = 15 * 60_000;
   return new Date(Math.floor(now.getTime() / bar) * bar + bar);
 }
+
+const pctSmall = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
+const pctLarge = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 0 });
+
+/** A ratio as a percentage: 0.392 -> "39.2%", 20.39 -> "2,039%". */
+export function percent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "";
+  return Math.abs(value) >= 10 ? pctLarge.format(value) : pctSmall.format(value);
+}
+
+/** Stock prices: two decimals (spec 08). */
+export function money(value: number | null | undefined): string {
+  return value === null || value === undefined ? "" : value.toFixed(2);
+}

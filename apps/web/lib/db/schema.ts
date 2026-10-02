@@ -287,3 +287,79 @@ export interface WorkerMarket {
   next_open: string | null;
   stale: string[];
 }
+
+// Stocks (spec 08), written by the stock_eod job; holdings are entered by owners.
+
+export type ScreenStatus = "qualified" | "trend_established" | "trend_confirmed";
+
+export const stockTickers = pgTable("stock_tickers", {
+  ticker: text("ticker").primaryKey(),
+  name: text("name"),
+  exchange: text("exchange"),
+  active: boolean("active").notNull(),
+});
+
+export const stockDailyBars = pgTable(
+  "stock_daily_bars",
+  {
+    ticker: text("ticker").notNull(),
+    sessionDate: date("session_date").notNull(),
+    o: numeric("o").notNull(),
+    h: numeric("h").notNull(),
+    l: numeric("l").notNull(),
+    c: numeric("c").notNull(),
+    volume: bigint("volume", { mode: "number" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ticker, t.sessionDate] })],
+);
+
+export const stockScreenResults = pgTable(
+  "stock_screen_results",
+  {
+    sessionDate: date("session_date").notNull(),
+    ticker: text("ticker").notNull(),
+    status: text("status").$type<ScreenStatus>().notNull(),
+    close: numeric("close").notNull(),
+    high52w: numeric("high_52w").notNull(),
+    low52w: numeric("low_52w").notNull(),
+    apr52w: numeric("apr_52w").notNull(),
+    close5: numeric("close_5"),
+    close10: numeric("close_10"),
+    close20: numeric("close_20"),
+    close50: numeric("close_50"),
+    acc5: numeric("acc_5"),
+    acc10: numeric("acc_10"),
+    acc20: numeric("acc_20"),
+    acc50: numeric("acc_50"),
+    apr5: numeric("apr_5"),
+    apr10: numeric("apr_10"),
+    apr20: numeric("apr_20"),
+    apr50: numeric("apr_50"),
+    consistent: boolean("consistent").notNull(),
+    versionSet: jsonb("version_set").$type<Record<string, number>>().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.sessionDate, t.ticker] })],
+);
+
+export const holdings = pgTable("holdings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  ticker: text("ticker").notNull(),
+  purchasePrice: numeric("purchase_price").notNull(),
+  purchaseDate: date("purchase_date").notNull(),
+  expectedProfitPct: numeric("expected_profit_pct").notNull(),
+  horizonSessions: smallint("horizon_sessions").notNull(),
+  closed: boolean("closed").notNull().default(false),
+  notes: text("notes"),
+  createdAt: tz("created_at").notNull().defaultNow(),
+});
+
+export const econEvents = pgTable("econ_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  at: tz("at").notNull(),
+  currency: text("currency").notNull(),
+  title: text("title").notNull(),
+  impact: text("impact").$type<"high" | "medium" | "low">().notNull(),
+  createdBy: uuid("created_by"),
+  createdAt: tz("created_at").notNull().defaultNow(),
+});

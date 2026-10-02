@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { age, nyDayTime, nyTime, pips, price, ratio } from "./format";
+import { age, money, nyDayTime, nyTime, percent, pips, price, ratio } from "./format";
 
 describe("format", () => {
   it("shows prices at the instrument's decimals", () => {
@@ -30,5 +30,13 @@ describe("format", () => {
     expect(age(new Date("2026-10-07T13:18:00Z"), now)).toBe("12 min ago");
     expect(age(new Date("2026-10-07T10:00:00Z"), now)).toBe("3 h ago");
     expect(age(new Date("2026-10-05T13:00:00Z"), now)).toBe("2 days ago");
+  });
+
+  it("formats stock figures", () => {
+    expect(percent(0.392207)).toBe("39.2%");
+    expect(percent(20.3948)).toBe("2,039%");
+    expect(percent(-0.05)).toBe("-5%");
+    expect(percent(null)).toBe("");
+    expect(money(30.069)).toBe("30.07");
   });
 });
