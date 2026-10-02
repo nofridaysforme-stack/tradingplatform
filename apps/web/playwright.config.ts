@@ -39,6 +39,8 @@ export default defineConfig({
       // Telegram linking without a bot token: nothing is sent to Telegram in tests.
       TELEGRAM_BOT_USERNAME: "e2e_test_bot",
       TELEGRAM_WEBHOOK_SECRET: "e2e-webhook-secret-0123456789",
+      // The heartbeat alert is driven directly by e2e/watchdog.spec.ts, not on a timer.
+      HEALTH_WATCHDOG: "off",
     },
   },
 });

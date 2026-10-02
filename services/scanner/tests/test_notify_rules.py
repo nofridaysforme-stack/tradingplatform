@@ -1,6 +1,9 @@
+import json
 from datetime import UTC, datetime, time
+from pathlib import Path
 from uuid import UUID, uuid4
 
+from scanner.notify.health import HEARTBEAT_TEXT
 from scanner.notify.messages import (
     DigestRow,
     SignalFacts,
@@ -121,3 +124,14 @@ def test_skip_reasons_follow_the_spec_order() -> None:
     assert skip("email", "health", at=NIGHT_NY) is None
     # A test notification goes out whenever the owner presses the button.
     assert skip("webpush", "test", at=NIGHT_NY) is None
+
+
+def test_heartbeat_alert_matches_the_shared_fixture() -> None:
+    """The web service sends this one alert while the scanner is down (apps/web/lib/
+    watchdog.ts); both sides read fixtures/heartbeat_alert.json so the wording stays the same."""
+    fixture = json.loads((Path(__file__).parent / "fixtures" / "heartbeat_alert.json").read_text())
+    assert fixture["body"] == HEARTBEAT_TEXT
+    base = fixture["base_url"]
+    m = health_message("heartbeat_stale", HEARTBEAT_TEXT, resolved=False, base_url=base)
+    assert (m.title, m.body, m.url) == (fixture["title"], fixture["body"], fixture["url"])
+    assert (m.text(), m.html()) == (fixture["text"], fixture["html"])

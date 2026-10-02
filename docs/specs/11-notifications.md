@@ -99,3 +99,5 @@ Sent to admins and to `OPS_ALERT_EMAIL` through email and Telegram:
 - A job failing three runs in a row
 
 Health alerts repeat at most once per hour per condition and send a "Resolved" message when the condition clears.
+
+The scanner checks these every 5 minutes. A stopped scanner cannot report its own late heartbeat, so the web service checks the heartbeat every minute and sends that alert itself, sharing the same alert state; the scanner sends "Resolved" when it returns.

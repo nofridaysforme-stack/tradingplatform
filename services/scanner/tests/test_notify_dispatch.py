@@ -295,6 +295,29 @@ def test_health_alerts_repeat_hourly_and_resolve(
     assert "Health alert: no new bars for GBP/USD" in titles
 
 
+def test_scanner_resolves_an_alert_the_web_service_raised(
+    conn: Conn, people: dict[str, UUID], senders: dict[Channel, FakeSender]
+) -> None:
+    """While the scanner is down the web service raises heartbeat_stale (apps/web/lib/
+    watchdog.ts). On its first health check back, the scanner sends "Resolved"."""
+    conn.execute("DELETE FROM health_alerts")
+    conn.execute(
+        "INSERT INTO health_alerts (condition, first_seen_at, last_sent_at, detail) "
+        "VALUES ('heartbeat_stale', %s, %s, '{\"source\": \"web\"}')",
+        (NOW - timedelta(minutes=20), NOW - timedelta(minutes=20)),
+    )
+    conn.execute("DELETE FROM worker_heartbeat")
+    conn.execute(
+        "INSERT INTO worker_heartbeat (id, at, version) VALUES (true, %s, 't')",
+        (NOW - timedelta(seconds=30),),
+    )
+    result = run_health_check(conn, senders, NOW, BASE, "ops@example.com")
+    assert result == {"active": [], "alerted": [], "resolved": ["heartbeat_stale"]}
+    deliver_due(conn, senders, NOW + timedelta(seconds=1), base_url=BASE)
+    sent = [(t.email, m.title) for t, m in senders["email"].sent]
+    assert ("ops@example.com", "Resolved: scanner heartbeat is late") in sent
+
+
 def test_health_conditions_from_job_runs(
     conn: Conn, people: dict[str, UUID], senders: dict[Channel, FakeSender]
 ) -> None:

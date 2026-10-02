@@ -29,6 +29,7 @@ jobs:
               - 'apps/web/**'
               - 'db/migrations/**'
               - 'services/scanner/tests/fixtures/broker_adjust_cases.json'
+              - 'services/scanner/tests/fixtures/heartbeat_alert.json'
               - '.github/workflows/ci.yml'
             scanner:
               - 'services/scanner/**'

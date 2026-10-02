@@ -33,7 +33,7 @@ Accounts (OANDA, Massive, Railway, Resend, Telegram bot) are opened in the clien
 | TELEGRAM_BOT_TOKEN | yes | yes | |
 | TELEGRAM_BOT_USERNAME | yes | | |
 | TELEGRAM_WEBHOOK_SECRET | yes | | |
-| OPS_ALERT_EMAIL | | yes | Jana's or the admins' address |
+| OPS_ALERT_EMAIL | yes | yes | Jana's or the admins' address |
 | SEED_ADMIN_EMAIL | yes | | used once by the seed |
 | LOG_LEVEL | yes | yes | `info` |
 

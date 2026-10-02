@@ -58,7 +58,7 @@ Use Railway's reference variable for the database (`${{Postgres.DATABASE_URL}}`)
 | `TELEGRAM_BOT_TOKEN` | yes | yes | From BotFather |
 | `TELEGRAM_BOT_USERNAME` | yes | | The bot's username, without the `@` |
 | `TELEGRAM_WEBHOOK_SECRET` | yes | | Run `openssl rand -hex 24` on your computer |
-| `OPS_ALERT_EMAIL` | | yes | Where health alerts go besides the admins |
+| `OPS_ALERT_EMAIL` | yes | yes | Where health alerts go besides the admins |
 | `LOG_LEVEL` | yes | yes | `info` |
 
 **Push keys.** Make the pair once per environment. With the Railway command line installed and linked to the project:
@@ -101,6 +101,6 @@ Use `--since YYYY-MM-DD` to restart the count after a fix. The report also lists
 
 1. **Rules.** Every rule shows in Settings, Rules with the right status, parameters, and source reference.
 2. **Rule change.** Change one parameter on staging, check that the next bar's signals use the new version, and that the change appears in the audit log. Change it back.
-3. **Failure drill.** Stop the scanner for 10 minutes (remove its active deployment in Railway), confirm the alert, redeploy it, and confirm the "Resolved" message.
+3. **Failure drill.** Stop the scanner for 10 minutes (remove its active deployment in Railway). Within about 6 minutes every admin and `OPS_ALERT_EMAIL` get "Health alert: scanner heartbeat is late" by email, and admins with Telegram linked get it there too; the web service sends it, and the web log shows `scanner heartbeat late, alert raised`. Redeploy the scanner; within 5 minutes of it starting, the same people get "Resolved: scanner heartbeat is late".
 
 When everything passes, record the sign-off on the checklist issue. Phase 8 (production) starts after that.
