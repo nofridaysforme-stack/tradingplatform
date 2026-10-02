@@ -280,6 +280,17 @@ def heartbeat(conn: Conn, version: str, market: dict[str, Any] | None = None) ->
     )
 
 
+def instruments_without_history(conn: Conn) -> list[Instrument]:
+    """Enabled pairs with no daily bars yet: an admin just added them (spec 14 upsertInstrument)."""
+    have = {
+        r[0]
+        for r in conn.execute(
+            "SELECT DISTINCT instrument_id FROM candles WHERE granularity = 'D'"
+        ).fetchall()
+    }
+    return [i for i in list_instruments(conn) if i.id not in have]
+
+
 def last_m15_bars(conn: Conn) -> dict[str, datetime | None]:
     """Open time of the newest stored M15 bar for each enabled pair."""
     rows = conn.execute(
