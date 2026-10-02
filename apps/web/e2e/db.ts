@@ -33,3 +33,36 @@ export async function makeAdmin() {
 
 export const resetMarket = () => withSql((sql) => seedMarket(sql));
 export const removeMarket = () => withSql((sql) => clearMarket(sql));
+
+export interface RulesSnapshot {
+  versions: { key: string; current_version: number }[];
+  configs: { strategy: string; enabled: boolean; instrument_ids: string[] | null }[];
+}
+
+/** Rule state before a test that edits rules, so it can be put back exactly. */
+export const snapshotRules = () =>
+  withSql(async (sql) => ({
+    versions: await sql<RulesSnapshot["versions"]>`select key, current_version from rule_definitions`,
+    configs: await sql<RulesSnapshot["configs"]>`select strategy::text, enabled, instrument_ids from strategy_configs`,
+  }));
+
+export const restoreRules = (snap: RulesSnapshot) =>
+  withSql(async (sql) => {
+    for (const v of snap.versions) {
+      await sql`update rule_definitions set current_version = ${v.current_version} where key = ${v.key}`;
+      await sql`delete from rule_versions where key = ${v.key} and version > ${v.current_version}`;
+    }
+    for (const c of snap.configs) {
+      await sql`update strategy_configs set enabled = ${c.enabled}, instrument_ids = ${c.instrument_ids}, updated_by = null where strategy = ${c.strategy}::strategy_key`;
+    }
+    await sql`delete from strategy_param_overrides where updated_by in (select id from users where email = ${E2E_EMAIL})`;
+  });
+
+export const ruleState = (key: string) =>
+  withSql(async (sql) => {
+    const [row] = await sql<{ current_version: number; status: string; params: Record<string, unknown>; revision: number }[]>`
+      select d.current_version, v.status::text, v.params, (select revision::int from rule_config_revision) as revision
+      from rule_definitions d join rule_versions v on v.key = d.key and v.version = d.current_version where d.key = ${key}`;
+    const audits = await sql<{ action: string }[]>`select action from audit_log where target like ${key + "%"} order by id`;
+    return { ...row!, audits: audits.map((a) => a.action) };
+  });

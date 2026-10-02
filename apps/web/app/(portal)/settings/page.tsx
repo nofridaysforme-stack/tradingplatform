@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { Button } from "@/components/ui";
 import { NOTICE } from "@/lib/notice";
 import { requireUser } from "@/lib/session";
@@ -22,6 +23,22 @@ export default async function SettingsPage() {
           {user.role === "admin" ? " · Admin" : ""}
         </p>
       </header>
+
+      {user.role === "admin" && (
+        <section aria-labelledby="admin-h" className="border-t border-rule px-5 py-5">
+          <h2 id="admin-h" className="mt-0 mb-2 text-[15px] font-semibold">
+            Admin
+          </h2>
+          <ul className="m-0 list-none p-0">
+            <li>
+              <Link href="/settings/rules" className="inline-flex min-h-11 items-center text-sm text-link">
+                Rules
+              </Link>
+              <span className="ml-2 text-[13px] text-mute">Parameters, approvals, per-pair overrides, strategy switches</span>
+            </li>
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="theme-h" className="border-t border-rule px-5 py-5">
         <h2 id="theme-h" className="mt-0 mb-3 text-[15px] font-semibold">

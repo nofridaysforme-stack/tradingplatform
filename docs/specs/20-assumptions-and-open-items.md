@@ -55,7 +55,6 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | T5 | Resend and uptime monitor free-tier limits | Confirm during setup |
 | T6 | Broker list and typical spreads | Owners enter during Phase 5 |
 | T7 | Domain name | Owners choose |
-| T8 | Forex session names and hours for the dashboard status line (spec 13 "current session"; the design shows "New York session") | Not shown until the owners give the hours, for example Sydney, Tokyo, London, New York in New York time |
 
 ## Decisions log
 
@@ -70,3 +69,5 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | 2026-10-01 | Add a `strategy_configs` table: one row per strategy with an on/off switch and the pairs it scans (resolves CLAUDE.md and spec 09 disagreement) |
 | 2026-10-01 | First admin email added by `db/seed-admin.sh`, not the SQL seed |
 | 2026-10-01 | Web image built from the repository root so it carries dbmate and the migrations for the pre-deploy step |
+| 2026-10-02 | Dashboard status line shows the current New York time instead of a forex session name (spec 13 "current session"; closes open item T8) |
+| 2026-10-02 | Provisional badge text uses a darker violet (`--prov-ink`, #5B44B8) in the light theme so it meets 4.5:1 on the selected-row fill; the dashed border keeps the design's `--prov` |

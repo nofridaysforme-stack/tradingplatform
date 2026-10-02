@@ -2,6 +2,7 @@
 // never generate migrations from this file). Property names for the Auth.js tables follow
 // the Auth.js Drizzle adapter; the columns map to the snake_case names in the SQL.
 import {
+  bigint,
   bigserial,
   boolean,
   date,
@@ -93,6 +94,7 @@ export const instruments = pgTable("instruments", {
   id: uuid("id").primaryKey(),
   symbol: text("symbol").notNull(),
   providerCode: text("provider_code").notNull(),
+  assetClass: text("asset_class").notNull(),
   pipSize: numeric("pip_size").notNull(),
   displayDecimals: smallint("display_decimals").notNull(),
   enabled: boolean("enabled").notNull(),
@@ -146,9 +148,10 @@ export const levels = pgTable(
 
 export const ruleDefinitions = pgTable("rule_definitions", {
   key: text("key").primaryKey(),
-  strategy: text("strategy").notNull(),
-  kind: text("kind").notNull(),
+  strategy: text("strategy").$type<Strategy | "stocks">().notNull(),
+  kind: text("kind").$type<"indicator" | "gate" | "plan" | "filter" | "lifecycle">().notNull(),
   name: text("name").notNull(),
+  source: text("source").notNull(),
   currentVersion: integer("current_version").notNull(),
 });
 
@@ -159,11 +162,43 @@ export const ruleVersions = pgTable(
     version: integer("version").notNull(),
     status: text("status").$type<"approved" | "provisional">().notNull(),
     enabled: boolean("enabled").notNull(),
+    countsTowardMinimum: boolean("counts_toward_minimum").notNull(),
     description: text("description").notNull(),
+    paramsSchema: jsonb("params_schema").$type<Record<string, { type: string; default?: unknown; min?: number; max?: number; options?: (string | number)[] }>>().notNull(),
     params: jsonb("params").$type<Record<string, unknown>>().notNull(),
+    changeNote: text("change_note"),
+    createdBy: uuid("created_by"),
+    createdAt: tz("created_at").notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.key, t.version] })],
 );
+
+export const strategyParamOverrides = pgTable(
+  "strategy_param_overrides",
+  {
+    key: text("key").notNull(),
+    instrumentId: uuid("instrument_id").notNull(),
+    params: jsonb("params").$type<Record<string, unknown>>().notNull(),
+    updatedBy: uuid("updated_by"),
+    updatedAt: tz("updated_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.instrumentId] })],
+);
+
+export const strategyConfigs = pgTable("strategy_configs", {
+  strategy: text("strategy").$type<Strategy | "stocks">().primaryKey(),
+  enabled: boolean("enabled").notNull(),
+  instrumentIds: uuid("instrument_ids").array(),
+  updatedBy: uuid("updated_by"),
+  updatedAt: tz("updated_at").notNull().defaultNow(),
+});
+
+/** Every rule change bumps this counter; the worker reloads rules when it moves (spec 05). */
+export const ruleConfigRevision = pgTable("rule_config_revision", {
+  id: boolean("id").primaryKey(),
+  revision: bigint("revision", { mode: "number" }).notNull(),
+  updatedAt: tz("updated_at").notNull().defaultNow(),
+});
 
 // Signals, written by the scanner.
 
