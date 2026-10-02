@@ -19,6 +19,8 @@ WATCHED_JOBS = ("forex_bar_close", "forex_day_roll", "stock_eod", "backfill", "t
 PROVIDER_JOBS = {"forex_bar_close": "OANDA", "backfill": "OANDA", "stock_eod": "Massive"}
 AUTH_ERROR = re.compile(r"returned (401|403)|paused until")
 HEALTH_CHANNELS: tuple[Channel, ...] = ("email", "telegram")
+# Also sent by the web service while the scanner is down (apps/web/lib/alert-message.ts).
+HEARTBEAT_TEXT = "The scanner has not reported for over 5 minutes."
 
 
 def conditions(conn: db.Conn, now: datetime) -> dict[str, str]:
@@ -26,7 +28,7 @@ def conditions(conn: db.Conn, now: datetime) -> dict[str, str]:
     out: dict[str, str] = {}
     hb = conn.execute("SELECT at, market FROM worker_heartbeat").fetchone()
     if hb is None or now - hb[0] > HEARTBEAT_LATE:
-        out["heartbeat_stale"] = "The scanner has not reported for over 5 minutes."
+        out["heartbeat_stale"] = HEARTBEAT_TEXT
     market: dict[str, Any] = (hb[1] if hb else None) or {}
     if market.get("forex_open"):
         for symbol in market.get("stale", []):

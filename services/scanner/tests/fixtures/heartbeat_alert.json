@@ -1,0 +1,8 @@
+{
+  "base_url": "https://desk.example.com",
+  "title": "Health alert: scanner heartbeat is late",
+  "body": "The scanner has not reported for over 5 minutes.",
+  "url": "https://desk.example.com/health",
+  "text": "Health alert: scanner heartbeat is late\n\nThe scanner has not reported for over 5 minutes.\n\nhttps://desk.example.com/health",
+  "html": "<!doctype html><html><body style='margin:0;padding:24px;background:#F6F7F5;color:#23282E;font:15px/1.5 IBM Plex Sans,Helvetica,Arial,sans-serif'><div style='max-width:560px;border-top:1px solid #C9CED3;padding-top:16px'><h1 style='font-size:18px;margin:0 0 12px'>Health alert: scanner heartbeat is late</h1><p style='margin:0 0 8px'>The scanner has not reported for over 5 minutes.</p><p style='margin:16px 0 0'><a href='https://desk.example.com/health' style='color:#2563C9'>Open in the portal</a></p><p style='margin:24px 0 0;color:#5A626B;font-size:13px'>Trading desk suggests trades from your own rules. It does not place trades. Every decision is yours.</p></div></body></html>"
+}
