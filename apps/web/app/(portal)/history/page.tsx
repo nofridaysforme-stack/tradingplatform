@@ -55,7 +55,7 @@ export default async function HistoryPage({ searchParams }: PageProps<"/history"
         {data.total === 0 ? (
           <p className="m-0 px-5 py-5 text-sm text-ink-2">No closed signals match these filters.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse font-condensed text-sm">
               <thead className="sticky top-0 bg-bg">
                 <tr className="text-xs text-mute">
