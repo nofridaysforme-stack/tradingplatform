@@ -19,6 +19,7 @@ from scanner.data.massive import MassiveClient
 from scanner.data.oanda import OandaClient
 from scanner.data.sync import refresh_universe
 from scanner.jobs import forex_bar_close, forex_day_roll, stock_eod
+from scanner.market_status import market_status
 from scanner.rules.registry import Registry
 from scanner.time import NEW_YORK
 
@@ -66,7 +67,21 @@ class Worker:
     def heartbeat(self) -> None:
         with self.pool.connection() as conn:
             conn.autocommit = True
-            db.heartbeat(conn, VERSION)
+            market: dict[str, Any] | None = None
+            try:
+                self.registry.refresh(conn)
+                status = market_status(
+                    datetime.now(UTC),
+                    self.registry.ruleset,
+                    db.holidays(conn, "forex"),
+                    db.last_m15_bars(conn),
+                )
+                market = status.model_dump(mode="json")
+            except Exception:
+                # The heartbeat itself must still be written; the portal shows the status
+                # as unknown.
+                log.exception("market status failed")
+            db.heartbeat(conn, VERSION, market)
 
     def bar_close(self, attempt: int = 0, symbols: list[str] | None = None) -> None:
         if self.oanda is None:

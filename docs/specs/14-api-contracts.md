@@ -11,7 +11,7 @@ Responses are JSON. Errors use `{ "error": { "code": "string", "message": "plain
 | `GET /api/signals?state=open,confirmed&strategy=&instrument=` | Signal list items with broker-adjusted prices for the caller |
 | `GET /api/signals/:id` | Full signal payload, indicators, gates, events, candles for the chart window, adjusted prices |
 | `GET /api/levels?instrument=EUR/USD&day=` | All level sets for that pair and day, plus last price |
-| `GET /api/market-status` | Forex open or closed, session, trading window state, New York time, stale pairs |
+| `GET /api/market-status` | Forex open or closed, session (see T8 in spec 20), trading window state, New York time, stale pairs. The worker computes these with each heartbeat (`worker_heartbeat.market`); the portal only displays them |
 | `GET /api/stocks/results?session=&status=&q=&sort=&page=` | Paginated screen results |
 | `GET /api/stocks/:ticker` | Bars (6 months), latest result, status history |
 | `GET /api/history?filters...` | Paginated closed signals plus summary metrics for the filter |

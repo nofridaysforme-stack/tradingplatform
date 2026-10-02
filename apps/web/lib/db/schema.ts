@@ -4,10 +4,13 @@
 import {
   bigserial,
   boolean,
+  date,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uuid,
@@ -82,3 +85,170 @@ export const auditLog = pgTable("audit_log", {
   before: jsonb("before"),
   after: jsonb("after"),
 });
+
+// Market data and brokers. Numeric columns come back as strings, so prices keep their exact
+// decimals.
+
+export const instruments = pgTable("instruments", {
+  id: uuid("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  providerCode: text("provider_code").notNull(),
+  pipSize: numeric("pip_size").notNull(),
+  displayDecimals: smallint("display_decimals").notNull(),
+  enabled: boolean("enabled").notNull(),
+  sortOrder: smallint("sort_order").notNull(),
+});
+
+export const brokers = pgTable("brokers", {
+  id: uuid("id").primaryKey(),
+  name: text("name").notNull(),
+  platformUrlTemplate: text("platform_url_template"),
+  active: boolean("active").notNull(),
+});
+
+export const brokerSpreads = pgTable(
+  "broker_spreads",
+  {
+    brokerId: uuid("broker_id").notNull(),
+    instrumentId: uuid("instrument_id").notNull(),
+    typicalSpreadPips: numeric("typical_spread_pips").notNull(),
+    symbolOverride: text("symbol_override"),
+  },
+  (t) => [primaryKey({ columns: [t.brokerId, t.instrumentId] })],
+);
+
+export const candles = pgTable(
+  "candles",
+  {
+    instrumentId: uuid("instrument_id").notNull(),
+    granularity: text("granularity").notNull(),
+    ts: tz("ts").notNull(),
+    o: numeric("o").notNull(),
+    h: numeric("h").notNull(),
+    l: numeric("l").notNull(),
+    c: numeric("c").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.instrumentId, t.granularity, t.ts] })],
+);
+
+export const levels = pgTable(
+  "levels",
+  {
+    instrumentId: uuid("instrument_id").notNull(),
+    tradingDay: date("trading_day").notNull(),
+    setKind: text("set_kind").$type<"daily" | "weekly" | "monthly" | "prev_day" | "fib_pivot">().notNull(),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.instrumentId, t.tradingDay, t.setKind] })],
+);
+
+// Rules (read here for names and the daily goal; edited in the rules pages).
+
+export const ruleDefinitions = pgTable("rule_definitions", {
+  key: text("key").primaryKey(),
+  strategy: text("strategy").notNull(),
+  kind: text("kind").notNull(),
+  name: text("name").notNull(),
+  currentVersion: integer("current_version").notNull(),
+});
+
+export const ruleVersions = pgTable(
+  "rule_versions",
+  {
+    key: text("key").notNull(),
+    version: integer("version").notNull(),
+    status: text("status").$type<"approved" | "provisional">().notNull(),
+    enabled: boolean("enabled").notNull(),
+    description: text("description").notNull(),
+    params: jsonb("params").$type<Record<string, unknown>>().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.version] })],
+);
+
+// Signals, written by the scanner.
+
+export type Strategy = "three_eight" | "fib_pivot";
+export type Direction = "long" | "short";
+export type SignalState = "open" | "confirmed" | "target_hit" | "stop_hit" | "expired" | "invalidated" | "ambiguous";
+
+export const signals = pgTable("signals", {
+  id: uuid("id").primaryKey(),
+  strategy: text("strategy").$type<Strategy>().notNull(),
+  instrumentId: uuid("instrument_id").notNull(),
+  direction: text("direction").$type<Direction>().notNull(),
+  state: text("state").$type<SignalState>().notNull(),
+  barTs: tz("bar_ts").notNull(),
+  tradingDay: date("trading_day").notNull(),
+  entry: numeric("entry").notNull(),
+  stop: numeric("stop").notNull(),
+  target: numeric("target").notNull(),
+  altTarget: numeric("alt_target"),
+  riskPips: numeric("risk_pips").notNull(),
+  rewardPips: numeric("reward_pips").notNull(),
+  rewardRisk: numeric("reward_risk").notNull(),
+  indicatorCount: smallint("indicator_count"),
+  hasProvisional: boolean("has_provisional").notNull(),
+  isCountertrend: boolean("is_countertrend").notNull(),
+  rangeMode: boolean("range_mode").notNull(),
+  versionSet: jsonb("version_set").$type<Record<string, number>>().notNull(),
+  context: jsonb("context").$type<Record<string, unknown>>().notNull(),
+  closedAt: tz("closed_at"),
+  exitPrice: numeric("exit_price"),
+  resultPips: numeric("result_pips"),
+  createdAt: tz("created_at").notNull(),
+});
+
+export const signalIndicators = pgTable(
+  "signal_indicators",
+  {
+    signalId: uuid("signal_id").notNull(),
+    key: text("key").notNull(),
+    version: integer("version").notNull(),
+    fired: boolean("fired").notNull(),
+    counted: boolean("counted").notNull(),
+    provisional: boolean("provisional").notNull(),
+    levelRef: text("level_ref"),
+    detail: jsonb("detail").$type<Record<string, unknown>>().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.signalId, t.key] })],
+);
+
+export const signalEvents = pgTable("signal_events", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  signalId: uuid("signal_id").notNull(),
+  at: tz("at").notNull().defaultNow(),
+  kind: text("kind").notNull(),
+  price: numeric("price"),
+  note: text("note"),
+});
+
+// Worker state.
+
+export const jobRuns = pgTable("job_runs", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  job: text("job").notNull(),
+  startedAt: tz("started_at").notNull(),
+  finishedAt: tz("finished_at"),
+  ok: boolean("ok"),
+  detail: jsonb("detail").$type<Record<string, unknown>>(),
+});
+
+export const workerHeartbeat = pgTable("worker_heartbeat", {
+  id: boolean("id").primaryKey(),
+  at: tz("at").notNull(),
+  version: text("version"),
+  market: jsonb("market").$type<WorkerMarket>(),
+});
+
+/** Written by the worker with each heartbeat (services/scanner/scanner/market_status.py). */
+export interface WorkerMarket {
+  at: string;
+  forex_open: boolean;
+  trading_day: string;
+  window_enabled: boolean;
+  window: "primary" | "alternative" | "both";
+  windows: { start: string; end: string }[];
+  in_window: boolean;
+  next_open: string | null;
+  stale: string[];
+}

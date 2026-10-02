@@ -15,7 +15,7 @@ from scanner.data.base import Candle, DailyBar, TickerRef
 from scanner.instruments import Instrument
 
 # The newest migration in db/migrations. A test keeps this in step with the folder.
-EXPECTED_SCHEMA_VERSION = "20261001000003"
+EXPECTED_SCHEMA_VERSION = "20261002000001"
 
 Conn = psycopg.Connection[Any]
 
@@ -271,12 +271,22 @@ def econ_events(conn: Conn, since: datetime, until: datetime) -> list[tuple[date
     return [(r[0], str(r[1]).strip(), cast(Impact, r[2])) for r in rows]
 
 
-def heartbeat(conn: Conn, version: str) -> None:
+def heartbeat(conn: Conn, version: str, market: dict[str, Any] | None = None) -> None:
     conn.execute(
-        "INSERT INTO worker_heartbeat (id, at, version) VALUES (true, now(), %s) "
-        "ON CONFLICT (id) DO UPDATE SET at = now(), version = EXCLUDED.version",
-        (version,),
+        "INSERT INTO worker_heartbeat (id, at, version, market) VALUES (true, now(), %s, %s) "
+        "ON CONFLICT (id) DO UPDATE SET at = now(), version = EXCLUDED.version, "
+        "market = EXCLUDED.market",
+        (version, Jsonb(market) if market is not None else None),
     )
+
+
+def last_m15_bars(conn: Conn) -> dict[str, datetime | None]:
+    """Open time of the newest stored M15 bar for each enabled pair."""
+    rows = conn.execute(
+        "SELECT i.symbol, (SELECT max(c.ts) FROM candles c WHERE c.instrument_id = i.id "
+        "AND c.granularity = 'M15') FROM instruments i WHERE i.enabled ORDER BY i.symbol"
+    ).fetchall()
+    return {r[0]: r[1] for r in rows}
 
 
 # Stocks: screener inputs and outputs
