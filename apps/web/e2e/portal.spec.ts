@@ -43,7 +43,7 @@ test("responses carry the security headers", async ({ page }) => {
 for (const theme of ["light", "dark"] as const) {
   test(`pages pass axe checks in the ${theme} theme`, async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: "theme", value: theme, url: baseURL! }]);
-    for (const path of ["/dashboard", "/settings", "/levels"]) {
+    for (const path of ["/dashboard", "/settings", "/stocks"]) {
       await page.goto(path);
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expectNoAxeViolations(page);
