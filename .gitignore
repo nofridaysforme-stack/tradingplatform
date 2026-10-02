@@ -26,3 +26,7 @@ __pycache__/
 # Coverage
 .coverage
 coverage.xml
+
+# Backtest history cache and reports
+services/scanner/.cache/
+services/scanner/out/

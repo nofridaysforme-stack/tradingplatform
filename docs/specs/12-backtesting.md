@@ -74,6 +74,22 @@ Produces:
 
 Reports are for the owners' internal use only.
 
+Other options: `--set RULE.PARAM=VALUE` and `--disable RULE` vary rules for one run (never written back), `--spread-pips`, `--slippage-pips`, `--offline` (cached history only), `--rules-file` (when no database), `--workers` (pairs run in parallel). The sweeps below run with `uv run python -m scanner.backtest.sweeps --report out/sweeps`, which writes one report per configuration plus `summary.csv` and `summary.html`. The stock test runs with `uv run python -m scanner.backtest.stocks --report out/stocks`.
+
+Bars outside every enabled trading window are not evaluated. This changes no signal (the window gate would reject them) and the report counts them separately from gate rejections.
+
+### Agreed sweeps (2026-10-01)
+
+| Configuration | Change from the seeded rules |
+|---|---|
+| baseline | none |
+| target_max_60, target_max_50, target_max_40 | `three_eight.target.daily_target_max_pips` |
+| fib_stop_opposite_break | `fib_pivot.stop.stop_at = opposite_break` |
+| trendlines_off, flags_off | the provisional indicator switched off |
+| window_alternative | 3/8 and Fib Pivot windows set to `alternative` |
+| min_indicators_4 | `three_eight.min_indicators.minimum = 4` |
+| swing_15, swing_30 | `three_eight.swing.threshold_pips` |
+
 ## Questions the first backtest must answer
 
 1. Does the 3/8 Formula show positive expectancy after costs out of sample on any pair?

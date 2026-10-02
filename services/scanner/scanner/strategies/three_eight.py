@@ -117,7 +117,10 @@ def evaluate(ctx: Context) -> Evaluation:
         ranging=bool(rng and rng.ranging and on("range_mode")),
         econ_events=_econ_in_window(ctx, p("econ")) if on("econ") else [],
     )
-    state.hits = _indicator_hits(ctx, state)
+    state.hits = _indicator_hits(ctx, state, only=TRIGGERS)
+    if not any(state.hits.get(name) for name in TRIGGERS):
+        return Evaluation()  # no trigger level touched: no candidate can form
+    state.hits.update(_indicator_hits(ctx, state, skip=TRIGGERS))
 
     out = Evaluation()
     directions: tuple[Direction, Direction] = ("long", "short")
@@ -136,13 +139,15 @@ def evaluate(ctx: Context) -> Evaluation:
 # Indicators
 
 
-def _indicator_hits(ctx: Context, state: State) -> dict[str, list[Hit]]:
+def _indicator_hits(
+    ctx: Context, state: State, only: tuple[str, ...] = (), skip: tuple[str, ...] = ()
+) -> dict[str, list[Hit]]:
     rules, iid, pip = ctx.rules, ctx.instrument.id, ctx.instrument.pip_size
     bars, i, lv = ctx.bars, ctx.i, ctx.levels
     hits: dict[str, list[Hit]] = {}
     for name in INDICATORS:
         key = K + name
-        if not rules.enabled(key):
+        if not rules.enabled(key) or (only and name not in only) or name in skip:
             continue
         p = rules.params(key, iid)
         if name == "candlestick":

@@ -9,6 +9,7 @@ dependencies = [
     "numpy>=2.0",
     "pandas>=2.2",
     "psycopg[binary,pool]>=3.2",
+    "pyarrow>=25.0.1",
     "pydantic>=2.8",
     "pydantic-settings>=2.4",
     "ta-lib>=0.6.5",
@@ -41,6 +42,8 @@ ignore = ["PLR2004", "PLR0913", "PLR0917", "PLR0911", "PLR0912", "PLR0915"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "PLR"]
+# HTML and CSS templates read better unwrapped.
+"scanner/backtest/report.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

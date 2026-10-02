@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal, cast
 from uuid import UUID
 
 import psycopg
@@ -260,12 +260,15 @@ def strategy_configs(conn: Conn) -> dict[str, tuple[bool, list[UUID] | None]]:
     return {r[0]: (bool(r[1]), r[2]) for r in rows}
 
 
-def econ_events(conn: Conn, since: datetime, until: datetime) -> list[tuple[datetime, str, str]]:
+Impact = Literal["high", "medium", "low"]
+
+
+def econ_events(conn: Conn, since: datetime, until: datetime) -> list[tuple[datetime, str, Impact]]:
     rows = conn.execute(
         "SELECT at, currency, impact::text FROM econ_events WHERE at BETWEEN %s AND %s",
         (since, until),
     )
-    return [(r[0], str(r[1]).strip(), r[2]) for r in rows]
+    return [(r[0], str(r[1]).strip(), cast(Impact, r[2])) for r in rows]
 
 
 def heartbeat(conn: Conn, version: str) -> None:

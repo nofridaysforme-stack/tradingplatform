@@ -29,7 +29,7 @@ def build_context(conn: db.Conn, inst: Instrument, bar_ts: datetime, rules: Rule
     rows = db.recent_candles(conn, inst.id, "M15", bar_ts, WINDOW_BARS)
     day = trading_day_of(bar_ts)
     events = [
-        EconEvent(at, cur, impact)  # type: ignore[arg-type]
+        EconEvent(at, cur, impact)
         for at, cur, impact in db.econ_events(
             conn, bar_ts - ECON_LOOKBACK, bar_ts + timedelta(minutes=15)
         )
