@@ -18,7 +18,7 @@ from scanner.config import MASSIVE_HOST, Settings
 from scanner.data.massive import MassiveClient
 from scanner.data.oanda import OandaClient
 from scanner.data.sync import refresh_universe
-from scanner.jobs import forex_bar_close, forex_day_roll, stock_eod
+from scanner.jobs import backfill, forex_bar_close, forex_day_roll, stock_eod
 from scanner.market_status import market_status
 from scanner.rules.registry import Registry
 from scanner.time import NEW_YORK
@@ -151,6 +151,23 @@ class Worker:
 
         self._record("ticker_refresh", work)
 
+    def new_pair_backfill(self) -> None:
+        """Backfill history for pairs added in Settings, so their levels exist before the
+        next day roll."""
+        if self.oanda is None:
+            return
+        oanda = self.oanda
+        with self.pool.connection() as conn:
+            conn.autocommit = True
+            pending = db.instruments_without_history(conn)
+            if not pending:
+                return
+            log.info("backfilling new pairs", extra={"pairs": [i.symbol for i in pending]})
+            try:
+                backfill.backfill_forex(conn, oanda, pending, datetime.now(UTC))
+            except Exception:
+                log.exception("new pair backfill failed")
+
     def retention(self) -> None:
         self._record("retention", db.apply_retention)
 
@@ -184,4 +201,5 @@ def build(
         id="ticker_refresh",
     )
     sched.add_job(w.retention, CronTrigger(hour=3, minute=0, timezone=UTC), id="retention")
+    sched.add_job(w.new_pair_backfill, IntervalTrigger(minutes=5), id="new_pair_backfill")
     return w

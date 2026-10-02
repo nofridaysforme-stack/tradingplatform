@@ -224,3 +224,13 @@ def test_rules_snapshot_matches_the_database(conn: Conn) -> None:
     rs = load_ruleset(conn)
     live = {k: rs.rule(k).model_dump() for k in sorted(rs.version_set())}
     assert live == load_fixture("rules_snapshot.json")["rules"]
+
+
+def test_instruments_without_history(conn: Conn) -> None:
+    pending = {i.symbol for i in db.instruments_without_history(conn)}
+    eur = next(i for i in db.list_instruments(conn) if i.symbol == "EUR/USD")
+    db.upsert_candles(conn, eur.id, _daily_fixture())
+    after = {i.symbol for i in db.instruments_without_history(conn)}
+    assert "EUR/USD" in pending and "EUR/USD" not in after
+    conn.execute("UPDATE instruments SET enabled = false WHERE symbol = 'GBP/USD'")
+    assert "GBP/USD" not in {i.symbol for i in db.instruments_without_history(conn)}

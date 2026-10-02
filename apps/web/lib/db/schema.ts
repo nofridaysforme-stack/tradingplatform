@@ -91,21 +91,22 @@ export const auditLog = pgTable("audit_log", {
 // decimals.
 
 export const instruments = pgTable("instruments", {
-  id: uuid("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   symbol: text("symbol").notNull(),
   providerCode: text("provider_code").notNull(),
   assetClass: text("asset_class").notNull(),
   pipSize: numeric("pip_size").notNull(),
   displayDecimals: smallint("display_decimals").notNull(),
-  enabled: boolean("enabled").notNull(),
-  sortOrder: smallint("sort_order").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  sortOrder: smallint("sort_order").notNull().default(0),
 });
 
 export const brokers = pgTable("brokers", {
-  id: uuid("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   platformUrlTemplate: text("platform_url_template"),
-  active: boolean("active").notNull(),
+  notes: text("notes"),
+  active: boolean("active").notNull().default(true),
 });
 
 export const brokerSpreads = pgTable(
