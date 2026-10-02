@@ -17,7 +17,8 @@ def test_schedule_matches_spec_16() -> None:
         jobs = {j.id: str(j.trigger) for j in sched.get_jobs()}
         zones = {j.id: str(getattr(j.trigger, "timezone", "")) for j in sched.get_jobs()}
         assert set(jobs) == {"heartbeat", "forex_bar_close", "forex_day_roll", "stock_eod",
-                             "ticker_refresh", "retention", "new_pair_backfill"}  # fmt: skip
+                             "ticker_refresh", "retention", "new_pair_backfill",
+                                "notify_outbox", "health_check"}  # fmt: skip
         assert (
             "minute='0,15,30,45'" in jobs["forex_bar_close"]
             and "second='5'" in jobs["forex_bar_close"]

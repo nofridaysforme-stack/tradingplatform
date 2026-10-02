@@ -15,7 +15,7 @@ from scanner.data.base import Candle, DailyBar, TickerRef
 from scanner.instruments import Instrument
 
 # The newest migration in db/migrations. A test keeps this in step with the folder.
-EXPECTED_SCHEMA_VERSION = "20261002000001"
+EXPECTED_SCHEMA_VERSION = "20261003000001"
 
 Conn = psycopg.Connection[Any]
 

@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     oanda_env: Literal["practice", "live"] = "practice"
     massive_api_key: SecretStr | None = None
     log_level: str = "info"
+    # Notifications (spec 11). A channel without its settings is skipped, not an error.
+    app_url: str = "http://localhost:3000"
+    vapid_public_key: str | None = None
+    vapid_private_key: SecretStr | None = None
+    vapid_subject: str | None = None
+    resend_api_key: SecretStr | None = None
+    email_from: str | None = None
+    telegram_bot_token: SecretStr | None = None
+    ops_alert_email: str | None = None
 
     @property
     def oanda_host(self) -> str:
