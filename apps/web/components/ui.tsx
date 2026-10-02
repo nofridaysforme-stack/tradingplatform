@@ -61,7 +61,7 @@ export function Badge({ kind, children }: { kind: "provisional" | "confluence" |
     <span
       className={cn(
         "inline-block rounded-badge border px-1.5 py-px text-xs leading-[1.4]",
-        kind === "provisional" ? "border-dashed border-prov text-prov" : "border-ink text-ink",
+        kind === "provisional" ? "border-dashed border-prov text-prov-ink" : "border-ink text-ink",
       )}
     >
       {children}
@@ -84,4 +84,47 @@ export function DirectionMarker({ direction, large = false }: { direction: "long
 
 export function Rule({ className }: { className?: string }) {
   return <hr className={cn("m-0 border-0 border-t border-rule", className)} />;
+}
+
+/** On/off switch (handoff toggle): ink track when on, rule track when off. A native checkbox
+ *  underneath keeps forms and keyboards working. */
+export function Toggle({
+  name,
+  label,
+  hint,
+  defaultChecked,
+  disabled,
+}: {
+  name: string;
+  label: string;
+  hint?: string;
+  defaultChecked?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="flex min-h-11 items-center justify-between gap-4 border-b border-rule-faint py-2">
+      <span className="flex flex-col">
+        <span className="text-sm text-ink">{label}</span>
+        {hint && <span className="text-[13px] text-mute">{hint}</span>}
+      </span>
+      <span className="relative inline-flex flex-none items-center">
+        <input
+          type="checkbox"
+          role="switch"
+          name={name}
+          defaultChecked={defaultChecked}
+          disabled={disabled}
+          className="peer absolute inset-0 m-0 size-full cursor-pointer opacity-0"
+        />
+        <span
+          aria-hidden="true"
+          className="h-6 w-10 rounded-full bg-rule transition-colors peer-checked:bg-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-long motion-reduce:transition-none"
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0.5 size-5 rounded-full bg-bg transition-transform peer-checked:translate-x-4 motion-reduce:transition-none"
+        />
+      </span>
+    </label>
+  );
 }

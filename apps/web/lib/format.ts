@@ -61,3 +61,9 @@ export function age(at: Date, now: Date): string {
   const d = Math.floor(h / 24);
   return `${d} day${d === 1 ? "" : "s"} ago`;
 }
+
+/** The next 15-minute bar close, when the worker picks up a rule change (spec 05). */
+export function nextBarClose(now: Date): Date {
+  const bar = 15 * 60_000;
+  return new Date(Math.floor(now.getTime() / bar) * bar + bar);
+}

@@ -29,3 +29,5 @@ The portal uses the handoff tokens, type, and ring geometry as given (`apps/web/
 - Levels: the Fibonacci Pivot ladder uses the handoff's layout, with spec 07's labels (Break, Confirmation, Take Profit, Reset) in place of R1 to R4 and S1 to S4.
 - No spread gate is shown; spreads appear per broker (spec 10).
 - Rule pages show the seeded rules and parameters, not the sample ones in the boards.
+- Provisional badge text uses `--prov-ink` (#5B44B8) in the light theme: the handoff's `--prov` measures 4.42:1 on `--bg-selected`, below AA. This follows the handoff's own `--short` / `--short-ink` split.
+- Settings › Rules adds a strategy switch and pair choice at the top of each strategy group (the `strategy_configs` decision of 2026-10-01).

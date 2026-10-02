@@ -24,6 +24,7 @@
   --short: #c27a00; /* fills only in light theme */
   --short-ink: #975c00; /* short text */
   --prov: #6e56cf;
+  --prov-ink: #5b44b8; /* provisional text: 4.5:1 on the selected-row fill too */
   --error: #8a2e2e;
   --health-ok: #2e8b57;
   --warn-bg: #fbf1df;
@@ -54,6 +55,7 @@
   --short: #e0a341;
   --short-ink: #e0a341;
   --prov: #a898f0;
+  --prov-ink: #a898f0;
   --health-ok: #4fc08d;
   --link: #7fa6ee;
   --link-hover: #a9c3f4;
@@ -77,6 +79,7 @@
     --short: #e0a341;
     --short-ink: #e0a341;
     --prov: #a898f0;
+    --prov-ink: #a898f0;
     --health-ok: #4fc08d;
     --link: #7fa6ee;
     --link-hover: #a9c3f4;
@@ -102,6 +105,7 @@
   --color-short: var(--short);
   --color-short-ink: var(--short-ink);
   --color-prov: var(--prov);
+  --color-prov-ink: var(--prov-ink);
   --color-error: var(--error);
   --color-health-ok: var(--health-ok);
   --color-warn-bg: var(--warn-bg);

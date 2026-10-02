@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { Button } from "@/components/ui";
+import { useFormAction } from "@/lib/use-form-action";
 import { addSignalNote, invalidateSignal, type ActionState } from "../actions";
 
 function TextForm({
@@ -19,10 +19,10 @@ function TextForm({
   done: string;
   action: (prev: ActionState, form: FormData) => Promise<ActionState>;
 }) {
-  const [state, run, pending] = useActionState(action, {});
+  const [state, onSubmit, pending] = useFormAction(action, {} as ActionState, { resetOnSuccess: true });
   const id = `${name}-input`;
   return (
-    <form action={run} className="flex flex-col gap-2" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-2" noValidate>
       <input type="hidden" name="signalId" value={signalId} />
       <label htmlFor={id} className="text-sm text-ink-2">
         {label}
