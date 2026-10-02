@@ -118,3 +118,15 @@ def test_broker_adjustment() -> None:
     assert (b.entry, b.stop, b.target) == (1.08415, 1.08655, 1.07795)
     jpy = adjust("long", 150.100, 149.900, 150.500, 2.0, 0.01, decimals=3)
     assert (jpy.entry, jpy.stop, jpy.target) == (150.11, 149.89, 150.49)
+
+
+def test_broker_adjustment_shared_cases() -> None:
+    """The portal's TypeScript port is tested against the same cases."""
+    for c in load_fixture("broker_adjust_cases.json")["cases"]:
+        a = adjust(
+            c["direction"], c["entry"], c["stop"], c["target"],
+            c["typical_spread_pips"], c["pip_size"], c["decimals"],
+        )  # fmt: skip
+        assert (a.entry, a.stop, a.target, a.reward_risk) == pytest.approx(
+            tuple(c["expected"][k] for k in ("entry", "stop", "target", "reward_risk"))
+        )

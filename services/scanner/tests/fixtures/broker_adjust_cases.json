@@ -1,0 +1,80 @@
+{
+  "note": "Spec 10 broker adjustment. The scanner (Python) and the portal (TypeScript) are both tested against these cases.",
+  "cases": [
+    {
+      "direction": "long",
+      "entry": 1.0842,
+      "stop": 1.0819,
+      "target": 1.0905,
+      "typical_spread_pips": 1.0,
+      "pip_size": 0.0001,
+      "decimals": 5,
+      "expected": {
+        "entry": 1.08425,
+        "stop": 1.08185,
+        "target": 1.09045,
+        "reward_risk": 2.583
+      }
+    },
+    {
+      "direction": "short",
+      "entry": 1.0842,
+      "stop": 1.0865,
+      "target": 1.0779,
+      "typical_spread_pips": 1.2,
+      "pip_size": 0.0001,
+      "decimals": 5,
+      "expected": {
+        "entry": 1.08414,
+        "stop": 1.08656,
+        "target": 1.07796,
+        "reward_risk": 2.554
+      }
+    },
+    {
+      "direction": "long",
+      "entry": 149.52,
+      "stop": 149.21,
+      "target": 150.31,
+      "typical_spread_pips": 1.6,
+      "pip_size": 0.01,
+      "decimals": 3,
+      "expected": {
+        "entry": 149.528,
+        "stop": 149.202,
+        "target": 150.302,
+        "reward_risk": 2.374
+      }
+    },
+    {
+      "direction": "short",
+      "entry": 149.52,
+      "stop": 149.83,
+      "target": 148.73,
+      "typical_spread_pips": 0.0,
+      "pip_size": 0.01,
+      "decimals": 3,
+      "expected": {
+        "entry": 149.52,
+        "stop": 149.83,
+        "target": 148.73,
+        "reward_risk": 2.548
+      }
+    },
+    {
+      "direction": "long",
+      "entry": 0.6612,
+      "stop": 0.659,
+      "target": 0.667,
+      "typical_spread_pips": 2.4,
+      "pip_size": 0.0001,
+      "decimals": 5,
+      "expected": {
+        "entry": 0.66132,
+        "stop": 0.65888,
+        "target": 0.66688,
+        "reward_risk": 2.279
+      }
+    }
+  ]
+}

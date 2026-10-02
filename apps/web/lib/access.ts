@@ -18,7 +18,9 @@ export async function mayAccess(email: string): Promise<boolean> {
 
 // Spec 15: 5 sign-in requests per email per 15 minutes, 20 per IP per hour.
 export const EMAIL_LIMIT = 5;
-export const IP_LIMIT = 20;
+// AUTH_IP_LIMIT raises the per-IP limit for end-to-end tests, where every request comes from
+// one address. Leave it unset in staging and production.
+export const IP_LIMIT = Number(process.env.AUTH_IP_LIMIT) || 20;
 const IP_WINDOW_MS = 60 * 60 * 1000;
 
 /** Sign-in links are valid for 15 minutes, so unexpired tokens are the ones issued in the

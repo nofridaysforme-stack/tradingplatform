@@ -35,6 +35,7 @@ export default defineConfig({
       AUTH_SECRET: "e2e-secret-not-for-production-0123456789",
       AUTH_URL: BASE_URL,
       AUTH_TEST_MAILBOX: MAILBOX,
+      AUTH_IP_LIMIT: "1000",
     },
   },
 });

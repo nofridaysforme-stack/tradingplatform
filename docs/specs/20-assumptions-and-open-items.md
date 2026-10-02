@@ -50,11 +50,12 @@ Every interpretation the build relies on, in one place. Owners review this list 
 |---|---|---|
 | T1 | Automated economic calendar source | Manual entry by admins |
 | T2 | OANDA practice or live environment for data | Use the account the owners hold |
-| T3 | Chart library attribution requirement | Confirm in the TradingView Lightweight Charts license before release |
+| T3 | Chart library attribution requirement | Confirm in the TradingView Lightweight Charts license before release. Until then the signal chart keeps the library's TradingView logo link (its default) |
 | T4 | Railway Postgres backup retention on the chosen plan | Confirm during setup |
 | T5 | Resend and uptime monitor free-tier limits | Confirm during setup |
 | T6 | Broker list and typical spreads | Owners enter during Phase 5 |
 | T7 | Domain name | Owners choose |
+| T8 | Forex session names and hours for the dashboard status line (spec 13 "current session"; the design shows "New York session") | Not shown until the owners give the hours, for example Sydney, Tokyo, London, New York in New York time |
 
 ## Decisions log
 
