@@ -1,0 +1,32 @@
+"use server";
+
+import { headers } from "next/headers";
+import { z } from "zod";
+import { EMAIL_LIMIT, emailRequestsInWindow, ipLimiter, mayAccess, normalizeEmail } from "@/lib/access";
+import { signIn } from "@/lib/auth";
+
+export type SignInState = { sent?: boolean; error?: string; email?: string };
+
+const Email = z.email();
+
+export async function requestSignInLink(_prev: SignInState, form: FormData): Promise<SignInState> {
+  const raw = String(form.get("email") ?? "");
+  const parsed = Email.safeParse(raw.trim());
+  if (!parsed.success) return { error: "Enter an email address, like name@example.com.", email: raw };
+  const email = normalizeEmail(parsed.data);
+
+  const h = await headers();
+  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "local";
+  if (!ipLimiter.allow(ip) || (await emailRequestsInWindow(email)) >= EMAIL_LIMIT) {
+    return { error: "Too many sign-in links requested. Try again in 15 minutes.", email };
+  }
+  if (!(await mayAccess(email))) {
+    return { error: "This email isn't approved. Ask an admin to add it.", email };
+  }
+  try {
+    await signIn("email", { email, redirect: false, redirectTo: "/dashboard" });
+  } catch {
+    return { error: "We couldn't send the link. Try again in a minute.", email };
+  }
+  return { sent: true, email };
+}

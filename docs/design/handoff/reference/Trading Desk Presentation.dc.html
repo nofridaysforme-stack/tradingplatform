@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet"><style>body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:#23282E;-webkit-font-smoothing:antialiased}a{color:#2563C9}a:hover{color:#1B4A99}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 'IBM Plex Sans',sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:rgba(0,0,0,.6)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 'IBM Plex Sans',sans-serif;color:rgba(0,0,0,.55)}</style></helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+<section data-label="Title" style="width:1920px;height:1080px;background:#23282E;color:#F6F7F5;font-family:'IBM Plex Sans',sans-serif;box-sizing:border-box;padding:110px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:80px">
+<div style="display:flex;flex-direction:column;gap:28px"><div style="font-size:28px;color:#A9B0B7">Interface design · round one</div><div style="font-size:120px;font-weight:600;letter-spacing:-0.02em;line-height:1">Trading desk</div><div style="font-size:32px;line-height:1.45;color:#C9CED3;max-width:900px;text-wrap:pretty">A private desk that watches currency pairs and US stocks against your own written systems, and tells you, with reasons, when a setup appears.</div><div style="font-size:24px;color:#A9B0B7;margin-top:40px">October 2026</div></div>
+<div style="zoom:3.4">{{ ringD1 }}</div>
+</section>
+<section data-label="Approach" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>02</span></div>
+<div style="font-size:64px;font-weight:600;letter-spacing:-0.01em;max-width:1300px;line-height:1.1">Your system on paper, made live.</div>
+<div style="font-size:28px;line-height:1.5;color:#3A4148;max-width:1300px;text-wrap:pretty">Your method began as typed course pages worked with a desk calculator. The interface keeps that working-paper character: exact figures, ruled structure, nothing decorative. The one bold element is the indicator ring, which is unique to your method.</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:56px;border-top:1px solid #23282E;padding-top:36px">
+<div style="display:flex;flex-direction:column;gap:12px"><div style="font-size:30px;font-weight:600">Five seconds to a decision</div><div style="font-size:24px;line-height:1.5;color:#3A4148">Direction, instrument, entry, stop, target and the reason are visible the moment you open an alert.</div></div>
+<div style="display:flex;flex-direction:column;gap:12px"><div style="font-size:30px;font-weight:600">Blue and amber, never red and green</div><div style="font-size:24px;line-height:1.5;color:#3A4148">Long and short stay distinct for colour-blind readers, and always appear with an arrow and a word.</div></div>
+<div style="display:flex;flex-direction:column;gap:12px"><div style="font-size:30px;font-weight:600">Figures you can trust</div><div style="font-size:24px;line-height:1.5;color:#3A4148">Every price is set in tabular figures and right-aligned, so columns read like a ledger.</div></div>
+</div>
+</section>
+<section data-label="Indicator ring" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>03</span></div>
+<div style="flex:1;display:grid;grid-template-columns:520px 1fr;gap:72px;align-items:center;min-height:0"><div><div style="display:flex;flex-direction:column;gap:20px"><div style="font-size:52px;font-weight:600;letter-spacing:-0.01em;line-height:1.1;text-wrap:balance">The 3/8 indicator ring</div><div style="font-size:26px;line-height:1.5;color:#3A4148;text-wrap:pretty">Eight segments, one per indicator, in the order your document lists them, clockwise from the top. Filled means fired. Outlined means not fired. Dashed violet means the rule is still waiting for your approval. It appears large on a signal, small in lists, and as the app icon.</div></div></div><div style="display:flex;gap:40px;justify-content:center;align-items:center;min-height:0"><div style="zoom:1.15;flex:none"><div class="dv-card" style="width:620px;display:grid;grid-template-columns:1fr 1fr;border-radius:8px">
+<div style="background:#F6F7F5;padding:28px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;gap:22px;align-items:center">{{ ringL1 }}<div style="display:flex;flex-direction:column;gap:4px"><div style="color:#2563C9;font-weight:600;font-size:15px">▲ Long</div><div style="font-size:20px;font-weight:600">EUR/USD</div><div style="font-size:13px;color:#5A626B">4 of 8 · 1 provisional</div></div></div>
+<div style="display:flex;gap:22px;align-items:center">{{ ringL2 }}<div style="display:flex;flex-direction:column;gap:4px"><div style="color:#975C00;font-weight:600;font-size:15px">▼ Short</div><div style="font-size:20px;font-weight:600">USD/CAD</div><div style="font-size:13px;color:#5A626B">3 of 8</div></div></div>
+<div style="border-top:1px solid #C9CED3;padding-top:16px;display:flex;flex-direction:column;gap:8px;font-size:13px;color:#3A4148">
+<sc-for list="{{ ringLegend }}" as="g" hint-placeholder-count="8"><div style="display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center"><span style="color:#5A626B">{{ g.n }}</span><span>{{ g.name }}</span><span style="color:#5A626B">{{ g.short }}</span></div></sc-for>
+</div>
+</div>
+<div style="background:#23282E;color:#F6F7F5;padding:28px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;gap:22px;align-items:center">{{ ringD1 }}<div style="display:flex;flex-direction:column;gap:4px"><div style="color:#7FA6EE;font-weight:600;font-size:15px">▲ Long</div><div style="font-size:20px;font-weight:600">EUR/USD</div><div style="font-size:13px;color:#A9B0B7">Dark theme</div></div></div>
+<div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #4A525A;padding-top:16px">
+<div style="font-size:13px;color:#A9B0B7">In lists</div>
+<div style="display:flex;gap:16px;align-items:center">{{ ringS1 }}{{ ringS2 }}{{ ringS3 }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #4A525A;padding-top:16px">
+<div style="font-size:13px;color:#A9B0B7">App icon</div>
+<div style="display:flex;gap:16px;align-items:flex-end">
+<div style="width:76px;height:76px;border-radius:18px;background:#F6F7F5;display:flex;align-items:center;justify-content:center">{{ iconLight }}</div>
+<div style="width:76px;height:76px;border-radius:18px;background:#2F353C;border:1px solid #4A525A;display:flex;align-items:center;justify-content:center">{{ iconDark }}</div>
+<div style="width:40px;height:40px;border-radius:10px;background:#F6F7F5;display:flex;align-items:center;justify-content:center">{{ iconSmall }}</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid #4A525A;padding-top:16px;font-size:13px">
+<div style="display:flex;gap:10px;align-items:center"><span style="width:16px;height:12px;background:#7FA6EE;border-radius:2px"></span>Fired</div>
+<div style="display:flex;gap:10px;align-items:center"><span style="width:16px;height:12px;border:1.5px dashed #A898F0;background:rgba(127,166,238,.28);border-radius:2px;box-sizing:border-box"></span>Provisional, waiting for owner approval</div>
+<div style="display:flex;gap:10px;align-items:center"><span style="width:16px;height:12px;border:1.5px solid #4A525A;border-radius:2px;box-sizing:border-box"></span>Not fired</div>
+</div>
+</div>
+</div></div></div></div>
+</section>
+<section data-label="Dashboard" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>04</span></div>
+<div style="flex:1;display:grid;grid-template-columns:560px 1fr;gap:72px;align-items:center;min-height:0"><div><div style="display:flex;flex-direction:column;gap:20px"><div style="font-size:52px;font-weight:600;letter-spacing:-0.01em;line-height:1.1;text-wrap:balance">Dashboard</div><div style="font-size:26px;line-height:1.5;color:#3A4148;text-wrap:pretty">Open signals first, newest at the top, each with its ring, prices and reward-to-risk. Above them: market status, the trading window and your active broker. Below: progress toward today’s pip goal and the stock digest. Light and dark themes follow your phone.</div></div></div><div style="display:flex;gap:40px;justify-content:center;align-items:center;min-height:0"><div style="zoom:1.02;flex:none"><div class="dv-card" style="width:390px;height:844px;background:#F6F7F5;display:flex;flex-direction:column;border-radius:28px">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600"><span>9:42</span><span style="font-weight:400;color:#5A626B">●●●</span></div>
+<div style="padding:6px 20px 14px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:22px;font-weight:600">Signals</div><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#5A626B"><span style="width:8px;height:8px;border-radius:50%;background:#2E8B57"></span><a href="#" style="color:#5A626B">Health</a></div></div>
+<div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:#3A4148"><span style="font-weight:600;color:#23282E">Forex open</span><span>New York session</span><span>In 3/8 window until 11:00</span><span>09:42 NY</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="color:#5A626B">Broker <span style="color:#23282E;font-weight:500">Broker A</span></span><button style="font:500 13px 'IBM Plex Sans';background:none;border:1px solid #C9CED3;border-radius:4px;padding:0 12px;height:32px;color:#23282E">Switch</button></div>
+</div>
+<sc-if value="{{ isStale }}" hint-placeholder-val="{{ false }}"><div style="background:#FBF1DF;border-bottom:1px solid #E6CFA3;padding:12px 20px;font-size:13px;line-height:1.45;color:#5C3A00">Prices for GBP/USD haven't updated for 30 minutes. Alerts for this pair are paused until data resumes.</div></sc-if>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+<sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:56px 32px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center">{{ ringEmpty }}<div style="font-size:15px;line-height:1.5;color:#3A4148;max-width:260px;text-wrap:pretty">No open signals. The scanner checks every 15 minutes while the market is open.</div></div></sc-if>
+<sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+<sc-for list="{{ rowsLight }}" as="s" hint-placeholder-count="3">
+<div style="padding:14px 20px;border-bottom:1px solid #DDE1E4;display:grid;grid-template-columns:1fr auto;gap:10px 12px">
+<div style="display:flex;flex-direction:column;gap:3px">
+<div style="display:flex;gap:10px;align-items:baseline"><span style="color:{{ s.ink }};font-weight:600;font-size:14px">{{ s.arrow }} {{ s.dirWord }}</span><span style="font-size:17px;font-weight:600">{{ s.pair }}</span></div>
+<div style="font-size:13px;color:#5A626B">{{ s.strategy }} · {{ s.state }} · {{ s.age }}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px">
+<sc-if value="{{ s.prov }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#6E56CF;border:1px dashed #6E56CF;border-radius:3px;padding:1px 6px">Provisional</span></sc-if>
+<sc-if value="{{ s.conf }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#23282E;border:1px solid #23282E;border-radius:3px;padding:1px 6px">◆ Both systems agree</span></sc-if>
+</div>
+</div>
+<div>{{ s.mark }}</div>
+<div style="grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;color:#5A626B">
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">Entry<span style="font-size:15px;color:#23282E;font-weight:500">{{ s.entry }}</span></div>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">Stop<span style="font-size:15px;color:#23282E">{{ s.stop }}</span></div>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">Target<span style="font-size:15px;color:#23282E">{{ s.target }}</span></div>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">R:R<span style="font-size:15px;color:#23282E">{{ s.rr }}</span></div>
+</div>
+</div>
+</sc-for>
+</sc-if>
+<div style="padding:16px 20px;border-bottom:1px solid #DDE1E4;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span>Today's goal</span><span><span style="font-weight:600;font-size:17px">41</span> <span style="color:#5A626B">of 60–75 pips</span></span></div>
+<div style="position:relative;height:8px;background:#E2E5E8;border-radius:1px"><div style="position:absolute;left:0;top:0;bottom:0;width:45.5%;background:#23282E"></div><div style="position:absolute;left:66.7%;width:16.7%;top:-3px;bottom:-3px;border-left:1px solid #23282E;border-right:1px solid #23282E"></div></div>
+<div style="font-size:12px;color:#5A626B">From 2 closed 3/8 signals</div>
+</div>
+<div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-size:14px"><span><span style="font-weight:600">7</span> stocks newly confirmed after Tuesday's session</span><a href="#" style="font-weight:500">Stocks</a></div>
+</div>
+<div style="border-top:1px solid #C9CED3;display:grid;grid-template-columns:repeat(5,1fr);height:64px;font-size:12px;padding-bottom:12px">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#5A626B"><span style="width:18px;height:2px;background:{{ t.bar }}"></span><span style="color:{{ t.color }};font-weight:{{ t.weight }}">{{ t.label }}</span></div></sc-for>
+</div>
+</div></div><div style="zoom:1.02;flex:none"><div class="dv-card" style="width:390px;height:844px;background:#23282E;color:#F6F7F5;display:flex;flex-direction:column;border-radius:28px;border-color:#000">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600"><span>9:42</span><span style="font-weight:400;color:#A9B0B7">●●●</span></div>
+<div style="padding:6px 20px 14px;border-bottom:1px solid #4A525A;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:22px;font-weight:600">Signals</div><div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:#4FC08D"></span><a href="#" style="color:#A9B0B7">Health</a></div></div>
+<div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:#C9CED3"><span style="font-weight:600;color:#F6F7F5">Forex open</span><span>New York session</span><span>In 3/8 window until 11:00</span><span>09:42 NY</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="color:#A9B0B7">Broker <span style="color:#F6F7F5;font-weight:500">Broker A</span></span><button style="font:500 13px 'IBM Plex Sans';background:none;border:1px solid #4A525A;border-radius:4px;padding:0 12px;height:32px;color:#F6F7F5">Switch</button></div>
+</div>
+<div style="flex:1;overflow:hidden">
+<sc-for list="{{ rowsDark }}" as="s" hint-placeholder-count="3">
+<div style="padding:14px 20px;border-bottom:1px solid #3A4148;display:grid;grid-template-columns:1fr auto;gap:10px 12px">
+<div style="display:flex;flex-direction:column;gap:3px">
+<div style="display:flex;gap:10px;align-items:baseline"><span style="color:{{ s.ink }};font-weight:600;font-size:14px">{{ s.arrow }} {{ s.dirWord }}</span><span style="font-size:17px;font-weight:600">{{ s.pair }}</span></div>
+<div style="font-size:13px;color:#A9B0B7">{{ s.strategy }} · {{ s.state }} · {{ s.age }}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px">
+<sc-if value="{{ s.prov }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#A898F0;border:1px dashed #A898F0;border-radius:3px;padding:1px 6px">Provisional</span></sc-if>
+<sc-if value="{{ s.conf }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#F6F7F5;border:1px solid #F6F7F5;border-radius:3px;padding:1px 6px">◆ Both systems agree</span></sc-if>
+</div>
+</div>
+<div>{{ s.mark }}</div>
+<div style="grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;color:#A9B0B7">
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">Entry<span style="font-size:15px;color:#F6F7F5;font-weight:500">{{ s.entry }}</span></div>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">Stop<span style="font-size:15px;color:#F6F7F5">{{ s.stop }}</span></div>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">Target<span style="font-size:15px;color:#F6F7F5">{{ s.target }}</span></div>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">R:R<span style="font-size:15px;color:#F6F7F5">{{ s.rr }}</span></div>
+</div>
+</div>
+</sc-for>
+<div style="padding:16px 20px;border-bottom:1px solid #3A4148;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span>Today's goal</span><span><span style="font-weight:600;font-size:17px">41</span> <span style="color:#A9B0B7">of 60–75 pips</span></span></div>
+<div style="position:relative;height:8px;background:#3A4148;border-radius:1px"><div style="position:absolute;left:0;top:0;bottom:0;width:45.5%;background:#F6F7F5"></div><div style="position:absolute;left:66.7%;width:16.7%;top:-3px;bottom:-3px;border-left:1px solid #F6F7F5;border-right:1px solid #F6F7F5"></div></div>
+<div style="font-size:12px;color:#A9B0B7">From 2 closed 3/8 signals</div>
+</div>
+<div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-size:14px"><span><span style="font-weight:600">7</span> stocks newly confirmed after Tuesday's session</span><a href="#" style="font-weight:500;color:#7FA6EE">Stocks</a></div>
+</div>
+<div style="border-top:1px solid #4A525A;display:grid;grid-template-columns:repeat(5,1fr);height:64px;font-size:12px;padding-bottom:12px">
+<sc-for list="{{ tabsDark }}" as="t" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><span style="width:18px;height:2px;background:{{ t.bar }}"></span><span style="color:{{ t.color }};font-weight:{{ t.weight }}">{{ t.label }}</span></div></sc-for>
+</div>
+</div></div></div></div>
+</section>
+<section data-label="Signal detail" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>05</span></div>
+<div style="flex:1;display:grid;grid-template-columns:480px 1fr;gap:72px;align-items:center;min-height:0"><div><div style="display:flex;flex-direction:column;gap:20px"><div style="font-size:52px;font-weight:600;letter-spacing:-0.01em;line-height:1.1;text-wrap:balance">Signal detail</div><div style="font-size:26px;line-height:1.5;color:#3A4148;text-wrap:pretty">One scrolling page answers why. The trade plan shows reference and broker-adjusted prices side by side. Below it: the large ring, each of the eight indicators with its level, the gates passed, a 15-minute chart with every level drawn, and the signal’s timeline.</div></div></div><div style="display:flex;gap:40px;justify-content:center;align-items:center;min-height:0"><div style="height:860px;width:390px;overflow:hidden;border-radius:28px;background:#F6F7F5;border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.06);flex:none"><div style="margin-top:-0px"><div class="dv-card" style="width:390px;background:#F6F7F5;border-radius:0;border:none;box-shadow:none">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600"><span>9:42</span><span style="font-weight:400;color:#5A626B">●●●</span></div>
+<div style="padding:4px 20px 0;display:flex;align-items:center;height:44px"><a href="#" style="font-size:15px;text-decoration:none">‹ Signals</a></div>
+<div style="padding:4px 20px 18px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #C9CED3">
+<div style="display:flex;gap:10px;align-items:baseline"><span style="color:#2563C9;font-weight:600;font-size:17px">▲ Long</span><span style="font-size:28px;font-weight:600;letter-spacing:-0.01em">EUR/USD</span></div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:#5A626B"><span>3/8 system</span><span style="border:1px solid #23282E;color:#23282E;border-radius:3px;padding:1px 6px;font-size:12px">Confirmed</span><span>Created 09:30 NY · 12 min ago</span></div>
+</div>
+<div style="padding:18px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:12px">
+<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px 22px;align-items:baseline;font-size:15px">
+<span style="font-size:12px;color:#5A626B"></span><span style="font-size:12px;color:#5A626B;text-align:right">Reference</span><span style="font-size:12px;color:#5A626B;text-align:right">Broker A</span>
+<sc-for list="{{ plan }}" as="p" hint-placeholder-count="4"><span style="color:#3A4148">{{ p.label }}</span><span style="text-align:right;font-weight:{{ p.w }}">{{ p.ref }}</span><span style="text-align:right;font-weight:{{ p.w }}">{{ p.brk }}</span></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #DDE1E4;padding-top:12px;font-size:12px;color:#5A626B">
+<div style="display:flex;flex-direction:column;gap:2px">Risk<span style="font-size:17px;color:#23282E">24 <span style="font-size:12px;color:#5A626B">pips</span></span></div>
+<div style="display:flex;flex-direction:column;gap:2px">Reward<span style="font-size:17px;color:#23282E">44 <span style="font-size:12px;color:#5A626B">pips</span></span></div>
+<div style="display:flex;flex-direction:column;gap:2px">Reward to risk<span style="font-size:17px;color:#23282E;font-weight:600">1.8</span></div>
+</div>
+<div style="font-size:12px;color:#5A626B">Broker A adds 0.6 pip spread. Net: risk 25, reward 43, 1.7.</div>
+<button style="height:48px;background:#23282E;color:#F6F7F5;border:none;border-radius:4px;font:600 15px 'IBM Plex Sans'">Open in Broker A</button>
+</div>
+<div style="padding:22px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;gap:18px;align-items:center">{{ ringBig }}<div style="font-size:14px;line-height:1.5;color:#23282E;text-wrap:pretty">Long EUR/USD because 4 of 8 indicators fired near 1.0838: a bullish engulfing bar, a bounce off daily S1, price holding above the previous day low, and a provisional channel touch.</div></div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ indicators }}" as="i" hint-placeholder-count="8">
+<div style="display:grid;grid-template-columns:20px 1fr;gap:10px;padding:9px 0;border-top:1px solid #E2E5E8">
+<span style="font-size:13px;color:{{ i.numColor }};font-weight:{{ i.numW }}">{{ i.n }}</span>
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;justify-content:space-between;gap:8px;font-size:14px"><span style="color:{{ i.nameColor }};font-weight:{{ i.numW }}">{{ i.name }}</span><span style="font-size:13px;color:{{ i.statusColor }}">{{ i.status }}</span></div>
+<sc-if value="{{ i.detail }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#5A626B">{{ i.detail }}</div></sc-if>
+<sc-if value="{{ i.prov }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#6E56CF;display:flex;gap:6px;align-items:baseline"><span style="border:1px dashed #6E56CF;border-radius:3px;padding:0 5px">Provisional</span>This definition is waiting for owner approval.</div></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CED3;padding-top:12px">
+<div style="font-size:14px;font-weight:600">Gates passed</div>
+<sc-for list="{{ gates }}" as="g" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#3A4148">✓ {{ g.name }}</span><span style="color:#5A626B">{{ g.val }}</span></div></sc-for>
+</div>
+</div>
+<div style="padding:18px 20px 14px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;font-size:13px;color:#5A626B"><span style="color:#23282E;font-weight:600;font-size:14px">15-minute session</span><span>Triggering bar 09:30 ▲</span></div>
+{{ chart }}
+</div>
+<div style="padding:18px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column">
+<sc-for list="{{ timeline }}" as="e" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:14px 1fr auto auto;gap:10px;align-items:center;padding:7px 0;font-size:14px;color:{{ e.color }}"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid {{ e.color }};background:{{ e.fill }};box-sizing:border-box"></span><span>{{ e.label }}</span><span style="text-align:right">{{ e.price }}</span><span style="text-align:right;color:#5A626B;min-width:40px">{{ e.time }}</span></div></sc-for>
+</div>
+<div style="padding:16px 20px 28px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:12px;color:#5A626B">Admin</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button style="height:44px;background:none;border:1px solid #C9CED3;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#23282E">Add note</button><button style="height:44px;background:none;border:1px solid #C9CED3;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#8A2E2E">Mark invalid</button></div>
+</div>
+</div></div></div><div style="height:860px;width:390px;overflow:hidden;border-radius:28px;background:#F6F7F5;border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.06);flex:none"><div style="margin-top:-820px"><div class="dv-card" style="width:390px;background:#F6F7F5;border-radius:0;border:none;box-shadow:none">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600"><span>9:42</span><span style="font-weight:400;color:#5A626B">●●●</span></div>
+<div style="padding:4px 20px 0;display:flex;align-items:center;height:44px"><a href="#" style="font-size:15px;text-decoration:none">‹ Signals</a></div>
+<div style="padding:4px 20px 18px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #C9CED3">
+<div style="display:flex;gap:10px;align-items:baseline"><span style="color:#2563C9;font-weight:600;font-size:17px">▲ Long</span><span style="font-size:28px;font-weight:600;letter-spacing:-0.01em">EUR/USD</span></div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:#5A626B"><span>3/8 system</span><span style="border:1px solid #23282E;color:#23282E;border-radius:3px;padding:1px 6px;font-size:12px">Confirmed</span><span>Created 09:30 NY · 12 min ago</span></div>
+</div>
+<div style="padding:18px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:12px">
+<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px 22px;align-items:baseline;font-size:15px">
+<span style="font-size:12px;color:#5A626B"></span><span style="font-size:12px;color:#5A626B;text-align:right">Reference</span><span style="font-size:12px;color:#5A626B;text-align:right">Broker A</span>
+<sc-for list="{{ plan }}" as="p" hint-placeholder-count="4"><span style="color:#3A4148">{{ p.label }}</span><span style="text-align:right;font-weight:{{ p.w }}">{{ p.ref }}</span><span style="text-align:right;font-weight:{{ p.w }}">{{ p.brk }}</span></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #DDE1E4;padding-top:12px;font-size:12px;color:#5A626B">
+<div style="display:flex;flex-direction:column;gap:2px">Risk<span style="font-size:17px;color:#23282E">24 <span style="font-size:12px;color:#5A626B">pips</span></span></div>
+<div style="display:flex;flex-direction:column;gap:2px">Reward<span style="font-size:17px;color:#23282E">44 <span style="font-size:12px;color:#5A626B">pips</span></span></div>
+<div style="display:flex;flex-direction:column;gap:2px">Reward to risk<span style="font-size:17px;color:#23282E;font-weight:600">1.8</span></div>
+</div>
+<div style="font-size:12px;color:#5A626B">Broker A adds 0.6 pip spread. Net: risk 25, reward 43, 1.7.</div>
+<button style="height:48px;background:#23282E;color:#F6F7F5;border:none;border-radius:4px;font:600 15px 'IBM Plex Sans'">Open in Broker A</button>
+</div>
+<div style="padding:22px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;gap:18px;align-items:center">{{ ringBig }}<div style="font-size:14px;line-height:1.5;color:#23282E;text-wrap:pretty">Long EUR/USD because 4 of 8 indicators fired near 1.0838: a bullish engulfing bar, a bounce off daily S1, price holding above the previous day low, and a provisional channel touch.</div></div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ indicators }}" as="i" hint-placeholder-count="8">
+<div style="display:grid;grid-template-columns:20px 1fr;gap:10px;padding:9px 0;border-top:1px solid #E2E5E8">
+<span style="font-size:13px;color:{{ i.numColor }};font-weight:{{ i.numW }}">{{ i.n }}</span>
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;justify-content:space-between;gap:8px;font-size:14px"><span style="color:{{ i.nameColor }};font-weight:{{ i.numW }}">{{ i.name }}</span><span style="font-size:13px;color:{{ i.statusColor }}">{{ i.status }}</span></div>
+<sc-if value="{{ i.detail }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#5A626B">{{ i.detail }}</div></sc-if>
+<sc-if value="{{ i.prov }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#6E56CF;display:flex;gap:6px;align-items:baseline"><span style="border:1px dashed #6E56CF;border-radius:3px;padding:0 5px">Provisional</span>This definition is waiting for owner approval.</div></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CED3;padding-top:12px">
+<div style="font-size:14px;font-weight:600">Gates passed</div>
+<sc-for list="{{ gates }}" as="g" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#3A4148">✓ {{ g.name }}</span><span style="color:#5A626B">{{ g.val }}</span></div></sc-for>
+</div>
+</div>
+<div style="padding:18px 20px 14px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;font-size:13px;color:#5A626B"><span style="color:#23282E;font-weight:600;font-size:14px">15-minute session</span><span>Triggering bar 09:30 ▲</span></div>
+{{ chart }}
+</div>
+<div style="padding:18px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column">
+<sc-for list="{{ timeline }}" as="e" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:14px 1fr auto auto;gap:10px;align-items:center;padding:7px 0;font-size:14px;color:{{ e.color }}"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid {{ e.color }};background:{{ e.fill }};box-sizing:border-box"></span><span>{{ e.label }}</span><span style="text-align:right">{{ e.price }}</span><span style="text-align:right;color:#5A626B;min-width:40px">{{ e.time }}</span></div></sc-for>
+</div>
+<div style="padding:16px 20px 28px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:12px;color:#5A626B">Admin</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button style="height:44px;background:none;border:1px solid #C9CED3;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#23282E">Add note</button><button style="height:44px;background:none;border:1px solid #C9CED3;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#8A2E2E">Mark invalid</button></div>
+</div>
+</div></div></div><div style="height:860px;width:390px;overflow:hidden;border-radius:28px;background:#F6F7F5;border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.06);flex:none"><div style="margin-top:-1640px"><div class="dv-card" style="width:390px;background:#F6F7F5;border-radius:0;border:none;box-shadow:none">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600"><span>9:42</span><span style="font-weight:400;color:#5A626B">●●●</span></div>
+<div style="padding:4px 20px 0;display:flex;align-items:center;height:44px"><a href="#" style="font-size:15px;text-decoration:none">‹ Signals</a></div>
+<div style="padding:4px 20px 18px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #C9CED3">
+<div style="display:flex;gap:10px;align-items:baseline"><span style="color:#2563C9;font-weight:600;font-size:17px">▲ Long</span><span style="font-size:28px;font-weight:600;letter-spacing:-0.01em">EUR/USD</span></div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:#5A626B"><span>3/8 system</span><span style="border:1px solid #23282E;color:#23282E;border-radius:3px;padding:1px 6px;font-size:12px">Confirmed</span><span>Created 09:30 NY · 12 min ago</span></div>
+</div>
+<div style="padding:18px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:12px">
+<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px 22px;align-items:baseline;font-size:15px">
+<span style="font-size:12px;color:#5A626B"></span><span style="font-size:12px;color:#5A626B;text-align:right">Reference</span><span style="font-size:12px;color:#5A626B;text-align:right">Broker A</span>
+<sc-for list="{{ plan }}" as="p" hint-placeholder-count="4"><span style="color:#3A4148">{{ p.label }}</span><span style="text-align:right;font-weight:{{ p.w }}">{{ p.ref }}</span><span style="text-align:right;font-weight:{{ p.w }}">{{ p.brk }}</span></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #DDE1E4;padding-top:12px;font-size:12px;color:#5A626B">
+<div style="display:flex;flex-direction:column;gap:2px">Risk<span style="font-size:17px;color:#23282E">24 <span style="font-size:12px;color:#5A626B">pips</span></span></div>
+<div style="display:flex;flex-direction:column;gap:2px">Reward<span style="font-size:17px;color:#23282E">44 <span style="font-size:12px;color:#5A626B">pips</span></span></div>
+<div style="display:flex;flex-direction:column;gap:2px">Reward to risk<span style="font-size:17px;color:#23282E;font-weight:600">1.8</span></div>
+</div>
+<div style="font-size:12px;color:#5A626B">Broker A adds 0.6 pip spread. Net: risk 25, reward 43, 1.7.</div>
+<button style="height:48px;background:#23282E;color:#F6F7F5;border:none;border-radius:4px;font:600 15px 'IBM Plex Sans'">Open in Broker A</button>
+</div>
+<div style="padding:22px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;gap:18px;align-items:center">{{ ringBig }}<div style="font-size:14px;line-height:1.5;color:#23282E;text-wrap:pretty">Long EUR/USD because 4 of 8 indicators fired near 1.0838: a bullish engulfing bar, a bounce off daily S1, price holding above the previous day low, and a provisional channel touch.</div></div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ indicators }}" as="i" hint-placeholder-count="8">
+<div style="display:grid;grid-template-columns:20px 1fr;gap:10px;padding:9px 0;border-top:1px solid #E2E5E8">
+<span style="font-size:13px;color:{{ i.numColor }};font-weight:{{ i.numW }}">{{ i.n }}</span>
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;justify-content:space-between;gap:8px;font-size:14px"><span style="color:{{ i.nameColor }};font-weight:{{ i.numW }}">{{ i.name }}</span><span style="font-size:13px;color:{{ i.statusColor }}">{{ i.status }}</span></div>
+<sc-if value="{{ i.detail }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#5A626B">{{ i.detail }}</div></sc-if>
+<sc-if value="{{ i.prov }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#6E56CF;display:flex;gap:6px;align-items:baseline"><span style="border:1px dashed #6E56CF;border-radius:3px;padding:0 5px">Provisional</span>This definition is waiting for owner approval.</div></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CED3;padding-top:12px">
+<div style="font-size:14px;font-weight:600">Gates passed</div>
+<sc-for list="{{ gates }}" as="g" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#3A4148">✓ {{ g.name }}</span><span style="color:#5A626B">{{ g.val }}</span></div></sc-for>
+</div>
+</div>
+<div style="padding:18px 20px 14px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;font-size:13px;color:#5A626B"><span style="color:#23282E;font-weight:600;font-size:14px">15-minute session</span><span>Triggering bar 09:30 ▲</span></div>
+{{ chart }}
+</div>
+<div style="padding:18px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column">
+<sc-for list="{{ timeline }}" as="e" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:14px 1fr auto auto;gap:10px;align-items:center;padding:7px 0;font-size:14px;color:{{ e.color }}"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid {{ e.color }};background:{{ e.fill }};box-sizing:border-box"></span><span>{{ e.label }}</span><span style="text-align:right">{{ e.price }}</span><span style="text-align:right;color:#5A626B;min-width:40px">{{ e.time }}</span></div></sc-for>
+</div>
+<div style="padding:16px 20px 28px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:12px;color:#5A626B">Admin</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button style="height:44px;background:none;border:1px solid #C9CED3;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#23282E">Add note</button><button style="height:44px;background:none;border:1px solid #C9CED3;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#8A2E2E">Mark invalid</button></div>
+</div>
+</div></div></div></div></div>
+</section>
+<section data-label="Levels and notifications" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>06</span></div>
+<div style="flex:1;display:grid;grid-template-columns:560px 1fr;gap:72px;align-items:center;min-height:0"><div><div style="display:flex;flex-direction:column;gap:20px"><div style="font-size:52px;font-weight:600;letter-spacing:-0.01em;line-height:1.1;text-wrap:balance">Levels and notifications</div><div style="font-size:26px;line-height:1.5;color:#3A4148;text-wrap:pretty">Levels puts floor pivots, previous day high and low, and the Fibonacci Pivot ladder for one pair on a single screen, with the current price marked. Notifications lets each owner choose channels, strategies, pairs and quiet hours, and explains what to do if the browser blocks alerts.</div></div></div><div style="display:flex;gap:40px;justify-content:center;align-items:center;min-height:0"><div style="height:860px;width:390px;overflow:hidden;border-radius:28px;background:#F6F7F5;border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.06);flex:none"><div style="margin-top:-0px"><div class="dv-card" style="width:390px;background:#F6F7F5;border-radius:0;border:none;box-shadow:none">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600"><span>9:42</span><span style="font-weight:400;color:#5A626B">●●●</span></div>
+<div style="padding:6px 20px 0;font-size:22px;font-weight:600">Levels</div>
+<div style="display:flex;gap:6px;padding:12px 20px;overflow:hidden;border-bottom:1px solid #C9CED3">
+<sc-for list="{{ pairs }}" as="p" hint-placeholder-count="5"><span style="flex:none;height:36px;padding:0 12px;display:flex;align-items:center;border-radius:4px;font-size:14px;border:1px solid {{ p.border }};background:{{ p.bg }};color:{{ p.color }};font-weight:500">{{ p.name }}</span></sc-for>
+</div>
+<div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #C9CED3"><span style="font-size:13px;color:#5A626B">Price at 09:42 NY</span><span style="font-size:24px;font-weight:600">1.0846</span></div>
+<div style="padding:16px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:6px">
+<div style="font-size:14px;font-weight:600;margin-bottom:4px">Floor pivots</div>
+<div style="display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:5px 0;font-size:14px">
+<span></span><span style="text-align:right;font-size:12px;color:#5A626B">Daily</span><span style="text-align:right;font-size:12px;color:#5A626B">Weekly</span><span style="text-align:right;font-size:12px;color:#5A626B">Monthly</span>
+<sc-for list="{{ floor }}" as="f" hint-placeholder-count="7"><span style="color:#5A626B;font-weight:{{ f.w }}">{{ f.k }}</span><span style="text-align:right;font-weight:{{ f.w }}">{{ f.d }}</span><span style="text-align:right;font-weight:{{ f.w }}">{{ f.wk }}</span><span style="text-align:right;font-weight:{{ f.w }}">{{ f.m }}</span></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #DDE1E4;padding-top:10px;margin-top:6px;font-size:14px"><div style="display:flex;justify-content:space-between"><span style="color:#5A626B">Previous day high</span><span>1.0905</span></div><div style="display:flex;justify-content:space-between"><span style="color:#5A626B">Low</span><span>1.0831</span></div></div>
+</div>
+<div style="padding:16px 20px 28px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;font-weight:600">Fibonacci Pivot ladder</span><span style="font-size:13px;color:#5A626B">Range 94 pips · Fib 0.618</span></div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ ladder }}" as="l" hint-placeholder-count="10">
+<sc-if value="{{ l.isPrice }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;height:30px;color:#2563C9"><span style="font-size:12px;font-weight:600">Now</span><span style="height:0;border-top:2px solid #2563C9;position:relative"><span style="position:absolute;left:58%;top:-6px;width:10px;height:10px;border-radius:50%;background:#2563C9"></span></span><span style="font-size:14px;font-weight:600;min-width:56px;text-align:right">1.0846</span></div></sc-if>
+<sc-if value="{{ l.isLevel }}" hint-placeholder-val="{{ true }}"><div style="display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;height:30px"><span style="font-size:13px;color:#5A626B;font-weight:{{ l.w }}">{{ l.k }}</span><span style="height:0;border-top:1px {{ l.line }} {{ l.lc }}"></span><span style="font-size:14px;min-width:56px;text-align:right;font-weight:{{ l.w }}">{{ l.v }}</span></div></sc-if>
+</sc-for>
+</div>
+</div>
+</div></div></div><div style="height:860px;width:390px;overflow:hidden;border-radius:28px;background:#F6F7F5;border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.06);flex:none"><div style="margin-top:-0px"><div class="dv-card" style="width:390px;background:#F6F7F5;border-radius:0;border:none;box-shadow:none">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600"><span>9:42</span><span style="font-weight:400;color:#5A626B">●●●</span></div>
+<div style="padding:4px 20px 0;display:flex;align-items:center;height:44px"><a href="#" style="font-size:15px;text-decoration:none">‹ Settings</a></div>
+<div style="padding:0 20px 14px;font-size:22px;font-weight:600;border-bottom:1px solid #C9CED3">Notifications</div>
+<div style="padding:8px 20px 14px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:center;min-height:56px;gap:12px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">Push on this phone</span><span style="font-size:13px;color:#8A2E2E">Blocked by the browser</span></div><button style="height:40px;padding:0 14px;background:#23282E;color:#F6F7F5;border:none;border-radius:4px;font:500 14px 'IBM Plex Sans'">Turn on notifications</button></div>
+<div style="font-size:13px;line-height:1.45;color:#5A626B;padding-bottom:6px">Open iPhone Settings › Safari › Notifications and allow this site, then return here.</div>
+<div style="display:flex;justify-content:space-between;align-items:center;min-height:56px;border-top:1px solid #E2E5E8"><span style="font-size:15px">Telegram</span><button style="height:40px;padding:0 14px;background:none;border:1px solid #C9CED3;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#23282E">Connect Telegram</button></div>
+<div style="display:flex;justify-content:space-between;align-items:center;min-height:56px;border-top:1px solid #E2E5E8"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">Email</span><span style="font-size:13px;color:#5A626B">jana@desk.example</span></div><span style="font-size:13px;color:#5A626B">Always on</span></div>
+</div>
+<div style="padding:8px 20px 8px;border-bottom:1px solid #C9CED3">
+<sc-for list="{{ notifToggles }}" as="n" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;align-items:center;min-height:52px;border-top:{{ n.top }}"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">{{ n.label }}</span><sc-if value="{{ n.sub }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#5A626B">{{ n.sub }}</span></sc-if></div><span style="width:46px;height:28px;border-radius:14px;background:{{ n.track }};display:flex;align-items:center;padding:3px;box-sizing:border-box;justify-content:{{ n.justify }}"><span style="width:22px;height:22px;border-radius:50%;background:#FFFFFF"></span></span></div></sc-for>
+</div>
+<div style="padding:14px 20px;border-bottom:1px solid #C9CED3;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:15px">Instruments</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ instChips }}" as="c" hint-placeholder-count="6"><span style="height:36px;padding:0 12px;display:flex;align-items:center;border-radius:4px;font-size:14px;border:1px solid {{ c.border }};background:{{ c.bg }};color:{{ c.color }}">{{ c.label }}</span></sc-for></div>
+</div>
+<div style="padding:8px 20px;border-bottom:1px solid #C9CED3;display:flex;justify-content:space-between;align-items:center;min-height:56px"><span style="font-size:15px">Quiet hours</span><span style="font-size:15px">22:00–06:00 <span style="color:#5A626B;font-size:13px">NY</span></span></div>
+<div style="padding:18px 20px 28px"><button style="width:100%;height:48px;background:none;border:1px solid #23282E;border-radius:4px;font:500 15px 'IBM Plex Sans';color:#23282E">Send test notification</button></div>
+</div></div></div></div></div>
+</section>
+<section data-label="Sign in and confirmations" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>07</span></div>
+<div style="flex:1;display:grid;grid-template-columns:560px 1fr;gap:72px;align-items:center;min-height:0"><div><div style="display:flex;flex-direction:column;gap:20px"><div style="font-size:52px;font-weight:600;letter-spacing:-0.01em;line-height:1.1;text-wrap:balance">Sign in and confirmations</div><div style="font-size:26px;line-height:1.5;color:#3A4148;text-wrap:pretty">Access is by emailed link, limited to an approved list. Changes to trading rules always ask for confirmation and say exactly when the scanner will start using them.</div></div></div><div style="display:flex;gap:40px;justify-content:center;align-items:center;min-height:0"><div style="zoom:1.05;flex:none"><div class="dv-card" style="width:390px;background:#F6F7F5;border-radius:28px;padding:84px 28px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;gap:14px;align-items:center">{{ iconSmall }}<span style="font-size:17px;font-weight:600">Trading desk</span></div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<label style="font-size:14px;color:#3A4148">Email</label>
+<div style="height:48px;border:1.5px solid #8A2E2E;border-radius:4px;background:#FFFFFF;display:flex;align-items:center;padding:0 14px;font-size:16px">sam@otherdomain.com</div>
+<div style="font-size:13px;color:#8A2E2E;line-height:1.45">This email isn't approved. Ask an admin to add it.</div>
+</div>
+<button style="height:48px;background:#23282E;color:#F6F7F5;border:none;border-radius:4px;font:600 15px 'IBM Plex Sans'">Email me a sign-in link</button>
+<div style="border-top:1px solid #C9CED3;padding-top:20px;font-size:14px;color:#3A4148;line-height:1.5">Confirmation state: <span style="color:#23282E;font-weight:500">Check your email for a sign-in link.</span></div>
+</div></div><div style="zoom:1.15;flex:none"><div class="dv-card" style="width:440px;background:#F6F7F5;padding:26px 28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;border:1px solid #23282E;border-radius:6px">
+<div style="font-size:18px;font-weight:600">Approve Trendlines and channels v2?</div>
+<div style="font-size:14px;line-height:1.5;color:#3A4148;text-wrap:pretty">The provisional badge comes off this indicator. The scanner will use the change from the next bar, 09:45 NY.</div>
+<div style="display:flex;justify-content:flex-end;gap:10px;padding-top:6px"><button style="height:44px;padding:0 18px;background:none;border:1px solid #C9CED3;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#23282E">Cancel</button><button style="height:44px;padding:0 18px;background:#23282E;color:#F6F7F5;border:none;border-radius:4px;font:500 14px 'IBM Plex Sans'">Approve rule</button></div>
+</div></div></div></div>
+</section>
+<section data-label="History" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>08</span></div>
+<div style="flex:1;display:grid;grid-template-columns:380px 1fr;gap:72px;align-items:center;min-height:0"><div><div style="display:flex;flex-direction:column;gap:20px"><div style="font-size:52px;font-weight:600;letter-spacing:-0.01em;line-height:1.1;text-wrap:balance">History</div><div style="font-size:26px;line-height:1.5;color:#3A4148;text-wrap:pretty">Every signal and its outcome, with trades, win rate, net pips, expectancy and profit factor for whatever filter is applied. Export to CSV at any time.</div></div></div><div style="display:flex;gap:40px;justify-content:center;align-items:center;min-height:0"><div style="zoom:0.92;flex:none"><div class="dv-card" style="width:1280px;background:#F6F7F5;display:grid;grid-template-columns:200px 1fr;min-height:800px">
+<div style="border-right:1px solid #C9CED3;padding:22px 0;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;gap:10px;align-items:center;padding:0 20px 20px">{{ iconNav }}<span style="font-weight:600;font-size:15px">Trading desk</span></div>
+<sc-for list="{{ navHistory }}" as="n" hint-placeholder-count="8"><div style="height:36px;display:flex;align-items:center;padding:0 20px;font-size:14px;border-left:2px solid {{ n.bar }};color:{{ n.color }};font-weight:{{ n.weight }}">{{ n.label }}</div></sc-for>
+</div>
+<div style="padding:24px 32px;display:flex;flex-direction:column;gap:18px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:24px;font-weight:600">History</div><button style="height:36px;padding:0 14px;background:none;border:1px solid #23282E;border-radius:4px;font:500 14px 'IBM Plex Sans';color:#23282E">Export CSV</button></div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="6"><span style="height:34px;padding:0 12px;display:flex;gap:6px;align-items:center;border:1px solid #C9CED3;border-radius:4px;font-size:13px;background:#FFFFFF"><span style="color:#5A626B">{{ f.k }}</span><span style="font-weight:500">{{ f.v }}</span><span style="color:#5A626B">▾</span></span></sc-for>
+<span style="font-size:13px;color:#5A626B;margin-left:8px">64 signals</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,auto) 1fr;gap:36px;align-items:end;border-top:1px solid #23282E;border-bottom:1px solid #C9CED3;padding:14px 0">
+<sc-for list="{{ metrics }}" as="m" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;color:#5A626B">{{ m.k }}</span><span style="font-size:26px;font-weight:500">{{ m.v }}<span style="font-size:13px;color:#5A626B;font-weight:400"> {{ m.u }}</span></span></div></sc-for>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:12px;color:#5A626B">Cumulative pips, September</span>{{ cumChart }}</div>
+</div>
+<div style="font-family:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;font-size:14px">
+<div style="display:grid;grid-template-columns:110px 90px 80px 80px 100px 90px 50px minmax(180px,1fr) 90px;gap:0 16px;padding:8px 0;border-bottom:1px solid #23282E;color:#5A626B;font-size:13px;background:#F6F7F5">
+<span>Date, NY</span><span>Strategy</span><span>Instrument</span><span>Direction</span><span>Outcome</span><span style="text-align:right">Result pips ▾</span><span style="text-align:right">R:R</span><span>Rule versions</span><span>Flags</span>
+</div>
+<sc-for list="{{ hist }}" as="h" hint-placeholder-count="12"><div style="display:grid;grid-template-columns:110px 90px 80px 80px 100px 90px 50px minmax(180px,1fr) 90px;gap:0 16px;padding:9px 0;border-bottom:1px solid #DDE1E4;align-items:center">
+<span>{{ h.date }}</span><span>{{ h.strat }}</span><span style="font-weight:500">{{ h.pair }}</span><span style="color:{{ h.ink }};font-weight:500">{{ h.arrow }} {{ h.dir }}</span><span>{{ h.out }}</span><span style="text-align:right;font-weight:500">{{ h.pips }}</span><span style="text-align:right">{{ h.rr }}</span><span style="color:#5A626B">{{ h.rules }}</span><span><sc-if value="{{ h.prov }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#6E56CF;border:1px dashed #6E56CF;border-radius:3px;padding:1px 6px">Provisional</span></sc-if></span>
+</div></sc-for>
+</div>
+</div>
+</div></div></div></div>
+</section>
+<section data-label="Rules" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>09</span></div>
+<div style="flex:1;display:grid;grid-template-columns:380px 1fr;gap:72px;align-items:center;min-height:0"><div><div style="display:flex;flex-direction:column;gap:20px"><div style="font-size:52px;font-weight:600;letter-spacing:-0.01em;line-height:1.1;text-wrap:balance">Rules</div><div style="font-size:26px;line-height:1.5;color:#3A4148;text-wrap:pretty">Each rule shows plain-language intent, its source page, parameters with allowed ranges, per-pair overrides, version history and how signals using it have performed. Owners approve provisional rules here.</div></div></div><div style="display:flex;gap:40px;justify-content:center;align-items:center;min-height:0"><div style="zoom:0.9;flex:none"><div class="dv-card" style="width:1280px;background:#F6F7F5;display:grid;grid-template-columns:200px 280px 1fr;min-height:860px;position:relative">
+<div style="border-right:1px solid #C9CED3;padding:22px 0;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;gap:10px;align-items:center;padding:0 20px 20px">{{ iconNav }}<span style="font-weight:600;font-size:15px">Trading desk</span></div>
+<sc-for list="{{ navRules }}" as="n" hint-placeholder-count="8"><div style="height:36px;display:flex;align-items:center;padding:0 20px;font-size:14px;border-left:2px solid {{ n.bar }};color:{{ n.color }};font-weight:{{ n.weight }}">{{ n.label }}</div></sc-for>
+</div>
+<div style="border-right:1px solid #C9CED3;padding:24px 0;display:flex;flex-direction:column">
+<div style="padding:0 20px 14px;font-size:20px;font-weight:600">Rules</div>
+<sc-for list="{{ ruleGroups }}" as="g" hint-placeholder-count="2">
+<div style="padding:14px 20px 6px;font-size:13px;color:#5A626B;border-top:1px solid #C9CED3">{{ g.name }}</div>
+<sc-for list="{{ g.rules }}" as="r" hint-placeholder-count="5"><div style="min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 20px;font-size:14px;background:{{ r.bg }};font-weight:{{ r.w }}"><span>{{ r.name }}</span><span style="display:flex;gap:6px;align-items:center"><sc-if value="{{ r.prov }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:#6E56CF;border:1px dashed #6E56CF;border-radius:3px;padding:0 5px;font-weight:400">Provisional</span></sc-if><span style="font-size:12px;color:#5A626B;font-weight:400">{{ r.v }}</span></span></div></sc-for>
+</sc-for>
+</div>
+<div style="padding:24px 32px;display:flex;flex-direction:column;gap:22px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;gap:10px;align-items:center"><span style="font-size:24px;font-weight:600">Trendlines and channels</span><span style="font-size:12px;color:#6E56CF;border:1px dashed #6E56CF;border-radius:3px;padding:1px 6px">Provisional</span><span style="font-size:13px;color:#5A626B">v2 · indicator 5 of 8</span></div>
+<div style="font-size:14px;color:#3A4148;max-width:620px;line-height:1.5;text-wrap:pretty">Fires when price touches a trendline or channel boundary drawn through at least three swing points, within the touch tolerance, and the bar closes back inside the channel.</div>
+<div style="font-size:13px;color:#5A626B">Source: course pages, section 5, page 14</div>
+</div>
+<div style="display:flex;gap:10px;align-items:center;font-size:14px">Enabled<span style="width:46px;height:28px;border-radius:14px;background:#23282E;display:flex;align-items:center;justify-content:flex-end;padding:3px;box-sizing:border-box"><span style="width:22px;height:22px;border-radius:50%;background:#FFFFFF"></span></span></div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:32px">
+<div style="display:flex;flex-direction:column;gap:22px">
+<div>
+<div style="display:grid;grid-template-columns:1fr 150px 120px;gap:12px;padding:8px 0;border-bottom:1px solid #23282E;font-size:13px;color:#5A626B"><span>Parameter</span><span>Value</span><span>Allowed</span></div>
+<sc-for list="{{ params }}" as="p" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:1fr 150px 120px;gap:12px;padding:8px 0;border-bottom:1px solid #DDE1E4;align-items:center;font-size:14px"><span>{{ p.name }}</span><span style="display:flex;align-items:center;height:36px;border:1px solid {{ p.border }};background:#FFFFFF;border-radius:4px;padding:0 10px;justify-content:space-between"><span style="font-weight:500">{{ p.val }}</span><span style="color:#5A626B;font-size:13px">{{ p.unit }}</span></span><span style="color:#5A626B;font-size:13px">{{ p.range }}</span></div></sc-for>
+</div>
+<div>
+<div style="font-size:14px;font-weight:600;margin-bottom:6px">Per-pair overrides</div>
+<div style="display:grid;grid-template-columns:110px 1fr 120px;gap:12px;padding:8px 0;border-top:1px solid #DDE1E4;border-bottom:1px solid #DDE1E4;font-size:14px;align-items:center"><span style="font-weight:500">USD/JPY</span><span>Touch tolerance 2.5 pips</span><a href="#" style="font-size:13px;text-align:right">Remove</a></div>
+<div style="font-size:13px;padding-top:8px"><a href="#">Add override</a></div>
+</div>
+<div style="display:flex;gap:10px"><button style="height:40px;padding:0 16px;background:#23282E;color:#F6F7F5;border:none;border-radius:4px;font:500 14px 'IBM Plex Sans'">Save new version</button><button style="height:40px;padding:0 16px;background:none;border:1px solid #6E56CF;color:#6E56CF;border-radius:4px;font:500 14px 'IBM Plex Sans'">Approve rule</button></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:22px">
+<div style="border-top:1px solid #23282E;padding-top:10px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:600">Performance with this rule</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:13px;color:#5A626B"><div style="display:flex;flex-direction:column">Signals<span style="font-size:22px;color:#23282E">23</span></div><div style="display:flex;flex-direction:column">Win rate<span style="font-size:22px;color:#23282E">61%</span></div><div style="display:flex;flex-direction:column">Net pips<span style="font-size:22px;color:#23282E">+148</span></div></div>
+<div style="font-size:13px;color:#5A626B;line-height:1.45">Signals without this indicator fired: 41, win rate 56%, net +264.</div>
+</div>
+<div style="border-top:1px solid #23282E;padding-top:10px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:600">Version history</span><span style="color:#5A626B;font-size:13px">v2 against v1</span></div>
+<div style="font-family:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;font-size:14px;display:flex;flex-direction:column">
+<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;padding:6px 0;border-bottom:1px solid #DDE1E4"><span>Minimum touches</span><span style="color:#5A626B;text-decoration:line-through">2</span><span style="color:#5A626B">→</span><span style="font-weight:600">3</span></div>
+<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;padding:6px 0;border-bottom:1px solid #DDE1E4"><span>Touch tolerance</span><span style="color:#5A626B;text-decoration:line-through">3.0</span><span style="color:#5A626B">→</span><span style="font-weight:600">2.0 pips</span></div>
+</div>
+<div style="display:flex;flex-direction:column;font-size:13px;color:#3A4148">
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span>v2 · saved by Jana</span><span style="color:#5A626B">Sep 18</span></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span>v1 · imported from course pages</span><span style="color:#5A626B">Aug 2</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div></div>
+</section>
+<section data-label="Next steps" style="width:1920px;height:1080px;background:#E9EBE8;color:#23282E;font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;box-sizing:border-box;padding:80px 110px;display:flex;flex-direction:column;gap:48px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;font-size:24px;color:#5A626B;border-bottom:1px solid #C9CED3;padding-bottom:18px;flex:none"><span>Trading desk · interface design</span><span>10</span></div>
+<div style="font-size:64px;font-weight:600;letter-spacing:-0.01em">Next steps</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;border-top:1px solid #23282E;padding-top:36px">
+<div style="display:flex;flex-direction:column;gap:16px"><div style="font-size:30px;font-weight:600">For your review</div><div style="font-size:26px;line-height:1.6;color:#3A4148">The ring and the order of its indicators<br>The colour and type direction<br>What appears on the dashboard and signal pages</div></div>
+<div style="display:flex;flex-direction:column;gap:16px"><div style="font-size:30px;font-weight:600">Round two</div><div style="font-size:26px;line-height:1.6;color:#3A4148">Stocks, stock detail and holdings<br>Levels on desktop, health and economic events<br>Brokers, instruments, users and the install guide</div></div>
+</div>
+</section>
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;ringVariant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;segments&quot;,&quot;hairline&quot;],&quot;default&quot;:&quot;segments&quot;,&quot;tsType&quot;:&quot;'segments'|'hairline'&quot;},&quot;dashboardState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;live&quot;,&quot;empty&quot;,&quot;stale&quot;],&quot;default&quot;:&quot;live&quot;,&quot;tsType&quot;:&quot;'live'|'empty'|'stale'&quot;}}">
+const TH = {
+  light: { ink: '#23282E', mute: '#5A626B', rule: '#C9CED3', long: '#2563C9', short: '#C27A00', shortInk: '#975C00', prov: '#6E56CF' },
+  dark: { ink: '#F6F7F5', mute: '#A9B0B7', rule: '#5A626B', long: '#7FA6EE', short: '#E0A341', shortInk: '#E0A341', prov: '#A898F0' }
+};
+const h = React.createElement;
+
+function ring(states, dir, size, theme, variant, opts = {}) {
+  const t = TH[theme]; const col = dir === 'long' ? t.long : t.short;
+  const thin = variant === 'hairline';
+  const R = 47, r = thin ? 39 : 30, gap = thin ? 3 : 4.5;
+  const p = (a, rad) => [(50 + rad * Math.cos(a)).toFixed(2), (50 + rad * Math.sin(a)).toFixed(2)];
+  const segs = states.map((s, i) => {
+    const a0 = (-90 + i * 45 + gap / 2) * Math.PI / 180, a1 = (-90 + (i + 1) * 45 - gap / 2) * Math.PI / 180;
+    const [x0, y0] = p(a0, R), [x1, y1] = p(a1, R), [x2, y2] = p(a1, r), [x3, y3] = p(a0, r);
+    const d = `M${x0} ${y0}A${R} ${R} 0 0 1 ${x1} ${y1}L${x2} ${y2}A${r} ${r} 0 0 0 ${x3} ${y3}Z`;
+    const f = s === 'f', pv = s === 'p';
+    return h('path', { key: i, d, fill: f || pv ? (opts.mono || col) : 'none', fillOpacity: pv ? 0.28 : 1,
+      stroke: f ? (opts.mono || col) : pv ? t.prov : (opts.outline || t.rule), strokeWidth: size >= 80 ? 1.5 : 1,
+      strokeDasharray: pv ? (size >= 80 ? '4 3' : '2 1.5') : undefined, vectorEffect: 'non-scaling-stroke', strokeLinejoin: 'round' });
+  });
+  const n = states.filter(s => s).length;
+  const kids = [...segs];
+  if (opts.label !== false) {
+    if (size >= 80) {
+      kids.push(h('text', { key: 'a', x: 50, y: 55, textAnchor: 'middle', fontSize: thin ? 30 : 24, fontWeight: 600, fill: t.ink, fontFamily: 'IBM Plex Sans' }, n));
+      kids.push(h('text', { key: 'b', x: 50, y: thin ? 70 : 67, textAnchor: 'middle', fontSize: thin ? 11 : 10, fill: t.mute, fontFamily: 'IBM Plex Sans' }, 'of 8'));
+    } else kids.push(h('text', { key: 'a', x: 50, y: 63, textAnchor: 'middle', fontSize: 34, fontWeight: 600, fill: t.ink, fontFamily: 'IBM Plex Sans' }, n));
+  }
+  return h('svg', { width: size, height: size, viewBox: '0 0 100 100', role: 'img', 'aria-label': `${n} of 8 indicators fired`, style: { display: 'block', flex: 'none' } }, ...kids);
+}
+
+function ladderMark(theme, dir) {
+  const t = TH[theme]; const col = dir === 'long' ? t.long : t.short;
+  const ys = [4, 11, 18, 25, 32];
+  return h('svg', { width: 40, height: 40, viewBox: '0 0 40 40', role: 'img', 'aria-label': 'Fib Pivot, price at R1' },
+    ...ys.map((y, i) => h('line', { key: i, x1: 8, x2: 32, y1: y + 2, y2: y + 2, stroke: i === 2 ? t.ink : t.rule, strokeWidth: i === 2 ? 1.5 : 1 })),
+    h('circle', { cx: 20, cy: 13, r: 4, fill: col }));
+}
+
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+
+function chart() {
+  const W = 350, H = 250, PW = 286, top = 1.0895, bot = 1.0812;
+  const y = v => 8 + (top - v) / (top - bot) * (H - 16);
+  const rand = rng(7); const bars = []; let prev = 1.0874;
+  for (let i = 0; i < 28; i++) {
+    let o = prev, c;
+    if (i === 17) { o = 1.0844; c = 1.0839; }
+    else if (i === 18) { o = 1.0837; c = 1.0847; }
+    else { const tgt = i < 17 ? 1.0874 - (i / 17) * 0.003 : 1.0847 + (i - 18) / 9 * 0.0004; c = tgt + (rand() - 0.5) * 0.0008; }
+    const hi = Math.max(o, c) + rand() * 0.0004, lo = i === 18 ? 1.0835 : Math.min(o, c) - rand() * 0.0004;
+    bars.push({ o, c, hi, lo }); prev = c;
+  }
+  const bw = PW / 28;
+  const lines = [
+    { v: 1.0887, l: 'Target 1.0887', c: '#2563C9', w: 1.5 },
+    { v: 1.0858, l: 'P 1.0858', c: '#8C949C', dash: '3 3' },
+    { v: 1.0843, l: 'Entry 1.0843', c: '#23282E', w: 1.5 },
+    { v: 1.0838, l: 'S1 1.0838', c: '#8C949C', dash: '3 3', dy: 10 },
+    { v: 1.0831, l: 'PDL 1.0831', c: '#8C949C', dash: '1 3' },
+    { v: 1.0822, l: 'Fib S1', c: '#8C949C', dash: '6 3', left: true },
+    { v: 1.0819, l: 'Stop 1.0819', c: '#23282E', dash: '4 2', w: 1.2 }
+  ];
+  const kids = [];
+  lines.forEach((L, i) => {
+    kids.push(h('line', { key: 'l' + i, x1: 0, x2: PW, y1: y(L.v), y2: y(L.v), stroke: L.c, strokeWidth: L.w || 1, strokeDasharray: L.dash }));
+    kids.push(h('text', { key: 't' + i, x: L.left ? 4 : PW + 4, y: y(L.v) + (L.left ? -3 : 3.5) + (L.dy || 0), fontSize: 9.5, fill: L.c === '#8C949C' ? '#5A626B' : L.c, fontFamily: 'IBM Plex Sans Condensed', fontWeight: L.w ? 600 : 400 }, L.l));
+  });
+  bars.forEach((b, i) => {
+    const x = i * bw + bw / 2, up = b.c >= b.o;
+    kids.push(h('line', { key: 'w' + i, x1: x, x2: x, y1: y(b.hi), y2: y(b.lo), stroke: '#23282E', strokeWidth: 1 }));
+    kids.push(h('rect', { key: 'b' + i, x: x - bw * 0.32, width: bw * 0.64, y: y(Math.max(b.o, b.c)), height: Math.max(1, Math.abs(y(b.o) - y(b.c))), fill: up ? '#F6F7F5' : '#23282E', stroke: '#23282E', strokeWidth: 1 }));
+    if (i === 18) kids.push(h('path', { key: 'tr', d: `M${x} ${y(b.lo) + 6}l-5 8h10z`, fill: '#2563C9' }));
+  });
+  ['08:00', '09:00', '10:00'].forEach((t, i) => kids.push(h('text', { key: 'x' + i, x: (2 + i * 13) * bw, y: H + 10, fontSize: 9.5, fill: '#5A626B', fontFamily: 'IBM Plex Sans' }, t)));
+  return h('svg', { width: W, height: H + 14, viewBox: `0 0 ${W} ${H + 14}`, role: 'img', 'aria-label': '15-minute candles with entry, stop, target and pivot levels', style: { display: 'block' } }, ...kids);
+}
+
+function cum() {
+  const rand = rng(3); let v = 0; const pts = [];
+  for (let i = 0; i < 64; i++) { v += (rand() < 0.58 ? 1 : -1) * (8 + rand() * 30); pts.push(v); }
+  const k = 412 / pts[63]; const ps = pts.map(p => p * k);
+  const mn = Math.min(0, ...ps), mx = Math.max(...ps), W = 260, H = 54;
+  const d = ps.map((p, i) => `${(i / 63 * W).toFixed(1)},${(H - 2 - (p - mn) / (mx - mn) * (H - 4)).toFixed(1)}`).join(' ');
+  const z = H - 2 - (0 - mn) / (mx - mn) * (H - 4);
+  return h('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Cumulative pips rising to plus 412', style: { display: 'block' } },
+    h('line', { x1: 0, x2: W, y1: z, y2: z, stroke: '#C9CED3' }),
+    h('polyline', { points: d, fill: 'none', stroke: '#23282E', strokeWidth: 1.5, strokeLinejoin: 'round' }));
+}
+
+const SIG = [
+  { dir: 'long', pair: 'EUR/USD', strategy: '3/8 system', state: 'Confirmed', age: '12 min', entry: '1.0843', stop: '1.0819', target: '1.0887', rr: '1.8', prov: true, conf: true, ring: ['f', '', 'f', '', 'p', '', 'f', ''] },
+  { dir: 'short', pair: 'GBP/JPY', strategy: 'Fib Pivot', state: 'Open', age: '38 min', entry: '191.42', stop: '191.78', target: '190.86', rr: '1.6', prov: false, conf: false, ladder: true },
+  { dir: 'short', pair: 'USD/CAD', strategy: '3/8 system', state: 'Open', age: '1 h 05', entry: '1.3912', stop: '1.3934', target: '1.3868', rr: '2.0', prov: false, conf: false, ring: ['f', 'f', '', '', '', 'f', '', ''] }
+];
+
+class Component extends DCLogic {
+  rows(theme, v) {
+    const t = TH[theme];
+    return SIG.map(s => ({ ...s, ink: s.dir === 'long' ? t.long : t.shortInk, arrow: s.dir === 'long' ? '▲' : '▼', dirWord: s.dir === 'long' ? 'Long' : 'Short',
+      mark: s.ladder ? ladderMark(theme, s.dir) : ring(s.ring, s.dir, 40, theme, v) }));
+  }
+  tabs(theme) {
+    const t = TH[theme];
+    return ['Signals', 'Levels', 'Stocks', 'History', 'Settings'].map((l, i) => ({ label: l, color: i === 0 ? t.ink : t.mute, weight: i === 0 ? 600 : 400, bar: i === 0 ? t.ink : 'transparent' }));
+  }
+  nav(active) {
+    return ['Signals', 'Levels', 'Stocks', 'Holdings', 'History', 'Econ events', 'Health', 'Settings'].map(l => ({ label: l, bar: l === active ? '#23282E' : 'transparent', color: l === active ? '#23282E' : '#5A626B', weight: l === active ? 600 : 400 }));
+  }
+  renderVals() {
+    const v = this.props.ringVariant ?? 'segments';
+    const st = this.props.dashboardState ?? 'live';
+    const names = [['Candlestick', 'Candle'], ['New high/low failure', 'Failure'], ['Pivots', 'Pivots'], ['Flags, pennants, triangles', 'Patterns'], ['Trendlines and channels', 'Lines'], ['Previous day high', 'PDH'], ['Previous day low', 'PDL'], ['Fibonacci', 'Fib']];
+    const ind = [
+      { s: 'f', status: 'Fired', detail: 'Bullish engulfing on the 09:30 bar' },
+      { s: '', status: 'Not fired' },
+      { s: 'f', status: 'Fired', detail: 'Bounce off daily S1 1.0838' },
+      { s: '', status: 'Not fired' },
+      { s: 'p', status: 'Fired', detail: 'Lower channel line 1.0840, 3 touches', prov: true },
+      { s: '', status: 'Not fired', detail: 'PDH 1.0905, 62 pips away' },
+      { s: 'f', status: 'Fired', detail: 'Held above PDL 1.0831' },
+      { s: '', status: 'Not fired', detail: 'Nearest Fib level S1 1.0822' }
+    ];
+    const fl = [['R3', '1.0930', '1.1012', '1.1140'], ['R2', '1.0904', '1.0968', '1.1046'], ['R1', '1.0884', '1.0921', '1.0960'], ['P', '1.0858', '1.0877', '1.0866'], ['S1', '1.0838', '1.0830', '1.0780'], ['S2', '1.0812', '1.0786', '1.0686'], ['S3', '1.0792', '1.0739', '1.0600']];
+    const lad = [['R4', '1.1010'], ['R3', '1.0952'], ['R2', '1.0916'], ['R1', '1.0894'], ['P', '1.0858'], ['now'], ['S1', '1.0822'], ['S2', '1.0800'], ['S3', '1.0764'], ['S4', '1.0706']];
+    const histRaw = [
+      ['Sep 30 09:30', '3/8 system', 'EUR/USD', 'long', 'Open', '—', '1.8', 'Candle v4 · Lines v2', true],
+      ['Sep 30 08:45', 'Fib Pivot', 'GBP/JPY', 'short', 'Open', '—', '1.6', 'Ladder v3', false],
+      ['Sep 30 08:15', '3/8 system', 'GBP/USD', 'long', 'Target hit', '+38', '1.9', 'Pivots v3 · PDL v1', false],
+      ['Sep 30 08:00', '3/8 system', 'AUD/USD', 'short', 'Stop hit', '−18', '2.1', 'Candle v4 · Fib v3', false],
+      ['Sep 29 10:30', '3/8 system', 'USD/JPY', 'long', 'Target hit', '+42', '2.0', 'Lines v2 · PDH v1', true],
+      ['Sep 29 09:15', 'Fib Pivot', 'EUR/USD', 'long', 'Reset reached', '+12', '1.5', 'Ladder v3', false],
+      ['Sep 29 08:30', '3/8 system', 'EUR/GBP', 'short', 'Target hit', '+27', '1.8', 'Pivots v3 · Fib v3', false],
+      ['Sep 26 10:45', '3/8 system', 'USD/CAD', 'short', 'Stop hit', '−22', '1.7', 'Failure v2 · Candle v4', false],
+      ['Sep 26 09:00', '3/8 system', 'GBP/USD', 'short', 'Target hit', '+51', '2.3', 'Patterns v1 · PDH v1', true],
+      ['Sep 25 08:45', 'Fib Pivot', 'USD/JPY', 'long', 'Stop hit', '−25', '1.6', 'Ladder v3', false],
+      ['Sep 25 08:15', '3/8 system', 'EUR/USD', 'long', 'Target hit', '+44', '1.8', 'Candle v4 · Pivots v3', false],
+      ['Sep 24 10:00', '3/8 system', 'AUD/USD', 'long', 'Invalid', '—', '1.9', 'Lines v1', true]
+    ];
+    const tg = (label, on, sub, first) => ({ label, sub, track: on ? '#23282E' : '#C9CED3', justify: on ? 'flex-end' : 'flex-start', top: first ? 'none' : '1px solid #E2E5E8' });
+    return {
+      isStale: st === 'stale', isEmpty: st === 'empty', hasRows: st !== 'empty',
+      ringL1: ring(SIG[0].ring, 'long', 120, 'light', v),
+      ringL2: ring(SIG[2].ring, 'short', 120, 'light', v),
+      ringD1: ring(SIG[0].ring, 'long', 120, 'dark', v),
+      ringS1: ring(SIG[0].ring, 'long', 40, 'dark', v), ringS2: ring(SIG[2].ring, 'short', 40, 'dark', v), ringS3: ring(['f', 'f', 'f', '', 'f', '', 'f', ''], 'long', 40, 'dark', v),
+      ringEmpty: ring(['', '', '', '', '', '', '', ''], 'long', 72, 'light', v, { label: false }),
+      ringBig: ring(SIG[0].ring, 'long', 112, 'light', v),
+      iconLight: ring(['f', '', 'f', '', 'f', '', 'f', ''], 'long', 52, 'light', 'segments', { label: false }),
+      iconDark: ring(['f', '', 'f', '', 'f', '', 'f', ''], 'long', 52, 'dark', 'segments', { label: false, outline: '#6B737B' }),
+      iconSmall: ring(['f', '', 'f', '', 'f', '', 'f', ''], 'long', 28, 'light', 'segments', { label: false }),
+      iconNav: ring(['f', '', 'f', '', 'f', '', 'f', ''], 'long', 24, 'light', 'segments', { label: false }),
+      ringLegend: names.map((n, i) => ({ n: i + 1, name: n[0], short: n[1] })),
+      rowsLight: this.rows('light', v), rowsDark: this.rows('dark', v),
+      tabs: this.tabs('light'), tabsDark: this.tabs('dark'),
+      plan: [
+        { label: 'Entry', ref: '1.0843', brk: '1.0844', w: 600 },
+        { label: 'Stop', ref: '1.0819', brk: '1.0819', w: 400 },
+        { label: 'Target', ref: '1.0887', brk: '1.0886', w: 400 },
+        { label: 'Alternative target', ref: '1.0904', brk: '1.0903', w: 400 }
+      ],
+      indicators: ind.map((x, i) => ({ n: i + 1, name: names[i][0], status: x.status, detail: x.detail || '', prov: !!x.prov,
+        numColor: x.s ? '#2563C9' : '#8C949C', numW: x.s ? 600 : 400, nameColor: x.s ? '#23282E' : '#5A626B', statusColor: x.s === 'p' ? '#6E56CF' : x.s ? '#2563C9' : '#5A626B' })),
+      gates: [{ name: 'Inside 3/8 window', val: '09:30, window 08:00–11:00' }, { name: 'Spread within limit', val: '0.6 of 1.5 pips' }, { name: 'No high-impact event', val: 'Next USD event 14:00' }, { name: 'Daily goal not reached', val: '41 of 60 pips' }],
+      chart: chart(), cumChart: cum(),
+      timeline: [
+        { label: 'Created', price: '1.0843', time: '09:30', color: '#23282E', fill: '#23282E' },
+        { label: 'Confirmed', price: '1.0846', time: '09:45', color: '#23282E', fill: '#23282E' },
+        { label: 'Reset reached', price: '—', time: '', color: '#8C949C', fill: 'transparent' },
+        { label: 'Closed', price: '—', time: '', color: '#8C949C', fill: 'transparent' }
+      ],
+      pairs: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD'].map((n, i) => ({ name: n, border: i === 0 ? '#23282E' : '#C9CED3', bg: i === 0 ? '#23282E' : 'transparent', color: i === 0 ? '#F6F7F5' : '#23282E' })),
+      floor: fl.map(r => ({ k: r[0], d: r[1], wk: r[2], m: r[3], w: r[0] === 'P' ? 600 : 400 })),
+      ladder: lad.map(r => r[0] === 'now' ? { isPrice: true, isLevel: false } : { isPrice: false, isLevel: true, k: r[0], v: r[1], w: r[0] === 'P' ? 600 : 400, line: r[0] === 'P' ? 'solid' : 'solid', lc: r[0] === 'P' ? '#23282E' : '#C9CED3' }),
+      notifToggles: [tg('3/8 system', true, '', true), tg('Fib Pivot', true, ''), tg('Include updates', false, 'Confirmations, resets and closes'), tg('Stock digest', true, 'After each session')],
+      instChips: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'GBP/JPY', 'EUR/GBP'].map((l, i) => { const on = i !== 3; return { label: (on ? '✓ ' : '') + l, border: on ? '#23282E' : '#C9CED3', bg: 'transparent', color: on ? '#23282E' : '#5A626B' }; }),
+      navHistory: this.nav('History'), navRules: this.nav('Settings'),
+      filters: [{ k: 'Dates', v: 'Sep 1 – Sep 30' }, { k: 'Strategy', v: 'All' }, { k: 'Instrument', v: 'All' }, { k: 'Direction', v: 'Both' }, { k: 'Outcome', v: 'All' }, { k: 'Provisional', v: 'Include' }],
+      metrics: [{ k: 'Trades', v: '64', u: '' }, { k: 'Win rate', v: '58', u: '%' }, { k: 'Net', v: '+412', u: 'pips' }, { k: 'Expectancy', v: '+6.4', u: 'pips' }, { k: 'Profit factor', v: '1.82', u: '' }],
+      hist: histRaw.map(r => ({ date: r[0], strat: r[1], pair: r[2], dir: r[3] === 'long' ? 'Long' : 'Short', arrow: r[3] === 'long' ? '▲' : '▼', ink: r[3] === 'long' ? '#2563C9' : '#975C00', out: r[4], pips: r[5], rr: r[6], rules: r[7], prov: r[8] })),
+      ruleGroups: [
+        { name: '3/8 system', rules: [['Candlestick', 'v4'], ['New high/low failure', 'v2'], ['Pivots', 'v3'], ['Flags, pennants, triangles', 'v1', 1], ['Trendlines and channels', 'v2', 1, 1], ['Previous day high', 'v1'], ['Previous day low', 'v1'], ['Fibonacci', 'v3'], ['Trading window gate', 'v2'], ['Spread gate', 'v1']].map(r => ({ name: r[0], v: r[1], prov: !!r[2], bg: r[3] ? '#E6E9EB' : 'transparent', w: r[3] ? 600 : 400 })) },
+        { name: 'Fib Pivot', rules: [['Range lookback', 'v2'], ['Fibonacci number', 'v3'], ['Entry touch tolerance', 'v1']].map(r => ({ name: r[0], v: r[1], prov: false, bg: 'transparent', w: 400 })) }
+      ],
+      params: [
+        { name: 'Minimum touches', val: '3', unit: 'touches', range: '2 to 5', border: '#C9CED3' },
+        { name: 'Touch tolerance', val: '2.0', unit: 'pips', range: '0.5 to 5.0', border: '#23282E' },
+        { name: 'Lookback', val: '48', unit: 'bars', range: '24 to 96', border: '#C9CED3' },
+        { name: 'Maximum slope', val: '0.8', unit: 'pips per bar', range: '0.1 to 2.0', border: '#C9CED3' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

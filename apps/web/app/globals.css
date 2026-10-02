@@ -1,82 +1,149 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* Design tokens from docs/design/handoff/tokens.css (round one). Fonts are bundled from
+   @fontsource (imported in app/layout.tsx) instead of Google Fonts, so builds and the CSP
+   need no outside hosts. Theme follows the device; [data-theme] on <html> overrides it. */
+:root,
+[data-theme="light"] {
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-condensed: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
 
-/* shadcn/ui neutral theme tokens. Final colors come from the approved design (Phase 3). */
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --bg-page: #e9ebe8;
+  --bg: #f6f7f5;
+  --bg-input: #ffffff;
+  --bg-selected: #e6e9eb;
+  --ink: #23282e;
+  --ink-2: #3a4148;
+  --mute: #5a626b;
+  --faint: #8c949c;
+  --rule: #c9ced3;
+  --rule-soft: #dde1e4;
+  --rule-faint: #e2e5e8;
+
+  --long: #2563c9;
+  --short: #c27a00; /* fills only in light theme */
+  --short-ink: #975c00; /* short text */
+  --prov: #6e56cf;
+  --error: #8a2e2e;
+  --health-ok: #2e8b57;
+  --warn-bg: #fbf1df;
+  --warn-border: #e6cfa3;
+  --warn-ink: #5c3a00;
+
+  --link: #2563c9;
+  --link-hover: #1b4a99;
+
+  --radius-control: 4px;
+  --radius-badge: 3px;
+  --radius-dialog: 6px;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+[data-theme="dark"] {
+  --bg-page: #1b1f24;
+  --bg: #23282e;
+  --bg-input: #2f353c;
+  --bg-selected: #2f353c;
+  --ink: #f6f7f5;
+  --ink-2: #c9ced3;
+  --mute: #a9b0b7;
+  --faint: #6b737b;
+  --rule: #4a525a;
+  --rule-soft: #3a4148;
+  --rule-faint: #3a4148;
+  --long: #7fa6ee;
+  --short: #e0a341;
+  --short-ink: #e0a341;
+  --prov: #a898f0;
+  --health-ok: #4fc08d;
+  --link: #7fa6ee;
+  --link-hover: #a9c3f4;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-page: #1b1f24;
+    --bg: #23282e;
+    --bg-input: #2f353c;
+    --bg-selected: #2f353c;
+    --ink: #f6f7f5;
+    --ink-2: #c9ced3;
+    --mute: #a9b0b7;
+    --faint: #6b737b;
+    --rule: #4a525a;
+    --rule-soft: #3a4148;
+    --rule-faint: #3a4148;
+    --long: #7fa6ee;
+    --short: #e0a341;
+    --short-ink: #e0a341;
+    --prov: #a898f0;
+    --health-ok: #4fc08d;
+    --link: #7fa6ee;
+    --link-hover: #a9c3f4;
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+  --font-sans: var(--font-sans);
+  --font-condensed: var(--font-condensed);
+  --color-page: var(--bg-page);
+  --color-bg: var(--bg);
+  --color-input: var(--bg-input);
+  --color-selected: var(--bg-selected);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-mute: var(--mute);
+  --color-faint: var(--faint);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+  --color-rule-faint: var(--rule-faint);
+  --color-long: var(--long);
+  --color-short: var(--short);
+  --color-short-ink: var(--short-ink);
+  --color-prov: var(--prov);
+  --color-error: var(--error);
+  --color-health-ok: var(--health-ok);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-border: var(--warn-border);
+  --color-warn-ink: var(--warn-ink);
+  --color-link: var(--link);
+  --radius-control: var(--radius-control);
+  --radius-badge: var(--radius-badge);
+  --radius-dialog: var(--radius-dialog);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  html,
+  body {
+    min-height: 100%;
   }
   body {
-    @apply bg-background text-foreground;
+    margin: 0;
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--link);
+  }
+  a:hover {
+    color: var(--link-hover);
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 2px solid var(--long);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
   }
 }
