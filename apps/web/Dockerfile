@@ -18,7 +18,7 @@ WORKDIR /app/db
 COPY db/package.json db/package-lock.json ./
 RUN npm ci --omit=dev
 COPY db/migrations ./migrations
-COPY db/migrate.sh db/seed-admin.mjs ./
+COPY db/migrate.sh db/seed-admin.mjs db/telegram-webhook.mjs ./
 
 FROM node:24-slim AS runner
 ENV NODE_ENV=production \

@@ -62,7 +62,11 @@ def main(*, start_scheduler: bool = True) -> None:
         return
     from scanner import scheduler  # noqa: PLC0415  (imports every job; only the worker needs it)
 
-    with db.make_pool(settings.database_url) as pool:
+    lock = db.wait_for_scheduler_lock(
+        settings.database_url,
+        on_wait=lambda: log.info("waiting for the previous scanner to stop"),
+    )
+    with lock, db.make_pool(settings.database_url) as pool:
         worker = scheduler.build(pool, settings)
         log.info("scheduler starting", extra={"jobs": [j.id for j in worker.scheduler.get_jobs()]})
         worker.scheduler.start()
