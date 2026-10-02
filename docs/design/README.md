@@ -2,6 +2,7 @@
 
 | File | Contents | Status |
 |---|---|---|
+| `handoff/` | Claude Design handoff for building the portal: `README.md` (rules and component notes), `tokens.css` (colors, type, spacing for light and dark), `IndicatorRing.tsx` (ring geometry), and the reference boards in `reference/` | Followed by the portal build (Phase 5) |
 | `trading-desk-design-round-one.pdf` | Round one from Claude Design (October 2026): indicator ring, dashboard, signal detail, levels, notifications, sign-in, rule approval, history, rules | Waiting for the owners' review (Phase 3 gate) |
 
 Round two (per page 10 of round one): stocks, stock detail and holdings; levels on desktop; health and economic events; brokers, instruments, users, and the install guide.
@@ -20,3 +21,11 @@ The design follows the brief (spec 13): the ring keeps the document order of the
 | 4, 6, 8 | EUR/GBP, GBP/JPY | Launch pairs are the seven USD majors (owners can add more) |
 
 Sample figures in the mock-ups (prices, rule version numbers, results) are placeholders; the portal shows live data.
+
+## How the portal follows the handoff
+
+The portal uses the handoff tokens, type, and ring geometry as given (`apps/web/app/globals.css`, `apps/web/components/ring.tsx`). Where the handoff and the specs differ, the portal keeps the handoff's look and the specs' content:
+
+- Levels: the Fibonacci Pivot ladder uses the handoff's layout, with spec 07's labels (Break, Confirmation, Take Profit, Reset) in place of R1 to R4 and S1 to S4.
+- No spread gate is shown; spreads appear per broker (spec 10).
+- Rule pages show the seeded rules and parameters, not the sample ones in the boards.

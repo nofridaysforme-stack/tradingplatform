@@ -1,0 +1,77 @@
+/* Trading Desk design tokens. Theme follows the device setting; Settings > Profile > Theme can override it with [data-theme]. */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap');
+
+:root, [data-theme="light"] {
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-condensed: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif;
+
+  --bg-page: #E9EBE8;        /* desktop canvas / outside frames */
+  --bg: #F6F7F5;             /* Ledger: app surface */
+  --bg-input: #FFFFFF;
+  --bg-selected: #E6E9EB;    /* selected list row */
+  --ink: #23282E;            /* Graphite: primary text */
+  --ink-2: #3A4148;          /* body / secondary text */
+  --mute: #5A626B;           /* labels, meta (AA on Ledger) */
+  --faint: #8C949C;          /* inactive numerals, chart reference lines (non-text) */
+  --rule: #C9CED3;           /* block dividers, outlines, unfired ring segments */
+  --rule-soft: #DDE1E4;      /* row dividers in lists */
+  --rule-faint: #E2E5E8;     /* toggle row dividers, progress track */
+
+  --long: #2563C9;           /* Long cobalt: fills + text */
+  --short: #C27A00;          /* Short amber: FILLS ONLY (3.0:1) */
+  --short-ink: #975C00;      /* Short amber text (5.1:1) */
+  --prov: #6E56CF;           /* Provisional violet, always dashed */
+  --error: #8A2E2E;
+  --health-ok: #2E8B57;
+  --warn-bg: #FBF1DF; --warn-border: #E6CFA3; --warn-ink: #5C3A00;
+
+  --link: #2563C9; --link-hover: #1B4A99;
+
+  --radius-control: 4px;     /* buttons, inputs, chips */
+  --radius-badge: 3px;
+  --radius-dialog: 6px;
+  --radius-frame: 28px;      /* phone mockup only, not a UI token */
+}
+
+[data-theme="dark"] {
+  --bg-page: #1B1F24;
+  --bg: #23282E;
+  --bg-input: #2F353C;
+  --bg-selected: #2F353C;
+  --ink: #F6F7F5;
+  --ink-2: #C9CED3;
+  --mute: #A9B0B7;
+  --faint: #6B737B;
+  --rule: #4A525A;
+  --rule-soft: #3A4148;
+  --rule-faint: #3A4148;
+  --long: #7FA6EE;
+  --short: #E0A341;
+  --short-ink: #E0A341;
+  --prov: #A898F0;
+  --health-ok: #4FC08D;
+  --link: #7FA6EE; --link-hover: #A9C3F4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-page: #1B1F24; --bg: #23282E; --bg-input: #2F353C; --bg-selected: #2F353C;
+    --ink: #F6F7F5; --ink-2: #C9CED3; --mute: #A9B0B7; --faint: #6B737B;
+    --rule: #4A525A; --rule-soft: #3A4148; --rule-faint: #3A4148;
+    --long: #7FA6EE; --short: #E0A341; --short-ink: #E0A341; --prov: #A898F0;
+    --health-ok: #4FC08D; --link: #7FA6EE; --link-hover: #A9C3F4;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--link); }
+a:hover { color: var(--link-hover); }
+:focus-visible { outline: 2px solid var(--long); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
