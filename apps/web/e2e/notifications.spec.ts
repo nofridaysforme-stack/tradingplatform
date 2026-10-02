@@ -207,7 +207,10 @@ test("push subscriptions are stored for the owner only, from the portal only", a
 
 test("without a server key the device button explains itself", async ({
   page,
+  context,
 }) => {
+  // Headless Chromium on CI reports notifications as denied unless granted.
+  await context.grantPermissions(["notifications"]);
   await page.goto("/settings/notifications");
   const turnOn = page.getByRole("button", { name: "Turn on notifications" });
   await expect(turnOn).toBeVisible();
