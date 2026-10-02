@@ -14,7 +14,7 @@ Open these in the business's name (spec 16) and add Jana as a collaborator.
 | OANDA | A practice account, its account ID, and an API token (staging uses `OANDA_ENV=practice`) |
 | Massive | An API key on the Basic plan |
 | Resend | An API key and a verified sending domain (Resend shows the DNS records to add) |
-| Telegram | A bot made with BotFather: its token and its username |
+| Telegram | A bot for staging made with BotFather: its token and its username (production gets its own bot, because a bot can point at only one webhook) |
 | Uptime monitor | A free Better Stack or UptimeRobot account |
 
 The portal works without the OANDA, Massive, push, email, or Telegram settings; each part simply stays off until its keys are added. The 10-day run needs all of them.
