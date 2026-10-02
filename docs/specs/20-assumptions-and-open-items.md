@@ -77,3 +77,5 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | 2026-10-02 | The web pre-deploy step registers the Telegram webhook from `APP_URL` and `TELEGRAM_WEBHOOK_SECRET` on every deploy; a Telegram error is logged and never fails the deploy |
 | 2026-10-02 | Railway health check for web is `/sign-in`, not `/api/health`, so stale market data or a stopped scanner never blocks a web deploy; the uptime monitor keeps `/api/health` |
 | 2026-10-02 | The web service raises the "scanner heartbeat is late" alert itself, checking every minute, because a stopped scanner cannot. It shares the scanner's `health_alerts` row (hourly repeat), and the scanner sends "Resolved" when it is back. `HEALTH_WATCHDOG=off` turns the check off (tests only) |
+| 2026-10-02 | Staging and production use separate Telegram bots, since a bot has one webhook; production gets new secrets and its own push key pair |
+| 2026-10-02 | The paper-run weekly review is a scanner command (`scanner.ops.weekly_review`) using the backtest's metric definitions, now one shared `summarize` function |

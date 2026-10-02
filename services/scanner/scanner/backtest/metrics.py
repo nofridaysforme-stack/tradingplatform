@@ -38,6 +38,37 @@ class Metrics:
         return dict(self.__dict__)
 
 
+@dataclass(frozen=True)
+class Summary:
+    trades: int
+    wins: int
+    win_rate: float
+    net_pips: float
+    expectancy: float
+    profit_factor: float | None
+
+
+def summarize(results: Sequence[tuple[str, float]]) -> Summary:
+    """The shared definitions, for backtests and the live paper-run review: (state, net pips)
+    of closed, non-invalidated trades. Wins are target hits, losses are results of zero or
+    less, profit factor is gross wins over gross losses (none without losses). The portal's
+    history page uses the same rules (apps/web/lib/metrics.ts)."""
+    if not results:
+        return Summary(0, 0, 0.0, 0.0, 0.0, None)
+    nets = [pips for _, pips in results]
+    gross_loss = -sum(x for x in nets if x <= 0)
+    wins = sum(1 for state, _ in results if state == "target_hit")
+    gains = sum(x for x in nets if x > 0)
+    return Summary(
+        trades=len(results),
+        wins=wins,
+        win_rate=round(wins / len(results), 4),
+        net_pips=round(sum(nets), 1),
+        expectancy=round(sum(nets) / len(nets), 2),
+        profit_factor=round(gains / gross_loss, 2) if gross_loss > 0 else None,
+    )
+
+
 def closed_trades(trades: Sequence[SimTrade]) -> list[SimTrade]:
     out = [t for t in trades if t.closed and t.state != "invalidated" and t.net_pips is not None]
     return sorted(out, key=lambda t: (t.closed_at or t.signal.bar_ts, t.signal.dedupe_key))
@@ -51,14 +82,11 @@ def compute(trades: Sequence[SimTrade], start: datetime, end: datetime) -> Metri
     nets = [float(t.net_pips or 0.0) for t in closed]
     wins = [x for x in nets if x > 0]
     losses = [x for x in nets if x <= 0]
-    m.wins = sum(1 for t in closed if t.state == "target_hit")
-    m.win_rate = round(m.wins / len(closed), 4)
+    s = summarize([(t.state, x) for t, x in zip(closed, nets, strict=True)])
+    m.wins, m.win_rate, m.expectancy = s.wins, s.win_rate, s.expectancy
+    m.profit_factor, m.net_pips = s.profit_factor, s.net_pips
     m.avg_win = round(sum(wins) / len(wins), 2) if wins else 0.0
     m.avg_loss = round(sum(losses) / len(losses), 2) if losses else 0.0
-    m.expectancy = round(sum(nets) / len(nets), 2)
-    gross_loss = -sum(losses)
-    m.profit_factor = round(sum(wins) / gross_loss, 2) if gross_loss > 0 else None
-    m.net_pips = round(sum(nets), 1)
 
     peak = cum = 0.0
     drawdown = 0.0
