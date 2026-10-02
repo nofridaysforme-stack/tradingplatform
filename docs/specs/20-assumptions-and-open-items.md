@@ -71,3 +71,5 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | 2026-10-01 | Web image built from the repository root so it carries dbmate and the migrations for the pre-deploy step |
 | 2026-10-02 | Dashboard status line shows the current New York time instead of a forex session name (spec 13 "current session"; closes open item T8) |
 | 2026-10-02 | Provisional badge text uses a darker violet (`--prov-ink`, #5B44B8) in the light theme so it meets 4.5:1 on the selected-row fill; the dashed border keeps the design's `--prov` |
+| 2026-10-03 | Signal and update notifications older than 2 hours are not sent (after a worker outage); the signals still appear in the portal |
+| 2026-10-03 | Health alerts always reach admins by email, even if they turned email off, plus Telegram when linked; owners never get health alerts |

@@ -20,6 +20,8 @@ from scanner.data.oanda import OandaClient
 from scanner.data.sync import refresh_universe
 from scanner.jobs import backfill, forex_bar_close, forex_day_roll, stock_eod
 from scanner.market_status import market_status
+from scanner.notify import dispatcher, health, sources
+from scanner.notify.channels import build_senders
 from scanner.rules.registry import Registry
 from scanner.time import NEW_YORK
 
@@ -48,6 +50,10 @@ class Worker:
             if settings.massive_api_key
             else None
         )
+        self.senders = build_senders(settings)
+        self.base_url = settings.app_url.rstrip("/")
+        self.ops_email = settings.ops_alert_email
+        log.info("notification channels", extra={"channels": sorted(self.senders)})
 
     def _record(self, job: str, fn: Callable[[db.Conn], dict[str, Any]]) -> dict[str, Any]:
         with self.pool.connection() as conn:
@@ -128,6 +134,8 @@ class Worker:
         detail = self._record(
             "stock_eod", lambda conn: stock_eod.run(conn, massive, self.registry, session)
         )
+        if detail.get("ready") and "digest" in detail:
+            self.stock_notifications(detail)
         if detail.get("ready") is False:
             retry_at = datetime.now(UTC) + STOCK_RETRY
             if retry_at.astimezone(NEW_YORK).hour < STOCK_LAST_TRY_HOUR:
@@ -168,6 +176,52 @@ class Worker:
             except Exception:
                 log.exception("new pair backfill failed")
 
+    # Notifications (spec 11)
+
+    def stock_notifications(self, detail: dict[str, Any]) -> None:
+        """The evening digest and holding alerts from a finished stock screen."""
+        now = datetime.now(UTC)
+        session = str(detail["session"])
+        with self.pool.connection() as conn:
+            conn.autocommit = True
+            try:
+                if detail.get("digest"):
+                    sources.dispatch_digest(
+                        conn, detail["digest"], session, self.senders, now, self.base_url
+                    )
+                if detail.get("holdings"):
+                    sources.dispatch_holdings(
+                        conn, detail["holdings"], session, self.senders, now, self.base_url
+                    )
+            except Exception:
+                log.exception("stock notifications failed")
+        self.notify_outbox()
+
+    def notify_outbox(self) -> None:
+        """Every 10 seconds: new signals and updates, then every queued send that is due
+        (first tries, retries, and test notifications queued by the portal)."""
+        now = datetime.now(UTC)
+        with self.pool.connection() as conn:
+            conn.autocommit = True
+            try:
+                sources.dispatch_signal_events(conn, self.senders, now, self.base_url)
+                counts = dispatcher.deliver_due(conn, self.senders, now, base_url=self.base_url)
+                if counts:
+                    log.info("notifications", extra=counts)
+            except Exception:
+                log.exception("notification outbox failed")
+
+    def health_check(self) -> None:
+        def work(conn: db.Conn) -> dict[str, Any]:
+            return dict(
+                health.run_health_check(
+                    conn, self.senders, datetime.now(UTC), self.base_url, self.ops_email
+                )
+            )
+
+        self._record("health_check", work)
+        self.notify_outbox()
+
     def retention(self) -> None:
         self._record("retention", db.apply_retention)
 
@@ -202,4 +256,6 @@ def build(
     )
     sched.add_job(w.retention, CronTrigger(hour=3, minute=0, timezone=UTC), id="retention")
     sched.add_job(w.new_pair_backfill, IntervalTrigger(minutes=5), id="new_pair_backfill")
+    sched.add_job(w.notify_outbox, IntervalTrigger(seconds=10), id="notify_outbox")
+    sched.add_job(w.health_check, IntervalTrigger(minutes=5), id="health_check")
     return w
