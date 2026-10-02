@@ -28,6 +28,8 @@ export async function signIn(page: Page) {
 }
 
 export async function expectNoAxeViolations(page: Page) {
+  // Next streams page metadata, so the <title> can land just after the page loads.
+  await expect(page).toHaveTitle(/\S/);
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).join(", ")})`)).toEqual([]);
 }

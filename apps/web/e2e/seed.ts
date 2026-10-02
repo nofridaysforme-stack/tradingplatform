@@ -7,6 +7,8 @@ import type postgres from "postgres";
 export const SIGNAL_38 = "e2e00000-0000-4000-8000-000000000038";
 export const SIGNAL_FIB = "e2e00000-0000-4000-8000-0000000000f1";
 export const SIGNAL_CLOSED = "e2e00000-0000-4000-8000-0000000000c1";
+export const SIGNAL_LOSS = "e2e00000-0000-4000-8000-0000000000c2";
+export const SIGNAL_VOID = "e2e00000-0000-4000-8000-0000000000c3";
 export const BROKER = "e2e00000-0000-4000-8000-0000000000b1";
 export const BROKER_NAME = "E2E broker";
 
@@ -39,6 +41,8 @@ export async function seedMarket(sql: postgres.Sql, now = new Date()) {
   await sql`insert into candles ${sql(candles)}`;
   await sql`insert into levels (instrument_id, trading_day, set_kind, data) values
     (${eur.id}, ${day}, 'daily', ${sql.json({ P: 0.8632, R1: 0.8661, R2: 0.8693, R3: 0.8722, S1: 0.86, S2: 0.8571, S3: 0.8539, source: "e2e" })}),
+    (${eur.id}, ${day}, 'weekly', ${sql.json({ P: 0.8651, R1: 0.8702, R2: 0.8744, R3: 0.8795, S1: 0.8609, S2: 0.8558, S3: 0.8516, source: "e2e" })}),
+    (${eur.id}, ${day}, 'monthly', ${sql.json({ P: 0.8588, R1: 0.8701, R2: 0.8790, R3: 0.8903, S1: 0.8499, S2: 0.8386, S3: 0.8297, source: "e2e" })}),
     (${eur.id}, ${day}, 'prev_day', ${sql.json({ PDH: 0.8674, PDL: 0.8612, PDC: 0.863, source: "e2e" })}),
     (${jpy.id}, ${day}, 'fib_pivot', ${sql.json({ pivot: 199.52, up: { break: 200.07, confirmation: 200.41, take_profit: 200.96, reset: 201.85 }, down: { break: 198.97, confirmation: 198.63, take_profit: 198.08, reset: 197.19 }, fib: 55, range_units: "66" })})`;
 
@@ -72,6 +76,22 @@ export async function seedMarket(sql: postgres.Sql, now = new Date()) {
       dedupe_key: "e2e:closed", created_at: new Date(barTs.getTime() - 19 * BAR),
       closed_at: new Date(barTs.getTime() - 5 * BAR), exit_price: 0.862, result_pips: 41,
     },
+  ])}`;
+  // Older closed signals for History: a loss the day before and an invalidated signal.
+  const yesterday = new Date(now.getTime() - 86_400_000).toISOString().slice(0, 10);
+  const older = (id: string, inst: string, state: string, result: number, d: string, provisional: boolean, hoursAgo: number) => ({
+    id, strategy: inst === jpy.id ? "fib_pivot" : "three_eight", instrument_id: inst, direction: "short", state,
+    bar_ts: new Date(now.getTime() - hoursAgo * 3_600_000), trading_day: d,
+    entry: inst === jpy.id ? 198.97 : 0.8661, stop: inst === jpy.id ? 199.52 : 0.8684, target: inst === jpy.id ? 198.08 : 0.862, alt_target: null,
+    risk_pips: inst === jpy.id ? 55 : 23, reward_pips: inst === jpy.id ? 89 : 41, reward_risk: inst === jpy.id ? 1.618 : 1.783,
+    indicator_count: inst === jpy.id ? null : 3, has_provisional: provisional, is_countertrend: false, range_mode: false,
+    version_set: sql.json({ "three_eight.pivot_touch": 1, "three_eight.trendline_channel": 1 }), context: sql.json({ gates: [] }),
+    dedupe_key: `e2e:${id}`, created_at: new Date(now.getTime() - hoursAgo * 3_600_000),
+    closed_at: new Date(now.getTime() - (hoursAgo - 2) * 3_600_000), exit_price: null, result_pips: result,
+  });
+  await sql`insert into signals ${sql([
+    older(SIGNAL_LOSS, jpy.id, "stop_hit", -55, yesterday, true, 26),
+    older(SIGNAL_VOID, eur.id, "invalidated", -10, yesterday, false, 24),
   ])}`;
   const ind = (key: string, fired: boolean, provisional = false, level_ref: string | null = null, detail = {}) => ({
     signal_id: SIGNAL_38, key, version: 1, fired, counted: fired, provisional, level_ref, detail: sql.json(detail),
