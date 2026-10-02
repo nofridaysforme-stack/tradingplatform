@@ -73,3 +73,6 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | 2026-10-02 | Provisional badge text uses a darker violet (`--prov-ink`, #5B44B8) in the light theme so it meets 4.5:1 on the selected-row fill; the dashed border keeps the design's `--prov` |
 | 2026-10-03 | Signal and update notifications older than 2 hours are not sent (after a worker outage); the signals still appear in the portal |
 | 2026-10-03 | Health alerts always reach admins by email, even if they turned email off, plus Telegram when linked; owners never get health alerts |
+| 2026-10-02 | The scanner holds a Postgres advisory lock while its scheduler runs, so a redeploy that briefly starts a second copy waits instead of running jobs twice |
+| 2026-10-02 | The web pre-deploy step registers the Telegram webhook from `APP_URL` and `TELEGRAM_WEBHOOK_SECRET` on every deploy; a Telegram error is logged and never fails the deploy |
+| 2026-10-02 | Railway health check for web is `/sign-in`, not `/api/health`, so stale market data or a stopped scanner never blocks a web deploy; the uptime monitor keeps `/api/health` |

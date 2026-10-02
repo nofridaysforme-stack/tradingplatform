@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import threading
+import time
 
 import pytest
 
@@ -52,3 +54,23 @@ def test_main_exits_when_schema_is_behind(
         main_module.main(start_scheduler=False)
     assert exc.value.code == 1
     assert _lines(capsys)[-1]["msg"] == "schema check failed"
+
+
+def test_a_second_scanner_waits_for_the_scheduler_lock(database_url: str) -> None:
+    waits: list[str] = []
+    first = db.wait_for_scheduler_lock(database_url)
+    got: list[db.Conn] = []
+    t = threading.Thread(
+        target=lambda: got.append(
+            db.wait_for_scheduler_lock(
+                database_url, poll_seconds=0.05, on_wait=lambda: waits.append("waiting")
+            )
+        )
+    )
+    t.start()
+    time.sleep(0.3)
+    assert got == [] and waits == ["waiting"]  # told once, still waiting
+    first.close()  # the old scanner stops
+    t.join(timeout=5)
+    assert len(got) == 1
+    got[0].close()

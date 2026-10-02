@@ -1,6 +1,7 @@
 """Connection pool and repositories. All SQL the scanner runs lives here."""
 
-from collections.abc import Iterable
+import time
+from collections.abc import Callable, Iterable
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal, cast
@@ -41,6 +42,28 @@ def check_schema(conn: Conn, expected: str = EXPECTED_SCHEMA_VERSION) -> str:
             f"database schema is at {current or 'nothing'}, scanner expects {expected}"
         )
     return str(current)
+
+
+# One scheduler at a time (spec 16: the scanner runs as a single replica). During a deploy the
+# platform can start the new scanner before the old one stops; the new one waits here.
+SCHEDULER_LOCK = 0x5343414E  # "SCAN"
+
+
+def wait_for_scheduler_lock(
+    database_url: str, *, poll_seconds: float = 5.0, on_wait: Callable[[], None] = lambda: None
+) -> Conn:
+    """Block until this process holds the scheduler lock. The lock lasts as long as the
+    returned connection, so keep it open for the life of the scheduler."""
+    conn = psycopg.connect(database_url, autocommit=True)
+    waited = False
+    while True:
+        row = conn.execute("SELECT pg_try_advisory_lock(%s)", (SCHEDULER_LOCK,)).fetchone()
+        if row and row[0]:
+            return conn
+        if not waited:
+            on_wait()
+            waited = True
+        time.sleep(poll_seconds)
 
 
 # Instruments and calendar
