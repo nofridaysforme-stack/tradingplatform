@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   title: "Trading desk",
   description: "Private trade alerts for the owners",
   robots: { index: false, follow: false },
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "Trading desk", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

@@ -36,6 +36,9 @@ export default defineConfig({
       AUTH_URL: BASE_URL,
       AUTH_TEST_MAILBOX: MAILBOX,
       AUTH_IP_LIMIT: "1000",
+      // Telegram linking without a bot token: nothing is sent to Telegram in tests.
+      TELEGRAM_BOT_USERNAME: "e2e_test_bot",
+      TELEGRAM_WEBHOOK_SECRET: "e2e-webhook-secret-0123456789",
     },
   },
 });

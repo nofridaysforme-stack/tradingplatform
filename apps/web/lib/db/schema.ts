@@ -13,6 +13,7 @@ import {
   primaryKey,
   smallint,
   text,
+  time,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -363,4 +364,49 @@ export const econEvents = pgTable("econ_events", {
   impact: text("impact").$type<"high" | "medium" | "low">().notNull(),
   createdBy: uuid("created_by"),
   createdAt: tz("created_at").notNull().defaultNow(),
+});
+
+// Notifications (spec 11). The worker sends; the portal stores preferences, devices, and the
+// Telegram link, and queues test notifications.
+
+export type ChannelKind = "webpush" | "email" | "telegram";
+
+export const notificationPrefs = pgTable("notification_prefs", {
+  userId: uuid("user_id").primaryKey(),
+  channels: text("channels").array().$type<ChannelKind[]>().notNull(),
+  strategies: text("strategies").array().$type<("three_eight" | "fib_pivot" | "stocks")[]>().notNull(),
+  instrumentIds: uuid("instrument_ids").array(),
+  quietStart: time("quiet_start"),
+  quietEnd: time("quiet_end"),
+  includeUpdates: boolean("include_updates").notNull(),
+  updatedAt: tz("updated_at").notNull().defaultNow(),
+});
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: tz("created_at").notNull().defaultNow(),
+});
+
+export const telegramLinks = pgTable("telegram_links", {
+  userId: uuid("user_id").primaryKey(),
+  chatId: bigint("chat_id", { mode: "number" }),
+  linkToken: text("link_token"),
+  linkedAt: tz("linked_at"),
+});
+
+export const notifications = pgTable("notifications", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  userId: uuid("user_id"),
+  kind: text("kind").notNull(),
+  channel: text("channel").$type<ChannelKind>().notNull(),
+  status: text("status").notNull().default("queued"),
+  error: text("error"),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  createdAt: tz("created_at").notNull().defaultNow(),
+  sentAt: tz("sent_at"),
 });

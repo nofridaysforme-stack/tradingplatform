@@ -26,3 +26,17 @@ export async function apiUser(): Promise<CurrentUser | null> {
 }
 
 export const unauthorized = () => apiError(401, "unauthorized", "Sign in to continue.");
+
+/** JSON POSTs from the portal itself only: same origin and a JSON body (with the Lax session
+ *  cookie this blocks cross-site requests). */
+export function sameOriginJson(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const json = (request.headers.get("content-type") ?? "").startsWith("application/json");
+  if (!json || !origin || !host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}

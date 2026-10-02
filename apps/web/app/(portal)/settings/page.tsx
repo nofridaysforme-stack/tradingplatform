@@ -42,6 +42,15 @@ export default async function SettingsPage() {
         <ProfileForm name={user.name ?? ""} timezone={user.timezone} zones={Intl.supportedValuesOf("timeZone")} />
       </section>
 
+      <section aria-labelledby="notify-h" className="border-t border-rule px-5 py-5">
+        <h2 id="notify-h" className="mt-0 mb-1 text-[15px] font-semibold">
+          Notifications
+        </h2>
+        <Link href="/settings/notifications" className="inline-flex min-h-11 items-center text-sm text-link">
+          Channels, alerts, quiet hours, and a test
+        </Link>
+      </section>
+
       <section aria-labelledby="broker-h" className="border-t border-rule px-5 py-5">
         <h2 id="broker-h" className="mt-0 mb-1 text-[15px] font-semibold">
           Broker
