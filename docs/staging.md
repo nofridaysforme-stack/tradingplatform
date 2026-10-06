@@ -21,30 +21,55 @@ The portal works without the OANDA, Massive, push, email, or Telegram settings; 
 
 ## 2. Create the Railway services
 
+Railway has deprecated config files (`railway.json`): services that never used one can no longer turn it on, and existing ones stop working on 2026-12-01. So every setting below goes in each service's **Settings** tab. Railway collects changes until you press **Deploy**; finish a service's settings and variables first.
+
 In `portal-staging`:
 
-1. **Postgres.** Add a Postgres database. Turn on backups.
-2. **web.** Add a service from the GitHub repository.
-   - Settings, Source: root directory `/`, config file path `/apps/web/railway.json`.
-   - Settings, Networking: generate a domain (or attach `staging.<your domain>`).
-   - The config file sets the Dockerfile, the pre-deploy command (`/app/db/migrate.sh`), the start command, and a health check on `/sign-in`.
-3. **scanner.** Add a second service from the same repository.
-   - Settings, Source: root directory `/services/scanner`, config file path `/services/scanner/railway.json`.
-   - No public domain. Keep it at **one replica**.
-   - The scanner holds a database lock while it runs, so during a redeploy the new copy waits until the old one has stopped. It never runs the schedule twice.
-4. **Deploys.** For both services: deploy from `main`, and turn on "Wait for CI" so a red build never deploys.
+1. **Postgres.** **+ Add, Database, PostgreSQL.** Turn on backups if the plan offers them.
+2. **web.** **+ Add, GitHub Repository**, then pick the repository. Its first automatic build may fail; that is expected until the settings are in.
 
-If Railway rejects a field in either `railway.json`, set the same value in the service's settings page; the file and the settings page hold the same options.
+   | Setting | Value |
+   |---|---|
+   | Name (pencil by the title) | `web` |
+   | Source, Root directory | leave empty |
+   | Source, Branch | `main`, with **Wait for CI** on |
+   | Build, Builder | Dockerfile |
+   | Build, Dockerfile path | `/apps/web/Dockerfile` |
+   | Build, Watch paths | `/apps/web/**` and `/db/**` |
+   | Deploy, Pre-deploy command | `/app/db/migrate.sh` |
+   | Deploy, Start command | leave empty |
+   | Deploy, Healthcheck path | `/sign-in` (timeout `120` if offered) |
+   | Deploy, Restart policy | On Failure, 10 retries |
+   | Networking | **Generate Domain** on port `8080` |
+
+   The port is the one the deploy log reports on the line `Network: http://0.0.0.0:<port>`. That address is inside Railway and does not open in a browser; the generated `….up.railway.app` address is the public one.
+3. **scanner.** **+ Add, GitHub Repository**, the same repository again.
+
+   | Setting | Value |
+   |---|---|
+   | Name | `scanner` |
+   | Source, Root directory | `/services/scanner` |
+   | Source, Branch | `main`, with **Wait for CI** on |
+   | Build, Builder | Dockerfile (path `Dockerfile` if asked) |
+   | Build, Watch paths | `/services/scanner/**` |
+   | Deploy, Pre-deploy, Start command, Healthcheck | all empty |
+   | Deploy, Restart policy | Always (or On Failure, 10 retries) |
+   | Networking | **no** public domain |
+   | Scale | one replica |
+
+   The scanner holds a database lock while it runs, so during a redeploy the new copy waits until the old one has stopped. It never runs the schedule twice.
 
 ## 3. Variables
 
-Use Railway's reference variable for the database (`${{Postgres.DATABASE_URL}}`) so it updates itself. `APP_URL` is the web service's public address, starting with `https://`.
+Use Railway's reference variable for the database (`${{Postgres.DATABASE_URL}}`; the **Add Variable** link in the Variables tab's database banner adds it) so it updates itself. `APP_URL` is the web service's public address, starting with `https://` and with no slash at the end; sign-in links are built from it, so it must be the real public address. On the scanner, set `APP_URL` to `${{web.APP_URL}}` so the two never differ.
+
+**Before the business domain is verified in Resend**, sign-in email can go out from Resend's test sender: set `EMAIL_FROM` to `Trading desk <onboarding@resend.dev>`. It only delivers to the address the Resend account was opened with, and it tends to land in spam, so it is for the first admin only. Owners can sign in once the domain is verified and `EMAIL_FROM` uses it.
 
 | Variable | web | scanner | How to get it |
 |---|---|---|---|
 | `DATABASE_URL` | yes | yes | Reference variable |
-| `APP_URL` | yes | yes | The web domain, for example `https://staging.example.com` |
-| `AUTH_SECRET` | yes | | Run `openssl rand -base64 32` on your computer |
+| `APP_URL` | yes | yes | The web domain, for example `https://web-production-ab12.up.railway.app`; on scanner `${{web.APP_URL}}` |
+| `AUTH_SECRET` | yes | | Mac: `openssl rand -base64 32` in Terminal. Windows PowerShell: `[Convert]::ToBase64String((1..32 \| % {Get-Random -Max 256}))` |
 | `SEED_ADMIN_EMAIL` | yes | | The first admin's email; added to the allowlist on each deploy |
 | `RESEND_API_KEY` | yes | yes | Resend dashboard |
 | `EMAIL_FROM` | yes | yes | For example `Trading desk <alerts@example.com>`, on the verified domain |

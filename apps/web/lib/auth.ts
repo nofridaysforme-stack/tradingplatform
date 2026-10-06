@@ -9,7 +9,9 @@ const DAY = 24 * 60 * 60;
 
 // Sign-in links are built from AUTH_URL. Pin it to the portal's public address so a forged
 // Host header can never point a link at another site.
-process.env.AUTH_URL ??= process.env.APP_URL;
+// Assigning undefined to process.env stores the string "undefined", which breaks every auth
+// request, so only copy APP_URL when it is set.
+if (process.env.APP_URL) process.env.AUTH_URL ??= process.env.APP_URL;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {

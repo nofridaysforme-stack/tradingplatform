@@ -5,6 +5,11 @@ import { Resend } from "resend";
 
 export class EmailNotConfiguredError extends Error {}
 
+/** Whether sign-in links can be delivered: Resend is set up, or a test mailbox is in use. */
+export function emailConfigured(): boolean {
+  return !!process.env.AUTH_TEST_MAILBOX || !!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+}
+
 /**
  * Sends the sign-in link. With AUTH_TEST_MAILBOX set (tests and local development) the link
  * is written to <mailbox>/<email>.json instead of being emailed. Links are never logged
