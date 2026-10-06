@@ -19,7 +19,7 @@ Keys and secrets go into Railway's variables only. Never paste them into chat, G
 | Secrets | | **New ones.** Make a new `AUTH_SECRET`, `TELEGRAM_WEBHOOK_SECRET`, and push key pair; never copy staging's |
 | Postgres | Backups on | Backups on, and a restore tested once (step 4) |
 
-Everything else (Resend, Massive, the variable table, the two services and their `railway.json` files, one scanner replica) is the same as in `docs/staging.md` sections 2 and 3.
+Everything else (Resend, Massive, the variable table, the two services and their settings, one scanner replica) is the same as in `docs/staging.md` sections 2 and 3.
 
 **About the OANDA token.** OANDA tokens are not read-only; the token could place trades if something used it that way. The portal never does: the scanner only reads candles and prices, there is no order code anywhere (CLAUDE.md rule 7), and the token lives only on the scanner service. Keep it that way: never put it on the web service and never share it.
 

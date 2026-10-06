@@ -79,3 +79,4 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | 2026-10-02 | The web service raises the "scanner heartbeat is late" alert itself, checking every minute, because a stopped scanner cannot. It shares the scanner's `health_alerts` row (hourly repeat), and the scanner sends "Resolved" when it is back. `HEALTH_WATCHDOG=off` turns the check off (tests only) |
 | 2026-10-02 | Staging and production use separate Telegram bots, since a bot has one webhook; production gets new secrets and its own push key pair |
 | 2026-10-02 | The paper-run weekly review is a scanner command (`scanner.ops.weekly_review`) using the backtest's metric definitions, now one shared `summarize` function |
+| 2026-10-06 | Railway settings live in each service's Settings tab, not `railway.json`: Railway deprecated config files (no new opt-ins; existing ones stop on 2026-12-01). The two `railway.json` files are removed |

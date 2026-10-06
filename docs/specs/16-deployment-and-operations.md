@@ -10,7 +10,7 @@ One Railway project per environment (`portal-staging`, `portal-production`), eac
 | scanner | `services/scanner` Dockerfile (Python 3.12 slim, `uv sync --frozen`) | `python -m scanner.main` | No public domain. One replica only (the scheduler must not run twice). |
 | postgres | Railway Postgres | | Backups enabled |
 
-Migrations run as a pre-deploy command on the web service: `/app/db/migrate.sh` (runs `dbmate --wait up`, adds `SEED_ADMIN_EMAIL` to the allowlist, then registers the Telegram webhook when the bot is configured). Both services keep their Railway settings in `railway.json` next to their code; `docs/staging.md` is the setup walkthrough, and `docs/production.md` covers production, the runbook walkthrough, and the paper run. The scanner waits for the expected schema version at startup and exits with a clear error if it is behind.
+Migrations run as a pre-deploy command on the web service: `/app/db/migrate.sh` (runs `dbmate --wait up`, adds `SEED_ADMIN_EMAIL` to the allowlist, then registers the Telegram webhook when the bot is configured). Railway's settings for both services are entered in each service's Settings tab (Railway deprecated `railway.json` config files); `docs/staging.md` lists every value and is the setup walkthrough, and `docs/production.md` covers production, the runbook walkthrough, and the paper run. The scanner waits for the expected schema version at startup and exits with a clear error if it is behind.
 
 Accounts (OANDA, Massive, Railway, Resend, Telegram bot) are opened in the client's business name. Jana is added as a collaborator during the build and support period.
 
