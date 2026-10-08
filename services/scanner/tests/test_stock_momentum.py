@@ -223,3 +223,6 @@ def test_evidence_records_every_indicator() -> None:
     assert ev["stocks.ind_rsi"]["provisional"] and not ev["stocks.ind_macd"]["provisional"]
     today = sm.today_values(bars[:268], sm.indicators(bars[:268], FAST), FAST)
     assert today["buy"]["stocks.ind_pivot"]["fired"]
+    assert today["momentum"]["threshold"] == 4.55 and today["momentum"]["period"] == 10
+    assert not today["momentum"]["passed"]  # by the bounce the 10-day pace has cooled
+    assert sm.momentum_evidence(bars[:258], FAST)["passed"]

@@ -445,6 +445,20 @@ def today_values(bars: Sequence[DayBar], fired: dict[str, Fired], rules: RuleSet
     return {
         "buy": evidence(bars, fired, i, "buy", window_of(K + "buy_vote", rules), rules),
         "sell": evidence(bars, fired, i, "sell", window_of(K + "sell_vote", rules), rules),
+        "momentum": momentum_evidence(bars, rules),
+    }
+
+
+def momentum_evidence(bars: Sequence[DayBar], rules: RuleSet) -> dict[str, Any]:
+    """The momentum test on the last bar, as the portal shows it: the rate, the threshold, and
+    whether it passed."""
+    rate = momentum_rate(bars, rules)
+    return {
+        "enabled": rules.enabled(K + "momentum"),
+        "period": int(rules.params(K + "momentum")["period"]),
+        "rate": None if rate is None else round(float(rate), 6),
+        "threshold": float(momentum_threshold(rules)),
+        "passed": passes_momentum(bars, rules),
     }
 
 
