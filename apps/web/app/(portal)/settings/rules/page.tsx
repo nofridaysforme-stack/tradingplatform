@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, ProvisionalBadge } from "@/components/ui";
+import { forexEnabled } from "@/lib/app-settings";
 import { nyDateTime, pips } from "@/lib/format";
 import type { Summary } from "@/lib/metrics";
 import { diffParams, paramLabel, showValue } from "@/lib/rule-params";
@@ -33,11 +34,12 @@ export default async function RulesPage({ searchParams }: PageProps<"/settings/r
   await requireAdmin();
   const { rule: selectedKey } = await searchParams;
   const key = typeof selectedKey === "string" ? selectedKey : undefined;
-  const [rules, configs, pairs, detail] = await Promise.all([
+  const [rules, configs, pairs, detail, forex] = await Promise.all([
     listRules(),
     listStrategyConfigs(),
     forexPairs(),
     key ? getRule(key) : Promise.resolve(null),
+    forexEnabled(),
   ]);
 
   return (
@@ -56,7 +58,8 @@ export default async function RulesPage({ searchParams }: PageProps<"/settings/r
 
       <div className="border-t border-rule lg:grid lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className={`lg:border-r lg:border-rule ${detail ? "hidden lg:block" : ""}`}>
-          {STRATEGY_ORDER.map((strategy) => {
+          {/* While forex is paused only the stock rules are listed (decision 2026-10-08). */}
+          {STRATEGY_ORDER.filter((strategy) => forex || strategy === "stocks").map((strategy) => {
             const config = configs.find((c) => c.strategy === strategy);
             const group = rules.filter((r) => r.strategy === strategy);
             if (group.length === 0) return null;

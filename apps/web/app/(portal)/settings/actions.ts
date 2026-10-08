@@ -4,10 +4,11 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { requireUser } from "@/lib/session";
+import { appSettings, users } from "@/lib/db/schema";
+import { requireAdmin, requireUser } from "@/lib/session";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 
 export async function setTheme(form: FormData): Promise<void> {
@@ -53,4 +54,31 @@ export async function saveProfile(_: ProfileState, form: FormData): Promise<Prof
   await db.update(users).set({ name: r.data.name || null, timezone: r.data.timezone }).where(eq(users.id, user.id));
   revalidatePath("/settings");
   return { ok: true, message: "Profile saved" };
+}
+
+export interface ForexState {
+  ok?: boolean;
+  message?: string;
+  error?: string;
+}
+
+/** Pauses or resumes the whole forex side (decision 2026-10-08). Nothing is deleted. */
+export async function setForex(_: ForexState, form: FormData): Promise<ForexState> {
+  const admin = await requireAdmin();
+  const choice = z.enum(["pause", "resume"]).safeParse(form.get("forex"));
+  if (!choice.success) return { error: "Choose to pause or resume forex." };
+  const enabled = choice.data === "resume";
+  await db.transaction(async (tx) => {
+    const [before] = await tx.select({ forexEnabled: appSettings.forexEnabled }).from(appSettings);
+    await tx.update(appSettings).set({ forexEnabled: enabled, updatedBy: admin.id, updatedAt: new Date() });
+    await audit(tx, {
+      userId: admin.id,
+      action: "settings.forex",
+      target: "forex",
+      before: before ? { forex_enabled: before.forexEnabled } : null,
+      after: { forex_enabled: enabled },
+    });
+  });
+  revalidatePath("/", "layout");
+  return { ok: true, message: enabled ? "Forex resumed" : "Forex paused" };
 }

@@ -32,6 +32,11 @@ describe("healthReasons", () => {
     expect(healthReasons({ dbOk: true, heartbeatAt: NOW, market: { ...stale, forex_open: false }, now: NOW })).toEqual([]);
   });
 
+  it("does not check pairs while forex is paused", () => {
+    const market = { ...MARKET, forex_open: true, stale: ["GBP/USD"] };
+    expect(healthReasons({ dbOk: true, heartbeatAt: NOW, market, now: NOW, forex: false })).toEqual([]);
+  });
+
   it("reports only the database when it is unreachable", () => {
     expect(healthReasons({ dbOk: false, heartbeatAt: null, market: null, now: NOW })).toEqual(["database_unreachable"]);
   });

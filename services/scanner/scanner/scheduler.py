@@ -68,6 +68,14 @@ class Worker:
             db.finish_job(conn, run_id, True, detail)
             return detail
 
+    def forex_paused(self, job: str) -> bool:
+        """True while the portal's forex switch is off; the forex jobs then do nothing."""
+        with self.pool.connection() as conn:
+            paused = not db.forex_enabled(conn)
+        if paused:
+            log.debug("forex paused, job skipped", extra={"job": job})
+        return paused
+
     # Jobs
 
     def heartbeat(self) -> None:
@@ -76,6 +84,10 @@ class Worker:
             market: dict[str, Any] | None = None
             try:
                 self.registry.refresh(conn)
+                if not db.forex_enabled(conn):
+                    # Forex is paused: no market status, so nothing reports pairs as stale.
+                    db.heartbeat(conn, VERSION, None)
+                    return
                 status = market_status(
                     datetime.now(UTC),
                     self.registry.ruleset,
@@ -90,6 +102,8 @@ class Worker:
             db.heartbeat(conn, VERSION, market)
 
     def bar_close(self, attempt: int = 0, symbols: list[str] | None = None) -> None:
+        if self.forex_paused("forex_bar_close"):
+            return
         if self.oanda is None:
             log.warning("forex_bar_close skipped: OANDA_API_TOKEN not set")
             return
@@ -116,6 +130,8 @@ class Worker:
             log.warning("no new completed bar", extra={"instruments": stale})
 
     def day_roll(self) -> None:
+        if self.forex_paused("forex_day_roll"):
+            return
         if self.oanda is None:
             log.warning("forex_day_roll skipped: OANDA_API_TOKEN not set")
             return
@@ -162,7 +178,7 @@ class Worker:
     def new_pair_backfill(self) -> None:
         """Backfill history for pairs added in Settings, so their levels exist before the
         next day roll."""
-        if self.oanda is None:
+        if self.oanda is None or self.forex_paused("new_pair_backfill"):
             return
         oanda = self.oanda
         with self.pool.connection() as conn:

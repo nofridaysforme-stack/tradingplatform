@@ -5,6 +5,7 @@ import { z } from "zod";
 import { INDICATORS, IndicatorRing, ringStates } from "@/components/ring";
 import { SignalChart } from "@/components/signal-chart";
 import { Badge, DirectionMarker, ProvisionalBadge } from "@/components/ui";
+import { requireForex } from "@/lib/app-settings";
 import { age, nyDateTime, nyTime, pips, ratio, STATE_NAMES, STRATEGY_NAMES } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { activeBroker, getSignal, type SignalDetail } from "@/lib/signals";
@@ -28,6 +29,7 @@ const EVENT_NAMES: Record<string, string> = {
 
 export default async function SignalPage({ params }: PageProps<"/signals/[id]">) {
   const user = await requireUser();
+  await requireForex();
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const broker = await activeBroker(user.activeBrokerId);

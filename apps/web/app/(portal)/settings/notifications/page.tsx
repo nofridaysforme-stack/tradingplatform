@@ -1,6 +1,7 @@
 import { asc, desc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { forexEnabled } from "@/lib/app-settings";
 import { db } from "@/lib/db";
 import {
   instruments,
@@ -53,6 +54,7 @@ const KINDS: Record<string, string> = {
 export default async function NotificationsPage() {
   const user = await requireUser();
   const now = new Date();
+  const forex = await forexEnabled();
   const [[prefs], pairs, [link], devices, recent] = await Promise.all([
     db
       .select()
@@ -139,7 +141,7 @@ export default async function NotificationsPage() {
         <h2 id="prefs-h" className="sr-only">
           Preferences
         </h2>
-        <PrefsForm values={values} pairs={pairs} telegramLinked={linked} />
+        <PrefsForm values={values} pairs={pairs} telegramLinked={linked} forex={forex} />
       </section>
 
       <section

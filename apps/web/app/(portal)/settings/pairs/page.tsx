@@ -1,6 +1,7 @@
 import { asc, eq, sql as dsql } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { requireForex } from "@/lib/app-settings";
 import { db } from "@/lib/db";
 import { instruments } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/session";
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: "Pairs · Trading desk" };
 
 export default async function PairsPage() {
   await requireAdmin();
+  await requireForex();
   const pairs = await db
     .select({
       id: instruments.id,

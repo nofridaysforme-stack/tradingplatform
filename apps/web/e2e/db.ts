@@ -32,6 +32,8 @@ export async function makeAdmin() {
 }
 
 export const resetMarket = () => withSql((sql) => seedMarket(sql));
+/** The forex switch. The tests run with forex on; e2e/forex-pause.spec.ts turns it off. */
+export const setForex = (enabled: boolean) => withSql((sql) => sql`update app_settings set forex_enabled = ${enabled}, updated_by = null`);
 export const removeMarket = () => withSql((sql) => clearMarket(sql));
 
 export interface RulesSnapshot {

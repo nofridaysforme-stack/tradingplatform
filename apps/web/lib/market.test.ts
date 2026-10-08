@@ -44,4 +44,10 @@ describe("marketView", () => {
     expect(marketView(new Date(NOW.getTime() - 6 * 60_000), OPEN, NOW).health).toBe("down");
     expect(marketView(null, null, NOW).health).toBe("down");
   });
+
+  it("shows forex as paused, and still a late scanner", () => {
+    expect(marketView(NOW, null, NOW, false)).toEqual({ health: "ok", line: "Forex paused · 09:42 NY", stale: [] });
+    expect(marketView(NOW, { ...OPEN, stale: ["GBP/USD"] }, NOW, false).stale).toEqual([]);
+    expect(marketView(new Date(NOW.getTime() - 6 * 60_000), null, NOW, false).health).toBe("down");
+  });
 });

@@ -1,4 +1,5 @@
 import { apiJson, apiUser, unauthorized } from "@/lib/api";
+import { forexEnabled } from "@/lib/app-settings";
 import { nyTime } from "@/lib/format";
 import { marketView } from "@/lib/market";
 import { heartbeat } from "@/lib/signals";
@@ -6,8 +7,8 @@ import { heartbeat } from "@/lib/signals";
 export async function GET() {
   if (!(await apiUser())) return unauthorized();
   const now = new Date();
-  const hb = await heartbeat();
-  const view = marketView(hb?.at ?? null, hb?.market ?? null, now);
+  const [hb, forex] = await Promise.all([heartbeat(), forexEnabled()]);
+  const view = marketView(hb?.at ?? null, hb?.market ?? null, now, forex);
   const m = hb?.market;
   return apiJson({
     ...view,

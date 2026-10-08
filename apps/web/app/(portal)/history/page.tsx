@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CumulativeChart } from "@/components/cumulative-chart";
 import { Button, DirectionMarker, ProvisionalBadge } from "@/components/ui";
+import { requireForex } from "@/lib/app-settings";
 import { pips, ratio, STATE_NAMES, STRATEGY_NAMES } from "@/lib/format";
 import { filterQuery, historyPage, instrumentSymbols, OUTCOMES, parseFilter, type HistoryFilter } from "@/lib/history";
 import { requireUser } from "@/lib/session";
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: "History · Trading desk" };
 
 export default async function HistoryPage({ searchParams }: PageProps<"/history">) {
   await requireUser();
+  await requireForex();
   const filter = parseFilter(await searchParams);
   const [data, symbols] = await Promise.all([historyPage(filter), instrumentSymbols()]);
   const s = data.summary;

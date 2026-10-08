@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireForex } from "@/lib/app-settings";
 import { marketView } from "@/lib/market";
 import { requireUser } from "@/lib/session";
 import { activeBroker, dailyGoal, heartbeat, listBrokers, listSignals, stockDigest } from "@/lib/signals";
@@ -8,6 +9,7 @@ export const metadata: Metadata = { title: "Signals · Trading desk" };
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  await requireForex();
   const now = new Date();
   const [broker, brokers, hb, digest] = await Promise.all([
     activeBroker(user.activeBrokerId),

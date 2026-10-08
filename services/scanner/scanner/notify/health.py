@@ -17,6 +17,8 @@ REPEAT = timedelta(hours=1)
 FAILS_IN_A_ROW = 3
 WATCHED_JOBS = ("forex_bar_close", "forex_day_roll", "stock_eod", "backfill", "ticker_refresh")
 PROVIDER_JOBS = {"forex_bar_close": "OANDA", "backfill": "OANDA", "stock_eod": "Massive"}
+# Not watched while forex is paused: they do not run, and their last result is out of date.
+FOREX_JOBS = {"forex_bar_close", "forex_day_roll"}
 AUTH_ERROR = re.compile(r"returned (401|403)|paused until")
 HEALTH_CHANNELS: tuple[Channel, ...] = ("email", "telegram")
 # Also sent by the web service while the scanner is down (apps/web/lib/alert-message.ts).
@@ -26,17 +28,20 @@ HEARTBEAT_TEXT = "The scanner has not reported for over 5 minutes."
 def conditions(conn: db.Conn, now: datetime) -> dict[str, str]:
     """Active conditions and a one-line description of each."""
     out: dict[str, str] = {}
+    skip = set() if db.forex_enabled(conn) else FOREX_JOBS
     hb = conn.execute("SELECT at, market FROM worker_heartbeat").fetchone()
     if hb is None or now - hb[0] > HEARTBEAT_LATE:
         out["heartbeat_stale"] = HEARTBEAT_TEXT
     market: dict[str, Any] = (hb[1] if hb else None) or {}
-    if market.get("forex_open"):
+    if market.get("forex_open") and not skip:
         for symbol in market.get("stale", []):
             out[f"pair_stale:{symbol}"] = (
                 f"No new completed bar for {symbol} for 30 minutes while the market is open. "
                 "Alerts for this pair are paused until data resumes."
             )
     for job, provider in PROVIDER_JOBS.items():
+        if job in skip:
+            continue
         row = conn.execute(
             "SELECT detail FROM job_runs WHERE job = %s AND finished_at IS NOT NULL "
             "ORDER BY started_at DESC LIMIT 1",
@@ -46,6 +51,8 @@ def conditions(conn: db.Conn, now: datetime) -> dict[str, str]:
         if AUTH_ERROR.search(error):
             out[f"provider_auth:{provider}"] = f"{provider} rejected the API key ({error})."
     for job in WATCHED_JOBS:
+        if job in skip:
+            continue
         runs = conn.execute(
             "SELECT ok FROM job_runs WHERE job = %s AND finished_at IS NOT NULL "
             "ORDER BY started_at DESC LIMIT %s",

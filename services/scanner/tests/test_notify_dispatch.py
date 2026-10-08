@@ -263,6 +263,7 @@ def test_digest_and_holdings(
 def test_health_alerts_repeat_hourly_and_resolve(
     conn: Conn, people: dict[str, UUID], senders: dict[Channel, FakeSender]
 ) -> None:
+    conn.execute("UPDATE app_settings SET forex_enabled = true")
     conn.execute("DELETE FROM worker_heartbeat")
     conn.execute("DELETE FROM health_alerts")
     first = run_health_check(conn, senders, NOW, BASE, "ops@example.com")
@@ -321,6 +322,7 @@ def test_scanner_resolves_an_alert_the_web_service_raised(
 def test_health_conditions_from_job_runs(
     conn: Conn, people: dict[str, UUID], senders: dict[Channel, FakeSender]
 ) -> None:
+    conn.execute("UPDATE app_settings SET forex_enabled = true")
     conn.execute("DELETE FROM health_alerts")
     conn.execute(
         "INSERT INTO worker_heartbeat (id, at) VALUES (true, %s) "
@@ -339,3 +341,28 @@ def test_health_conditions_from_job_runs(
         )
     out = run_health_check(conn, senders, NOW, BASE, None)
     assert out["active"] == ["job_failing:forex_bar_close", "provider_auth:OANDA"]
+
+
+def test_paused_forex_raises_no_forex_health_alerts(
+    conn: Conn, people: dict[str, UUID], senders: dict[Channel, FakeSender]
+) -> None:
+    """While forex is paused its jobs do not run, so their last failures and stale pairs are
+    not alerts. The stock job is still watched."""
+    conn.execute("UPDATE app_settings SET forex_enabled = false")
+    conn.execute("DELETE FROM health_alerts")
+    market = {"forex_open": True, "stale": ["GBP/USD"]}
+    conn.execute(
+        "INSERT INTO worker_heartbeat (id, at, market) VALUES (true, %s, %s) "
+        "ON CONFLICT (id) DO UPDATE SET at = EXCLUDED.at, market = EXCLUDED.market",
+        (NOW, Jsonb(market)),
+    )
+    for job, error in [("forex_bar_close", "oanda returned 401"), ("stock_eod", "boom")]:
+        for i in range(3):
+            at = NOW - timedelta(minutes=i)
+            conn.execute(
+                "INSERT INTO job_runs (job, started_at, finished_at, ok, detail) VALUES "
+                "(%s, %s, %s, false, %s)",
+                (job, at, at, Jsonb({"error": error})),
+            )
+    out = run_health_check(conn, senders, NOW, BASE, None)
+    assert out["active"] == ["job_failing:stock_eod"]

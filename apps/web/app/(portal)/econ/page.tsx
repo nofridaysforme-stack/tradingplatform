@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireForex } from "@/lib/app-settings";
 import { econWindow, type EconEvent } from "@/lib/econ";
 import { nyDateTime } from "@/lib/format";
 import { requireUser } from "@/lib/session";
@@ -10,6 +11,7 @@ const IMPACT: Record<EconEvent["impact"], string> = { high: "High", medium: "Med
 
 export default async function EconPage() {
   const user = await requireUser();
+  await requireForex();
   const admin = user.role === "admin";
   const { upcoming, recent } = await econWindow(new Date());
   return (

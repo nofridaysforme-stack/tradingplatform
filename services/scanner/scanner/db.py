@@ -16,7 +16,7 @@ from scanner.data.base import Candle, DailyBar, TickerRef
 from scanner.instruments import Instrument
 
 # The newest migration in db/migrations. A test keeps this in step with the folder.
-EXPECTED_SCHEMA_VERSION = "20261003000001"
+EXPECTED_SCHEMA_VERSION = "20261008000001"
 
 Conn = psycopg.Connection[Any]
 
@@ -276,6 +276,12 @@ def recent_candles(
         (instrument_id, granularity, upto, limit),
     ).fetchall()
     return [(r[0], float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in reversed(rows)]
+
+
+def forex_enabled(conn: Conn) -> bool:
+    """The portal-wide forex switch. While it is off the forex jobs do not run."""
+    row = conn.execute("SELECT forex_enabled FROM app_settings").fetchone()
+    return bool(row[0]) if row else True
 
 
 def strategy_configs(conn: Conn) -> dict[str, tuple[bool, list[UUID] | None]]:
