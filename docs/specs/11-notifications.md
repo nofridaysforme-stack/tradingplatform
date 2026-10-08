@@ -16,8 +16,9 @@ SMS is out of scope. US carrier registration (A2P 10DLC) takes weeks and adds fe
 |---|---|---|
 | signal | New 3/8 or Fibonacci Pivot signal | On |
 | update | Fibonacci Pivot confirmation or reset reached; any signal closes | On (owner can turn off updates) |
-| digest | Evening stock digest of newly trend-confirmed stocks | On |
-| holding | A holding reached its sales target or its 20-session horizon | On |
+| digest | Evening digest of stocks that joined the watch list (spec 08) | On |
+| stock | Evening: a stock buy, a stock sell (stop, trailing stop, or sell signal), and with updates on, trailing stop started or projection reached (spec 08) | On |
+| holding | On the owner's holding: stop, trailing stop, sell signal, projection reached (spec 08) | On |
 | health | Worker or data problem | Admins only |
 | test | Owner presses "Send test notification" | Manual |
 
@@ -58,10 +59,23 @@ Title: EUR/USD long hit target
 Body:  +63 pips. Closed 10:45 New York.
 ```
 
-Stock digest (email and Telegram):
+Stock watch list digest (email and Telegram):
 ```
-Subject: 4 stocks confirmed their trend today
-Body:    Table of ticker, close, APR 20-day, APR 50-day, link to each stock page.
+Subject: 4 stocks joined the watch list today
+Body:    Table of ticker, close, distance below the 52-week high, APR 10-day, link to each stock page.
+```
+
+Stock buy:
+```
+Title: Buy signal: ABCD at 24.10
+Body:  4 of 5 indicators: bullish engulfing, MACD crossed up, pivot hooked up, Stochastics crossed 20.
+       Stop 22.90 (5%). Projection 32.54 (35% in 20 sessions). Close of Oct 8.
+```
+
+Stock sell:
+```
+Title: Sell: ABCD trailing stop at 29.83
+Body:  +23.8% from 24.10 in 14 sessions. Highest close 31.40.
 ```
 
 Email versions use a simple HTML layout matching the portal's tokens, with a plain-text alternative.

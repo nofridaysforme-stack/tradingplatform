@@ -98,6 +98,6 @@ Bars outside every enabled trading window are not evaluated. This changes no sig
 4. Do the provisional indicators (trendlines, flags) improve or dilute results?
 5. Is the primary trading window better than the alternative window?
 
-## Stock screener test
+## Stock system test
 
-Run the screener on each stored session and measure, for each newly trend-confirmed stock, whether it reached a 30 percent gain within 20 sessions. Report the hit rate with an explicit note that the data excludes delisted companies and covers only two years.
+Replay the spec 08 funnel on each stored session with the live code: watch list entries, buys, and exits. Report buys, exits by reason (stop, trailing stop, sell signal, still open), win rate, average and median result in percent, average sessions held, how often the 35 percent projection was reached, and how often each of the five indicators voted in the buys. `--set` and `--disable` vary rules as in the forex test. The report notes that the data excludes delisted companies and covers only the stored history.
