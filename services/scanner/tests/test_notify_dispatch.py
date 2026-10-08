@@ -13,7 +13,12 @@ from scanner.notify.dispatcher import deliver_due
 from scanner.notify.health import run_health_check
 from scanner.notify.messages import Message
 from scanner.notify.prefs import Channel
-from scanner.notify.sources import dispatch_digest, dispatch_holdings, dispatch_signal_events
+from scanner.notify.sources import (
+    dispatch_holdings,
+    dispatch_signal_events,
+    dispatch_stock_events,
+    dispatch_watch,
+)
 
 Conn = psycopg.Connection[Any]
 BASE = "https://desk.example.com"
@@ -217,37 +222,62 @@ def test_queued_test_notification_gets_its_text(
     )  # fmt: skip
 
 
-def test_digest_and_holdings(
+def test_stock_watch_buys_sells_and_holdings(
     conn: Conn, people: dict[str, UUID], senders: dict[Channel, FakeSender]
 ) -> None:
     conn.execute(
         "INSERT INTO stock_screen_results (session_date, ticker, status, close, high_52w, low_52w, "
-        "apr_52w, apr_20, apr_50, version_set) VALUES "
-        "('2026-10-06', 'AAA', 'trend_confirmed', 12.5, 13, 6, 1.1, 2.039, 1.1, '{}')"
+        "apr_52w, apr_10, version_set, momentum, watching) VALUES "
+        "('2026-10-06', 'AAA', 'trend_confirmed', 12.5, 13, 6, 1.1, 4.9, '{}', true, true)"
     )
     conn.execute(
         "UPDATE notification_prefs SET strategies = '{three_eight}' WHERE user_id = %s",
         (people["b"],),
     )
-    dispatch_digest(conn, ["AAA"], "2026-10-06", senders, NOW, BASE)
-    digest = rows(conn, "digest")
-    assert {r[0] for r in digest if r[2] == "queued"} == {"a@example.com", "c@example.com"}
-    assert ("b@example.com", "telegram", "skipped", "strategy_off") in digest
-    assert dispatch_digest(conn, ["AAA"], "2026-10-06", senders, NOW, BASE) == 0  # once per session
+    dispatch_watch(conn, ["AAA"], "2026-10-06", senders, NOW, BASE)
+    watch = rows(conn, "digest")
+    assert {r[0] for r in watch if r[2] == "queued"} == {"a@example.com", "c@example.com"}
+    assert ("b@example.com", "telegram", "skipped", "strategy_off") in watch
+    assert dispatch_watch(conn, ["AAA"], "2026-10-06", senders, NOW, BASE) == 0  # once a session
 
-    conn.execute(
-        "INSERT INTO stock_daily_bars (ticker, session_date, o, h, l, c, volume) "
-        "VALUES ('AAA', '2026-10-06', 12, 31, 11, 30.2, 1000)"
-    )
+    for d, c in [("2026-10-05", 24.10), ("2026-10-06", 22.80)]:
+        conn.execute(
+            "INSERT INTO stock_daily_bars (ticker, session_date, o, h, l, c, volume) "
+            "VALUES ('AAA', %s, %s, %s, %s, %s, 1000)",
+            (d, c, c, c, c),
+        )
+    sig = conn.execute(
+        "INSERT INTO stock_signals (ticker, buy_session, entry, stop_initial, projection, "
+        "projection_pct, horizon_sessions, highest_close, stop_now, last_session, votes, "
+        "version_set, state, exit_session, exit_price, result_pct) VALUES ('AAA', '2026-10-05', "
+        "24.10, 22.895, 32.535, 35, 20, 24.10, 22.895, '2026-10-06', %s, '{}', 'stopped', "
+        "'2026-10-06', 22.80, -0.0539) RETURNING id",
+        (Jsonb({"stocks.ind_macd": {"fired": True}, "stocks.ind_rsi": {"fired": False}}),),
+    ).fetchone()
+    assert sig is not None
+    ids = [
+        conn.execute(
+            "INSERT INTO stock_signal_events (signal_id, session, kind, price) "
+            "VALUES (%s, %s, %s, %s) RETURNING id",
+            (sig[0], d, kind, price),
+        ).fetchone()[0]  # type: ignore[index]
+        for d, kind, price in [("2026-10-05", "bought", 24.10), ("2026-10-06", "stopped", 22.80)]
+    ]
+    dispatch_stock_events(conn, ids, senders, NOW, BASE)
+    assert dispatch_stock_events(conn, ids, senders, NOW, BASE) == 0  # each event once
+    assert {r[0] for r in rows(conn, "signal") if r[2] == "queued"} == {
+        "a@example.com", "c@example.com"
+    }  # fmt: skip
+
     holding = conn.execute(
-        "INSERT INTO holdings (user_id, ticker, purchase_price, purchase_date) "
-        "VALUES (%s, 'AAA', 23.13, '2026-09-01') RETURNING id",
+        "INSERT INTO holdings (user_id, ticker, purchase_price, purchase_date, highest_close, "
+        "stop_now) VALUES (%s, 'AAA', 24.00, '2026-10-02', 24.10, 22.80) RETURNING id",
         (people["a"],),
     ).fetchone()
     assert holding is not None
     dispatch_holdings(
         conn,
-        [{"holding_id": str(holding[0]), "alert": "target_reached"}],
+        [{"holding_id": str(holding[0]), "alert": "stopped", "price": "22.80"}],
         "2026-10-06",
         senders,
         NOW,
@@ -256,8 +286,10 @@ def test_digest_and_holdings(
     assert {r[0] for r in rows(conn, "holding")} == {"a@example.com"}
     deliver_due(conn, senders, NOW, base_url=BASE)
     titles = [m.title for _, m in senders["email"].sent]
-    assert "1 stock confirmed its trend today" in titles
-    assert "AAA reached its sales target" in titles
+    assert "1 stock joined the watch list today" in titles
+    assert "Buy signal: AAA at 24.10" in titles
+    assert "Sell: AAA stop at 22.80" in titles
+    assert "Sell: your holding AAA stop at 22.80" in titles
 
 
 def test_health_alerts_repeat_hourly_and_resolve(

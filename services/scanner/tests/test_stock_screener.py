@@ -8,7 +8,6 @@ from scanner.strategies.stock_screener import (
     DayBar,
     apr_52w,
     check_holding,
-    digest_candidates,
     five_line,
     rule1_near_high,
     rule2_double,
@@ -97,15 +96,6 @@ def test_liquidity_filter_can_be_switched_off() -> None:
     rules = {k: rs.rule(k) for k in rs._rules}
     rules["stocks.liquidity"] = rules["stocks.liquidity"].model_copy(update={"enabled": False})
     assert screen("THIN", _history(260, 3.0, 9.0, volume=10), RuleSet(rules)) is not None
-
-
-def test_digest_skips_recent_and_ranks_by_apr_20() -> None:
-    rs = ruleset_from_snapshot()
-    fast = screen("FAST", _history(260, 3.0, 12.0), rs)
-    slow = screen("SLOW", _history(260, 3.0, 9.0), rs)
-    assert fast and slow
-    assert [r.ticker for r in digest_candidates([slow, fast], set(), rs)] == ["FAST", "SLOW"]
-    assert [r.ticker for r in digest_candidates([slow, fast], {"FAST"}, rs)] == ["SLOW"]
 
 
 def test_sales_target_shared_cases() -> None:

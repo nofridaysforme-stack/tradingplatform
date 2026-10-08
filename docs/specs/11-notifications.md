@@ -14,10 +14,9 @@ SMS is out of scope. US carrier registration (A2P 10DLC) takes weeks and adds fe
 
 | Kind | When | Default |
 |---|---|---|
-| signal | New 3/8 or Fibonacci Pivot signal | On |
-| update | Fibonacci Pivot confirmation or reset reached; any signal closes | On (owner can turn off updates) |
+| signal | New 3/8 or Fibonacci Pivot signal; a stock buy or sell (spec 08) | On |
+| update | Fibonacci Pivot confirmation or reset reached; any signal closes; a stock buy's trailing stop started or projection reached | On (owner can turn off updates) |
 | digest | Evening digest of stocks that joined the watch list (spec 08) | On |
-| stock | Evening: a stock buy, a stock sell (stop, trailing stop, or sell signal), and with updates on, trailing stop started or projection reached (spec 08) | On |
 | holding | On the owner's holding: stop, trailing stop, sell signal, projection reached (spec 08) | On |
 | health | Worker or data problem | Admins only |
 | test | Owner presses "Send test notification" | Manual |

@@ -150,7 +150,7 @@ class Worker:
         detail = self._record(
             "stock_eod", lambda conn: stock_eod.run(conn, massive, self.registry, session)
         )
-        if detail.get("ready") and "digest" in detail:
+        if detail.get("ready") and "watch_digest" in detail:
             self.stock_notifications(detail)
         if detail.get("ready") is False:
             retry_at = datetime.now(UTC) + STOCK_RETRY
@@ -195,15 +195,19 @@ class Worker:
     # Notifications (spec 11)
 
     def stock_notifications(self, detail: dict[str, Any]) -> None:
-        """The evening digest and holding alerts from a finished stock screen."""
+        """The watch list digest, buys and sells, and holding alerts from a finished screen."""
         now = datetime.now(UTC)
         session = str(detail["session"])
         with self.pool.connection() as conn:
             conn.autocommit = True
             try:
-                if detail.get("digest"):
-                    sources.dispatch_digest(
-                        conn, detail["digest"], session, self.senders, now, self.base_url
+                if detail.get("watch_digest"):
+                    sources.dispatch_watch(
+                        conn, detail["watch_digest"], session, self.senders, now, self.base_url
+                    )
+                if detail.get("stock_events"):
+                    sources.dispatch_stock_events(
+                        conn, detail["stock_events"], self.senders, now, self.base_url
                     )
                 if detail.get("holdings"):
                     sources.dispatch_holdings(

@@ -5,13 +5,16 @@ from uuid import UUID, uuid4
 
 from scanner.notify.health import HEARTBEAT_TEXT
 from scanner.notify.messages import (
-    DigestRow,
     SignalFacts,
-    digest_message,
+    StockBuy,
+    WatchRow,
     health_message,
-    holding_message,
     signal_message,
+    stock_buy_message,
+    stock_exit_message,
+    stock_update_message,
     update_message,
+    watch_message,
 )
 from scanner.notify.prefs import Channel, Kind, Prefs, in_quiet_hours, skip_reason
 
@@ -69,20 +72,58 @@ def test_update_and_other_messages() -> None:
         result_pips=None, base_url=BASE,
     )  # fmt: skip
     assert confirmed.body == "At 1.07810, 10:45 New York."
-    digest = digest_message([DigestRow("AAA", 12.5, 2.039, 1.1)], "2026-10-06", BASE)
-    assert digest.title == "1 stock confirmed its trend today"
-    assert "AAA  close 12.50  APR 20-day 204%  APR 50-day 110%" in digest.body
-    held = holding_message(
-        ticker="AAA", alert="target_reached", target=30.07, last_close=30.2, horizon=20,
-        base_url=BASE,
-    )  # fmt: skip
-    assert held.title == "AAA reached its sales target"
+    watch = watch_message([WatchRow("AAA", 12.5, 0.042, 4.9)], "2026-10-06", BASE)
+    assert watch.title == "1 stock joined the watch list today"
+    assert "AAA  close 12.50  4.2% below the 52-week high  APR 10-day 490%" in watch.body
+    assert watch.url == f"{BASE}/stocks?session=2026-10-06&stage=watching"
     assert health_message("pair_stale:GBP/USD", "x", resolved=False, base_url=BASE).title == (
         "Health alert: no new bars for GBP/USD"
     )
     assert health_message("pair_stale:GBP/USD", "", resolved=True, base_url=BASE).title == (
         "Resolved: no new bars for GBP/USD"
     )
+
+
+def test_stock_messages_match_spec_11() -> None:
+    buy = stock_buy_message(
+        StockBuy("s1", "ABCD", "Oct 8", 24.10, 22.895, 5, 32.535, 35, 20,
+                 ["bullish candle (engulfing)", "MACD crossed up", "pivot hooked up",
+                  "Stochastics crossed"], False),
+        BASE,
+    )  # fmt: skip
+    assert buy.title == "Buy signal: ABCD at 24.10"
+    assert buy.body == (
+        "4 of 5 indicators: bullish candle (engulfing), MACD crossed up, pivot hooked up, "
+        "Stochastics crossed.\nStop 22.90 (5%). Projection 32.54 (35% in 20 sessions). "
+        "Close of Oct 8."
+    )
+    sell = stock_exit_message(
+        ticker="ABCD", kind="trailing_stopped", price=29.83, entry=24.10, sessions=14,
+        highest=31.40, voted=[], base_url=BASE,
+    )  # fmt: skip
+    assert (sell.title, sell.body) == (
+        "Sell: ABCD trailing stop at 29.83",
+        "+23.8% from 24.10 in 14 sessions. Highest close 31.40.",
+    )
+    stopped = stock_exit_message(
+        ticker="ABCD", kind="stopped", price=22.80, entry=24.10, sessions=1, highest=24.10,
+        voted=[], base_url=BASE, holding=True,
+    )  # fmt: skip
+    assert (stopped.title, stopped.body, stopped.url) == (
+        "Sell: your holding ABCD stop at 22.80",
+        "-5.4% from 24.10 in 1 session.",
+        f"{BASE}/holdings",
+    )
+    trailing = stock_update_message(
+        ticker="ABCD", kind="trailing_started", price=26.60, entry=24.10, stop=25.27,
+        projection=32.54, horizon=20, base_url=BASE,
+    )  # fmt: skip
+    assert trailing.title == "ABCD: trailing stop started at 25.27"
+    reached = stock_update_message(
+        ticker="ABCD", kind="projection_reached", price=32.60, entry=24.10, stop=30.97,
+        projection=32.54, horizon=20, base_url=BASE, holding=True,
+    )  # fmt: skip
+    assert reached.title == "Your holding ABCD reached its projection"
 
 
 def test_quiet_hours_cross_midnight_in_the_owner_zone() -> None:

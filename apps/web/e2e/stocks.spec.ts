@@ -60,7 +60,7 @@ test("an owner adds, edits, and closes a holding", async ({ page }) => {
   await page.goto("/stocks/E2EA");
   const add = page.getByRole("form", { name: "Add to holdings" });
   await expect(add.getByLabel("Purchase price")).toHaveValue("50.65");
-  await expect(add.getByLabel("Expected profit")).toHaveValue("30");
+  await expect(add.getByLabel("Expected profit")).toHaveValue("35");
   await add.getByLabel("Purchase price").fill("50");
   await add.getByLabel("Purchase date").fill("2026-09-25");
   await add.getByRole("button", { name: "Add to holdings" }).click();
@@ -68,10 +68,10 @@ test("an owner adds, edits, and closes a holding", async ({ page }) => {
 
   await page.goto("/holdings");
   const row = page.getByRole("region", { name: "Open" }).getByRole("listitem").filter({ hasText: "E2EA" });
-  await expect(row).toContainText("Sales target65.00");
-  await expect(row).toContainText("Total earnings15.00");
-  await expect(row).toContainText("Daily target0.750");
-  await expect(row).toContainText("Weekly target3.750");
+  await expect(row).toContainText("Sales target67.50");
+  await expect(row).toContainText("Total earnings17.50");
+  await expect(row).toContainText("Daily target0.875");
+  await expect(row).toContainText("Weekly target4.375");
   await expect(row).toContainText("Last close50.65");
   await expect(row).toContainText("3 of 20 sessions"); // bars after Sept 25: 28, 29, 30
   await expect(row.getByRole("meter")).toHaveAttribute("aria-valuenow", "4");

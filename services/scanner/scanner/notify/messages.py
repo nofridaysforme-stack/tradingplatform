@@ -4,6 +4,7 @@ simple HTML layout in the portal's colours. No em dashes."""
 import html
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
 from scanner.time import to_new_york
@@ -141,43 +142,131 @@ def update_message(
 
 
 @dataclass(frozen=True)
-class DigestRow:
+class WatchRow:
     ticker: str
     close: float
-    apr_20: float | None
-    apr_50: float | None
+    below_high: float  # fraction below the 52-week high
+    apr_10: float | None
 
 
 def pct(v: float | None) -> str:
     return "" if v is None else f"{v * 100:,.0f}%"
 
 
-def digest_message(rows: list[DigestRow], session: str, base_url: str) -> Message:
+def money(v: float) -> str:
+    """Two decimals, half up (22.895 shows as 22.90, as the spec examples do)."""
+    return str(Decimal(repr(v)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
+def pct1(v: float) -> str:
+    sign = "+" if v > 0 else ""
+    return f"{sign}{v * 100:.1f}%"
+
+
+def watch_message(rows: list[WatchRow], session: str, base_url: str) -> Message:
+    """Spec 11, stock watch list digest."""
     n = len(rows)
-    title = f"{n} stock{'' if n == 1 else 's'} confirmed {'its' if n == 1 else 'their'} trend today"
+    title = f"{n} stock{'' if n == 1 else 's'} joined the watch list today"
     lines = [f"After the {session} session:"]
     lines += [
-        f"{r.ticker}  close {r.close:.2f}  APR 20-day {pct(r.apr_20)}  APR 50-day {pct(r.apr_50)}"
+        f"{r.ticker}  close {money(r.close)}  {r.below_high * 100:.1f}% below the 52-week high  "
+        f"APR 10-day {pct(r.apr_10)}"
         for r in rows
     ]
-    return Message(
-        title, "\n".join(lines), f"{base_url}/stocks?session={session}&status=trend_confirmed"
+    return Message(title, "\n".join(lines), f"{base_url}/stocks?session={session}&stage=watching")
+
+
+INDICATOR_NAMES = {
+    "stocks.ind_candle": "bullish candle",
+    "stocks.ind_macd": "MACD crossed up",
+    "stocks.ind_pivot": "pivot hooked up",
+    "stocks.ind_rsi": "RSI crossed",
+    "stocks.ind_stoch": "Stochastics crossed",
+}
+SELL_NAMES = {
+    "stocks.ind_candle": "bearish candle",
+    "stocks.ind_macd": "MACD crossed down",
+    "stocks.ind_pivot": "pivot hooked down",
+    "stocks.ind_rsi": "RSI crossed",
+    "stocks.ind_stoch": "Stochastics crossed",
+}
+
+
+@dataclass(frozen=True)
+class StockBuy:
+    signal_id: str
+    ticker: str
+    session: str
+    entry: float
+    stop: float
+    stop_pct: float
+    projection: float
+    projection_pct: float
+    horizon: int
+    voted: list[str]  # readable indicator names
+    has_provisional: bool
+
+
+def stock_buy_message(b: StockBuy, base_url: str) -> Message:
+    """Spec 11, stock buy."""
+    lines = [
+        f"{len(b.voted)} of 5 indicators: {', '.join(b.voted)}.",
+        f"Stop {money(b.stop)} ({b.stop_pct:g}%). Projection {money(b.projection)} "
+        f"({b.projection_pct:g}% in {b.horizon} sessions). Close of {b.session}.",
+    ]
+    if b.has_provisional:
+        lines.append("Includes a provisional rule.")
+    title = f"Buy signal: {b.ticker} at {money(b.entry)}"
+    return Message(title, "\n".join(lines), f"{base_url}/stocks/{b.ticker}")
+
+
+EXIT_WORDS = {"stopped": "stop", "trailing_stopped": "trailing stop", "sold": "sell signal"}
+
+
+def stock_exit_message(
+    *, ticker: str, kind: str, price: float, entry: float, sessions: int, highest: float,
+    voted: list[str], base_url: str, holding: bool = False,
+) -> Message:  # fmt: skip
+    """Spec 11, stock sell. For a holding the result is from the owner's purchase price."""
+    change = (price - entry) / entry
+    whose = "your holding " if holding else ""
+    title = f"Sell: {whose}{ticker} {EXIT_WORDS.get(kind, kind)} at {money(price)}"
+    body = (
+        f"{pct1(change)} from {money(entry)} in {sessions} session{'' if sessions == 1 else 's'}."
     )
+    if kind != "stopped":
+        body += f" Highest close {money(highest)}."
+    if voted:
+        body += f" {', '.join(voted)}."
+    url = f"{base_url}/holdings" if holding else f"{base_url}/stocks/{ticker}"
+    return Message(title, body, url)
 
 
-def holding_message(
-    *, ticker: str, alert: str, target: float, last_close: float, horizon: int, base_url: str
-) -> Message:
-    if alert == "target_reached":
+def stock_update_message(
+    *, ticker: str, kind: str, price: float, entry: float, stop: float | None,
+    projection: float, horizon: int, base_url: str, holding: bool = False,
+) -> Message:  # fmt: skip
+    """Information updates on an open buy or a holding."""
+    whose = "Your holding " if holding else ""
+    url = f"{base_url}/holdings" if holding else f"{base_url}/stocks/{ticker}"
+    if kind == "trailing_started":
+        stop_text = f" at {money(stop)}" if stop is not None else ""
         return Message(
-            f"{ticker} reached its sales target",
-            f"Closed {last_close:.2f}, at or above the target {target:.2f}.",
-            f"{base_url}/holdings",
+            f"{whose}{ticker}: trailing stop started{stop_text}",
+            f"Closed {money(price)}, {pct1((price - entry) / entry)} from {money(entry)}.",
+            url,
+        )
+    if kind == "projection_reached":
+        return Message(
+            f"{whose}{ticker} reached its projection",
+            f"Closed {money(price)}, at or above the projected {money(projection)}. "
+            "The trade rides until a stop or a sell signal.",
+            url,
         )
     return Message(
-        f"{ticker} passed {horizon} sessions without its target",
-        f"Closed {last_close:.2f}; the target is {target:.2f}. Review the holding.",
-        f"{base_url}/holdings",
+        f"{whose}{ticker} passed {horizon} sessions without its projection",
+        f"Closed {money(price)}; the projection is {money(projection)}.",
+        url,
     )
 
 
