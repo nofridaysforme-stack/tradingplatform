@@ -11,11 +11,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 const tickers = (page: import("@playwright/test").Page) =>
-  page.getByRole("table").getByRole("row").locator("td:first-child a").allTextContents();
+  page.getByRole("table", { name: /Screen results/ }).getByRole("row").locator("td:first-child a").allTextContents();
 
 test("stock results sort, filter, search, and switch sessions", async ({ page }) => {
   await page.goto("/stocks");
-  await expect(page.getByText(`Screen for the ${SESSION} session · 3 stocks`)).toBeVisible();
+  await expect(page.getByText(`Screen for the ${SESSION} session · 3 qualified · 1 on the watch list · 1 open buys`)).toBeVisible();
   expect(await tickers(page)).toEqual(["E2EA", "E2EB", "E2EC"]); // APR 20 descending by default
   await expect(page.getByRole("columnheader", { name: /APR 20/ })).toHaveAttribute("aria-sort", "descending");
 
@@ -27,7 +27,7 @@ test("stock results sort, filter, search, and switch sessions", async ({ page })
   expect(await tickers(page)).toEqual(["E2EC", "E2EB", "E2EA"]);
 
   await page.goto("/stocks");
-  await page.getByLabel("Status").selectOption("trend_confirmed");
+  await page.getByLabel("Trend").selectOption("trend_confirmed");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await page.waitForURL(/status=trend_confirmed/);
   expect(await tickers(page)).toEqual(["E2EA"]);
@@ -36,8 +36,14 @@ test("stock results sort, filter, search, and switch sessions", async ({ page })
   expect(await tickers(page)).toEqual(["E2EC"]);
 
   await page.goto(`/stocks?session=${PREV_SESSION}`);
-  await expect(page.getByText(`Screen for the ${PREV_SESSION} session · 1 stocks`)).toBeVisible();
-  await expect(page.getByRole("row", { name: /E2EA.*Qualified/ })).toBeVisible();
+  await expect(page.getByText(`Screen for the ${PREV_SESSION} session · 1 qualified`)).toBeVisible();
+  await expect(page.getByRole("row", { name: /E2EA.*Watching/ })).toBeVisible();
+
+  await page.goto("/stocks");
+  await page.getByLabel("Stage").selectOption("watching");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  await page.waitForURL(/stage=watching/);
+  expect(await tickers(page)).toEqual(["E2EB"]);
 });
 
 test("stock detail shows the five line chart, checks, and status history", async ({ page }) => {
@@ -50,17 +56,59 @@ test("stock detail shows the five line chart, checks, and status history", async
   const checks = page.getByRole("region", { name: "Qualification" });
   await expect(checks).toContainText("needs 46.80 or more (90% of the high)");
   await expect(checks).toContainText("needs 40.00 or more (2 times the low)");
-  const history = page.getByRole("region", { name: "Status history" }).getByRole("listitem");
+  const history = page.getByRole("region", { name: "Trend history" }).getByRole("listitem");
   await expect(history).toHaveText([/Trend confirmed\s*From 2026-09-30/, /Qualified\s*From 2026-09-29/]);
   await expect(page.locator("canvas").first()).toBeVisible();
   expect((await page.goto("/stocks/NOPE"))?.status()).toBe(404);
+});
+
+test("the stocks page shows open buys, the watch list, and closed buys", async ({ page }) => {
+  await page.goto("/stocks");
+  const open = page.getByRole("region", { name: "Open buys" }).getByRole("listitem");
+  await expect(open).toHaveCount(1);
+  await expect(open).toContainText("Buy");
+  await expect(open).toContainText(`E2EA${PREV_SESSION} at 50.30`);
+  await expect(open).toContainText("Stop now47.79Fixed 5%");
+  await expect(open).toContainText("Projection (35%)67.91In 20 sessions");
+  await expect(open).toContainText("So far+0.7%");
+  await expect(open).toContainText("3 of 5 voted to buy: Price and candle (engulfing), MACD crossover, Pivot point crossover.");
+  await expect(open.getByText("Provisional")).toBeVisible();
+
+  const watch = page.getByRole("table", { name: /Watch list/ });
+  await expect(watch.getByRole("row", { name: /E2EB.*29\.80.*6\.9%.*2 of 5/ })).toBeVisible();
+  await expect(watch).toContainText("Price and candle, MACD crossover");
+
+  const closed = page.getByRole("region", { name: "Closed buys" }).getByRole("listitem");
+  await expect(closed).toContainText("Sell signal 2026-09-29");
+  await expect(closed).toContainText("Result+17.3%");
+  await expect(closed).toContainText("Sold on: Price and candle, MACD crossover, Pivot point crossover.");
+});
+
+test("stock detail shows momentum, the indicators, and the stock's buys", async ({ page }) => {
+  await page.goto("/stocks/E2EB");
+  const funnel = page.getByRole("region", { name: "Momentum and watch list" });
+  await expect(funnel).toContainText("10-day APR 512%, needs 455% or more");
+  await expect(funnel).toContainText("Waiting for a buy: 3 of 5 indicators within 3 sessions");
+  const ind = page.getByRole("region", { name: "Indicators" });
+  await expect(ind).toContainText(`After the ${SESSION} session: 2 of 5 for a buy, 0 of 5 for a sell`);
+  await expect(ind.getByRole("row", { name: /Price and candle.*Fired 2026-09-30.*No/ })).toBeVisible();
+  await expect(ind.getByRole("row", { name: /^RSI.*No.*No.*RSI 48\.20/ })).toBeVisible();
+  await expect(ind.getByRole("row", { name: /^RSI/ }).getByText("Provisional")).toBeVisible();
+
+  await page.goto("/stocks/E2EA");
+  await expect(page.getByRole("region", { name: "Momentum and watch list" })).toContainText("Not watched while a buy is open.");
+  const buys = page.getByRole("region", { name: "Buys" }).getByRole("listitem").first();
+  await expect(buys).toContainText(`Bought${PREV_SESSION} at 50.30`);
+  const stages = page.getByRole("region", { name: "Stage history" }).getByRole("listitem");
+  await expect(stages).toHaveText([/Qualified\s*From 2026-09-30/, /Watching\s*From 2026-09-29/]);
+  await expectNoAxeViolations(page);
 });
 
 test("an owner adds, edits, and closes a holding", async ({ page }) => {
   await page.goto("/stocks/E2EA");
   const add = page.getByRole("form", { name: "Add to holdings" });
   await expect(add.getByLabel("Purchase price")).toHaveValue("50.65");
-  await expect(add.getByLabel("Expected profit")).toHaveValue("35");
+  await expect(add.getByLabel("Projection")).toHaveValue("35");
   await add.getByLabel("Purchase price").fill("50");
   await add.getByLabel("Purchase date").fill("2026-09-25");
   await add.getByRole("button", { name: "Add to holdings" }).click();
@@ -68,7 +116,7 @@ test("an owner adds, edits, and closes a holding", async ({ page }) => {
 
   await page.goto("/holdings");
   const row = page.getByRole("region", { name: "Open" }).getByRole("listitem").filter({ hasText: "E2EA" });
-  await expect(row).toContainText("Sales target67.50");
+  await expect(row).toContainText("Projection67.50");
   await expect(row).toContainText("Total earnings17.50");
   await expect(row).toContainText("Daily target0.875");
   await expect(row).toContainText("Weekly target4.375");
@@ -78,13 +126,20 @@ test("an owner adds, edits, and closes a holding", async ({ page }) => {
 
   await row.getByText("Edit holding").click();
   const edit = row.getByRole("form", { name: "Save changes" });
-  await edit.getByLabel("Expected profit").fill("0");
+  await edit.getByLabel("Projection").fill("0");
   await edit.getByRole("button", { name: "Save changes" }).click();
   await expect(edit.getByText("Use 1 or more.")).toBeVisible();
   await expect(edit.getByLabel("Purchase price")).toHaveValue("50");
-  await edit.getByLabel("Expected profit").fill("10");
+  await edit.getByLabel("Projection").fill("10");
   await edit.getByRole("button", { name: "Save changes" }).click();
-  await expect(row).toContainText("Sales target55.00");
+  await expect(row).toContainText("Projection55.00");
+
+  // The scanner writes where the holding stands after each close (spec 08).
+  await withSql((sql) => sql`update holdings set tracked_session = ${SESSION}, highest_close = 52, trailing_active = true, stop_now = 49.4,
+    sell_reason = 'trailing_stopped', sell_session = ${SESSION}, sell_price = 49.3 where ticker = 'E2EA'`);
+  await page.reload();
+  await expect(row).toContainText("Stop now49.40Trailing");
+  await expect(row.getByRole("note")).toHaveText(`Sell: trailing stop on ${SESSION} at 49.30. Close the holding here once you have sold.`);
 
   await row.getByRole("button", { name: "Close holding E2EA" }).click();
   await expect(page.getByRole("region", { name: "Closed" })).toContainText("E2EA bought 2026-09-25 at 50.00");

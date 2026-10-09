@@ -1,15 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { StockBuys } from "@/components/stock-buys";
 import { Badge, Button } from "@/components/ui";
 import { money, percent } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-import { parseResultsQuery, results, resultsHref, sessions, STATUS_NAMES, STATUSES, type SortKey } from "@/lib/stocks";
+import { INDICATOR_NAMES } from "@/lib/stock-names";
+import {
+  parseResultsQuery,
+  results,
+  resultsHref,
+  sessions,
+  STAGE_NAMES,
+  STAGES,
+  STATUS_NAMES,
+  STATUSES,
+  stockBuys,
+  watchList,
+  type SortKey,
+} from "@/lib/stocks";
 
 export const metadata: Metadata = { title: "Stocks · Trading desk" };
 
 const COLUMNS: { key: SortKey; label: string; group?: string }[] = [
   { key: "ticker", label: "Ticker" },
-  { key: "status", label: "Status" },
+  { key: "status", label: "Stage and trend" },
   { key: "close", label: "Close" },
   { key: "high", label: "52-week high" },
   { key: "low", label: "52-week low" },
@@ -27,19 +41,87 @@ const COLUMNS: { key: SortKey; label: string; group?: string }[] = [
 export default async function StocksPage({ searchParams }: PageProps<"/stocks">) {
   await requireUser();
   const q = parseResultsQuery(await searchParams);
-  const [data, sessionList] = await Promise.all([results(q), sessions()]);
+  const [data, sessionList, buys] = await Promise.all([results(q), sessions(), stockBuys()]);
+  const watch = await watchList(data.session);
+  const open = buys.filter((b) => b.state === "open");
+  const closed = buys.filter((b) => b.state !== "open");
   return (
     <main>
       <header className="px-5 pt-6 pb-3.5">
         <h1 className="m-0 text-[22px] font-semibold leading-tight">Stocks</h1>
-        <p className="m-0 mt-1 text-[13px] text-mute">
-          {data.session ? <>Screen for the {data.session} session · {data.total} stocks</> : "No screen has run yet. The scanner screens US stocks each weekday evening."}
+        <p className="m-0 mt-1 max-w-[62ch] text-[13px] text-mute">
+          {data.session ? (
+            <>
+              Screen for the {data.session} session · {data.total} qualified · {watch.length} on the watch list · {open.length} open buys
+            </>
+          ) : (
+            "No screen has run yet. The scanner screens US stocks each weekday evening."
+          )}
         </p>
       </header>
 
-      <form method="get" action="/stocks" aria-label="Filters" className="flex flex-wrap items-end gap-3 border-t border-rule px-5 py-4">
+      <section aria-labelledby="buys-h" className="border-t border-rule">
+        <h2 id="buys-h" className="m-0 px-5 pt-4 text-base font-semibold">
+          Open buys
+        </h2>
+        {open.length === 0 ? (
+          <p className="m-0 px-5 py-3 text-sm text-ink-2">No open buys. A buy needs 3 of 5 indicators on a stock from the watch list.</p>
+        ) : (
+          <StockBuys buys={open} />
+        )}
+      </section>
+
+      <section aria-labelledby="watch-h" className="border-t border-rule">
+        <h2 id="watch-h" className="m-0 px-5 pt-4 text-base font-semibold">
+          Watch list
+        </h2>
+        <p className="m-0 px-5 pt-1 text-[13px] text-mute">Strong stocks waiting for a pullback inside 10% of their 52-week high. Votes are the buy indicators that fired in the last 3 sessions.</p>
+        {watch.length === 0 ? (
+          <p className="m-0 px-5 py-3 text-sm text-ink-2">No stocks on the watch list{data.session ? ` after the ${data.session} session` : ""}.</p>
+        ) : (
+          // Scrolls sideways on a phone; focusable so the keyboard can scroll it too.
+          <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Watch list, scrolls sideways">
+            <table className="mt-2 w-full min-w-[560px] border-collapse font-condensed text-sm">
+              <caption className="sr-only">Watch list, most buy votes first</caption>
+              <thead>
+                <tr className="text-xs text-mute">
+                  <th scope="col" className="border-b border-rule px-2 py-2 pl-5 text-left font-normal">Ticker</th>
+                  <th scope="col" className="border-b border-rule px-2 py-2 text-right font-normal">Close</th>
+                  <th scope="col" className="border-b border-rule px-2 py-2 text-right font-normal">Below the high</th>
+                  <th scope="col" className="border-b border-rule px-2 py-2 text-right font-normal">APR 10</th>
+                  <th scope="col" className="border-b border-rule px-2 py-2 pr-5 text-left font-normal">Buy votes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {watch.map((w) => (
+                  <tr key={w.ticker} className="border-b border-rule-soft">
+                    <td className="px-2 py-2 pl-5">
+                      <Link href={`/stocks/${encodeURIComponent(w.ticker)}`} className="font-semibold text-link">
+                        {w.ticker}
+                      </Link>
+                      {w.name && <span className="block max-w-[180px] truncate text-xs text-mute">{w.name}</span>}
+                    </td>
+                    <td className="px-2 py-2 text-right">{money(w.close)}</td>
+                    <td className="px-2 py-2 text-right">{percent((w.high_52w - w.close) / w.high_52w)}</td>
+                    <td className="px-2 py-2 text-right">{percent(w.apr10)}</td>
+                    <td className="px-2 py-2 pr-5">
+                      <span className="font-semibold">{w.votes} of 5</span>
+                      {w.fired.length > 0 && <span className="block text-xs text-mute">{w.fired.map((k) => INDICATOR_NAMES[k] ?? k).join(", ")}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <h2 className="m-0 border-t border-rule px-5 pt-4 text-base font-semibold">Screen results</h2>
+
+      <form method="get" action="/stocks" aria-label="Filters" className="flex flex-wrap items-end gap-3 px-5 py-4">
         <Choice id="session" label="Session" value={data.session ?? ""} options={sessionList.map((s) => [s, s])} />
-        <Choice id="status" label="Status" value={q.status ?? ""} options={[["", "All"], ...STATUSES.map((s) => [s, STATUS_NAMES[s]] as [string, string])]} />
+        <Choice id="stage" label="Stage" value={q.stage ?? ""} options={[["", "All qualified"], ...STAGES.map((s) => [s, STAGE_NAMES[s]] as [string, string])]} />
+        <Choice id="status" label="Trend" value={q.status ?? ""} options={[["", "All"], ...STATUSES.map((s) => [s, STATUS_NAMES[s]] as [string, string])]} />
         <div className="flex flex-col gap-1.5">
           <label htmlFor="q" className="text-xs text-mute">
             Search
@@ -93,8 +175,11 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
                     {r.name && <span className="block max-w-[180px] truncate text-xs text-mute">{r.name}</span>}
                   </td>
                   <td className="px-2 py-2">
-                    <Badge kind="state">{STATUS_NAMES[r.status]}</Badge>
-                    {r.consistent && <span className="block text-xs text-mute">Consistent</span>}
+                    <Badge kind="state">{STAGE_NAMES[r.stage]}</Badge>
+                    <span className="block text-xs text-mute">
+                      {STATUS_NAMES[r.status]}
+                      {r.consistent && " · Consistent"}
+                    </span>
                   </td>
                   <td className="px-2 py-2 text-right">{money(r.close)}</td>
                   <td className="px-2 py-2 text-right">{money(r.high_52w)}</td>
@@ -139,8 +224,18 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
         </nav>
       )}
       <p className="m-0 border-t border-rule px-5 py-4 text-[13px] text-mute">
-        ACC is the change since the close N sessions ago; APR annualizes it over the trader year set in the five-line rule (260 sessions by default).
+        ACC is the change since the close N sessions ago; APR annualizes it over the trader year set in the five-line rule (260 sessions by default). Momentum means the 10-day APR is fast
+        enough to make the 35% projection in 20 sessions.
       </p>
+
+      {closed.length > 0 && (
+        <section aria-labelledby="closed-h" className="border-t border-rule">
+          <h2 id="closed-h" className="m-0 px-5 pt-4 text-base font-semibold">
+            Closed buys
+          </h2>
+          <StockBuys buys={closed} />
+        </section>
+      )}
     </main>
   );
 }

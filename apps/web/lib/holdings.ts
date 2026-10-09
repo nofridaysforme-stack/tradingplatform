@@ -18,6 +18,14 @@ export interface HoldingView {
   lastClose: number | null;
   lastSession: string | null;
   check: HoldingCheck | null;
+  /** Written by the scanner after each session (spec 08); null until its first run. */
+  track: {
+    session: string;
+    stopNow: number | null;
+    trailingActive: boolean;
+    highestClose: number | null;
+    sell: { reason: "stopped" | "trailing_stopped" | "sold"; session: string | null; price: number | null } | null;
+  } | null;
 }
 
 /** The caller's own holdings, newest first, with targets and progress. */
@@ -41,6 +49,17 @@ export async function listHoldings(userId: string): Promise<HoldingView[]> {
         lastClose: last?.close ?? null,
         lastSession: last?.session ?? null,
         check: last ? checkHolding(price, pct, h.horizonSessions, last.close, elapsed) : null,
+        track: h.trackedSession
+          ? {
+              session: h.trackedSession,
+              stopNow: h.stopNow === null ? null : Number(h.stopNow),
+              trailingActive: h.trailingActive,
+              highestClose: h.highestClose === null ? null : Number(h.highestClose),
+              sell: h.sellReason
+                ? { reason: h.sellReason, session: h.sellSession, price: h.sellPrice === null ? null : Number(h.sellPrice) }
+                : null,
+            }
+          : null,
       };
     }),
   );
