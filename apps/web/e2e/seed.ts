@@ -170,14 +170,50 @@ export async function seedStocks(sql: postgres.Sql) {
     };
   };
   await sql`insert into stock_screen_results ${sql([
-    row(PREV_SESSION, "E2EA", "qualified", 50.3, 52, 20, [48.5, 46.8, 43.4, 50.6], false),
-    row(SESSION, "E2EA", "trend_confirmed", 50.65, 52, 20, [48.9, 47.2, 43.7, 33.9], true),
-    row(SESSION, "E2EB", "qualified", 29.8, 32, 14, [30.1, 29, 26, 31], false),
-    row(SESSION, "E2EC", "trend_established", 12.5, 13.5, 6, [12.9, 12.2, 11.4, 13.1], false),
+    { ...row(PREV_SESSION, "E2EA", "qualified", 50.3, 52, 20, [48.5, 46.8, 43.4, 50.6], false), momentum: true, watching: true, indicators: null },
+    { ...row(SESSION, "E2EA", "trend_confirmed", 50.65, 52, 20, [48.9, 47.2, 43.7, 33.9], true), momentum: false, watching: false, indicators: sql.json(evidence(1)) },
+    { ...row(SESSION, "E2EB", "qualified", 29.8, 32, 14, [30.1, 29, 26, 31], false), momentum: true, watching: true, indicators: sql.json(evidence(2)) },
+    { ...row(SESSION, "E2EC", "trend_established", 12.5, 13.5, 6, [12.9, 12.2, 11.4, 13.1], false), momentum: false, watching: false, indicators: null },
+  ])}`;
+  // Spec 08 buys: one open on E2EA (bought on the watch list), one sold on E2EC.
+  const [open] = await sql<{ id: string }[]>`insert into stock_signals ${sql({
+    ticker: "E2EA", buy_session: PREV_SESSION, entry: 50.3, stop_initial: 47.79, projection: 67.91, projection_pct: 35,
+    horizon_sessions: 20, state: "open", trailing_active: false, highest_close: 50.65, stop_now: 47.79, last_session: SESSION,
+    votes: sql.json(buyVotes), version_set: versions, has_provisional: true,
+  })} returning id`;
+  const [sold] = await sql<{ id: string }[]>`insert into stock_signals ${sql({
+    ticker: "E2EC", buy_session: "2026-09-10", entry: 11, stop_initial: 10.45, projection: 14.85, projection_pct: 35,
+    horizon_sessions: 20, state: "sold", trailing_active: true, highest_close: 13.2, stop_now: 12.54, last_session: "2026-09-29",
+    exit_session: "2026-09-29", exit_price: 12.9, result_pct: 0.172727, votes: sql.json(buyVotes),
+    exit_votes: sql.json(sellVotes), version_set: versions, has_provisional: false,
+  })} returning id`;
+  await sql`insert into stock_signal_events ${sql([
+    { signal_id: open!.id, session: PREV_SESSION, kind: "bought", price: 50.3, detail: sql.json({}) },
+    { signal_id: sold!.id, session: "2026-09-10", kind: "bought", price: 11, detail: sql.json({}) },
+    { signal_id: sold!.id, session: "2026-09-21", kind: "trailing_started", price: 12.2, detail: sql.json({}) },
+    { signal_id: sold!.id, session: "2026-09-29", kind: "sold", price: 12.9, detail: sql.json({}) },
   ])}`;
 }
 
+const IND = ["stocks.ind_candle", "stocks.ind_macd", "stocks.ind_pivot", "stocks.ind_rsi", "stocks.ind_stoch"] as const;
+const vote = (fired: boolean, session?: string, extra: Record<string, unknown> = {}) => ({ enabled: true, fired, provisional: false, ...(fired ? { session } : {}), ...extra });
+const buyVotes = {
+  "stocks.ind_candle": vote(true, PREV_SESSION, { patterns: ["engulfing"], provisional: true }),
+  "stocks.ind_macd": vote(true, PREV_SESSION, { values: { macd: 0.42, signal: 0.31 } }),
+  "stocks.ind_pivot": vote(true, "2026-09-26"),
+  "stocks.ind_rsi": vote(false, undefined, { provisional: true }),
+  "stocks.ind_stoch": vote(false, undefined, { provisional: true }),
+};
+const sellVotes = Object.fromEntries(IND.map((k, i) => [k, vote(i < 3, "2026-09-29")]));
+/** A screen result's evidence with the first `n` buy indicators fired. */
+function evidence(n: number) {
+  const side = (fired: number) =>
+    Object.fromEntries(IND.map((k, i) => [k, vote(i < fired, SESSION, { values: k === "stocks.ind_rsi" ? { rsi: 48.2 } : {}, provisional: k === "stocks.ind_rsi" })]));
+  return { buy: side(n), sell: side(0), momentum: { enabled: true, period: 10, rate: n === 2 ? 5.12 : 0.9, threshold: 4.55, passed: n === 2 } };
+}
+
 export async function clearStocks(sql: postgres.Sql) {
+  await sql`delete from stock_signals where ticker in ${sql([...STOCKS])}`;
   await sql`delete from stock_screen_results where ticker in ${sql([...STOCKS])}`;
   await sql`delete from stock_daily_bars where ticker in ${sql([...STOCKS])}`;
   await sql`delete from stock_tickers where ticker in ${sql([...STOCKS])}`;

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HoldingForm } from "@/components/holding-form";
 import { money, percent } from "@/lib/format";
 import { holdingDefaults, listHoldings, type HoldingView } from "@/lib/holdings";
+import { EXIT_NAMES } from "@/lib/stocks";
 import { requireUser } from "@/lib/session";
 import { CloseHolding } from "./close-button";
 
@@ -18,7 +19,8 @@ export default async function HoldingsPage() {
       <header className="px-5 pt-6 pb-3.5">
         <h1 className="m-0 text-[22px] font-semibold leading-tight">Holdings</h1>
         <p className="m-0 mt-1 max-w-[62ch] text-[13px] text-mute">
-          Your own purchases and their sales targets. Only you see your holdings. The portal never buys or sells.
+          Your own purchases, their projection, and the stop that applies now. The scanner checks each holding after the close and alerts you on a stop or a sell
+          signal. Only you see your holdings. The portal never buys or sells.
         </p>
       </header>
 
@@ -59,7 +61,7 @@ export default async function HoldingsPage() {
                 <span>
                   <strong className="font-semibold">{h.ticker}</strong> bought {h.purchaseDate} at {money(h.purchasePrice)}
                 </span>
-                <span className="text-mute">Target {money(h.plan.target)}</span>
+                <span className="text-mute">Projection {money(h.plan.target)}</span>
               </li>
             ))}
           </ul>
@@ -79,11 +81,17 @@ function HoldingRow({ h }: { h: HoldingView }) {
           {h.ticker}
         </Link>
         <span className="text-[13px] text-mute">
-          Bought {h.purchaseDate} at {money(h.purchasePrice)} · {h.expectedProfitPct}% expected
+          Bought {h.purchaseDate} at {money(h.purchasePrice)} · {h.expectedProfitPct}% projection
         </span>
       </div>
-      <dl className="m-0 mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-right sm:grid-cols-5">
-        <Cell label="Sales target" value={money(h.plan.target)} strong />
+      {h.track?.sell && (
+        <p role="note" className="m-0 mt-2 border-l-2 border-ink pl-2.5 text-sm font-medium text-ink">
+          Sell: {EXIT_NAMES[h.track.sell.reason].toLowerCase()} on {h.track.sell.session} at {money(h.track.sell.price)}. Close the holding here once you have sold.
+        </p>
+      )}
+      <dl className="m-0 mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-right sm:grid-cols-6">
+        <Cell label="Stop now" value={h.track?.stopNow != null ? money(h.track.stopNow) : "After the next close"} hint={h.track ? (h.track.trailingActive ? "Trailing" : "Fixed") : undefined} strong />
+        <Cell label="Projection" value={money(h.plan.target)} strong />
         <Cell label="Total earnings" value={money(h.plan.earnings)} />
         <Cell label="Daily target" value={h.plan.daily.toFixed(3)} />
         <Cell label="Weekly target" value={h.plan.weekly.toFixed(3)} />
@@ -93,7 +101,7 @@ function HoldingRow({ h }: { h: HoldingView }) {
         <div className="mt-3">
           <div
             role="meter"
-            aria-label={`Progress toward the ${h.ticker} target`}
+            aria-label={`Progress toward the ${h.ticker} projection`}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(progress * 100)}
@@ -103,9 +111,9 @@ function HoldingRow({ h }: { h: HoldingView }) {
           </div>
           <p className="m-0 mt-1.5 flex flex-wrap justify-between gap-x-3 text-[13px] text-ink-2">
             <span>
-              {percent(c.progress)} of the planned earnings
-              {c.targetReached && " · Target reached"}
-              {c.timeElapsed && " · Horizon passed without the target"}
+              {percent(c.progress)} of the projected gain
+              {c.targetReached && " · Projection reached, riding the trend"}
+              {c.timeElapsed && " · Horizon passed without the projection"}
             </span>
             <span>
               {c.sessionsElapsed} of {h.horizonSessions} sessions
@@ -139,11 +147,14 @@ function HoldingRow({ h }: { h: HoldingView }) {
   );
 }
 
-function Cell({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function Cell({ label, value, hint, strong = false }: { label: string; value: string; hint?: string; strong?: boolean }) {
   return (
     <div>
       <dt className="text-xs text-mute">{label}</dt>
-      <dd className={`m-0 text-[15px] ${strong ? "font-semibold" : ""}`}>{value}</dd>
+      <dd className={`m-0 text-[15px] ${strong ? "font-semibold" : ""}`}>
+        {value}
+        {hint && <span className="block text-xs font-normal text-mute">{hint}</span>}
+      </dd>
     </div>
   );
 }

@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { HoldingForm } from "@/components/holding-form";
+import { StockBuys } from "@/components/stock-buys";
 import { StockChart } from "@/components/stock-chart";
-import { Badge } from "@/components/ui";
+import { Badge, ProvisionalBadge } from "@/components/ui";
+import type { DayEvidence } from "@/lib/db/schema";
 import { holdingDefaults } from "@/lib/holdings";
 import { money, percent } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-import { STATUS_NAMES, stockDetail } from "@/lib/stocks";
+import { INDICATOR_NAMES, INDICATOR_RULES, INDICATORS, patternName, VALUE_NAMES } from "@/lib/stock-names";
+import { STAGE_NAMES, STATUS_NAMES, stockDetail } from "@/lib/stocks";
 
 export const metadata: Metadata = { title: "Stock · Trading desk" };
 
@@ -32,7 +35,8 @@ export default async function StockPage({ params }: PageProps<"/stocks/[ticker]"
         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-mute">
           {s.name && <span className="text-ink-2">{s.name}</span>}
           {s.exchange && <span>{s.exchange}</span>}
-          {r && <Badge kind="state">{STATUS_NAMES[r.status]}</Badge>}
+          {r && <Badge kind="state">{STAGE_NAMES[r.stage]}</Badge>}
+          {r && <span>{STATUS_NAMES[r.status]}</span>}
           {r && <span>Session {r.session}</span>}
         </div>
       </header>
@@ -66,15 +70,70 @@ export default async function StockPage({ params }: PageProps<"/stocks/[ticker]"
             </ul>
             <p className="m-0 mt-2 text-[13px] text-mute">Thresholds are the rule versions this screen used.</p>
           </section>
+
+          <section aria-labelledby="funnel-h" className="border-t border-rule px-5 py-5">
+            <h2 id="funnel-h" className="m-0 mb-3 text-base font-semibold">
+              Momentum and watch list
+            </h2>
+            <ul className="m-0 list-none p-0 text-sm">
+              <Stage
+                title="Momentum"
+                passed={r.evidence?.momentum?.passed ?? r.stage !== "qualified"}
+                detail={
+                  r.evidence?.momentum
+                    ? `${r.evidence.momentum.period}-day APR ${percent(r.evidence.momentum.rate)}, needs ${percent(r.evidence.momentum.threshold)} or more (the pace of the projection)`
+                    : "Not recorded for this session."
+                }
+              />
+              <Stage
+                title="Watch list"
+                passed={r.stage === "watching"}
+                detail={
+                  r.stage === "watching"
+                    ? "Waiting for a buy: 3 of 5 indicators within 3 sessions while the close stays inside 10% of the 52-week high."
+                    : s.buys.some((b) => b.state === "open")
+                      ? "Not watched while a buy is open."
+                      : "Not on the watch list this session."
+                }
+              />
+            </ul>
+          </section>
+
+          {r.evidence && <Indicators evidence={r.evidence} session={r.session} />}
         </>
       ) : (
         <p className="m-0 border-t border-rule px-5 py-5 text-sm text-ink-2">{s.ticker} has not qualified in a stored screen.</p>
       )}
 
+      {s.buys.length > 0 && (
+        <section aria-labelledby="stock-buys-h" className="border-t border-rule">
+          <h2 id="stock-buys-h" className="m-0 px-5 pt-4 text-base font-semibold">
+            Buys
+          </h2>
+          <StockBuys buys={s.buys} showTicker={false} events />
+        </section>
+      )}
+
+      {s.stages.length > 0 && (
+        <section aria-labelledby="stage-h" className="border-t border-rule px-5 py-5">
+          <h2 id="stage-h" className="m-0 mb-3 text-base font-semibold">
+            Stage history
+          </h2>
+          <ol className="m-0 list-none p-0 text-sm">
+            {s.stages.map((h) => (
+              <li key={h.session} className="flex justify-between gap-3 border-b border-rule-soft py-2">
+                <span>{STAGE_NAMES[h.stage]}</span>
+                <span className="text-mute">From {h.session}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
       {s.history.length > 0 && (
         <section aria-labelledby="status-h" className="border-t border-rule px-5 py-5">
           <h2 id="status-h" className="m-0 mb-3 text-base font-semibold">
-            Status history
+            Trend history
           </h2>
           <ol className="m-0 list-none p-0 text-sm">
             {s.history.map((h) => (
@@ -103,7 +162,7 @@ export default async function StockPage({ params }: PageProps<"/stocks/[ticker]"
           }}
         />
         <p className="m-0 mt-3 text-[13px] text-mute">
-          The portal does not buy or sell. Record a purchase you made with your broker to track its target.{" "}
+          The portal does not buy or sell. Record a purchase you made with your broker to get its stop and sell alerts.{" "}
           <Link href="/holdings" className="text-link underline">
             See holdings
           </Link>
@@ -190,4 +249,91 @@ function FiveLine({
       </tbody>
     </table>
   );
+}
+
+function Stage({ title, passed, detail }: { title: string; passed: boolean; detail: string }) {
+  return (
+    <li className="border-b border-rule-soft py-2.5">
+      <div className="flex justify-between gap-3">
+        <span className="font-medium">{title}</span>
+        <span className="text-[13px] text-ink">
+          <span aria-hidden="true">{passed ? "✓ " : "· "}</span>
+          {passed ? "Passed" : "Not yet"}
+        </span>
+      </div>
+      <p className="m-0 mt-0.5 text-[13px] text-ink-2">{detail}</p>
+    </li>
+  );
+}
+
+/** The five indicators on the last session: did each fire to buy or sell within its window,
+ *  and its values (spec 08). The scanner wrote all of this; nothing is computed here. */
+function Indicators({ evidence, session }: { evidence: DayEvidence; session: string }) {
+  const votes = (side: "buy" | "sell") => Object.values(evidence[side]).filter((e) => e.fired).length;
+  return (
+    <section aria-labelledby="ind-h" className="border-t border-rule px-5 py-5">
+      <h2 id="ind-h" className="m-0 mb-1 text-base font-semibold">
+        Indicators
+      </h2>
+      <p className="m-0 mb-3 text-[13px] text-mute">
+        After the {session} session: {votes("buy")} of 5 for a buy, {votes("sell")} of 5 for a sell, each within the last 3 sessions. A buy or a sell needs 3.
+      </p>
+      <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Indicators, scrolls sideways">
+        <table className="w-full min-w-[520px] border-collapse text-sm">
+          <thead>
+            <tr className="text-xs text-mute">
+              <th scope="col" className="pb-1.5 text-left font-normal">
+                Indicator
+              </th>
+              <th scope="col" className="pb-1.5 text-left font-normal">
+                Buy
+              </th>
+              <th scope="col" className="pb-1.5 text-left font-normal">
+                Sell
+              </th>
+              <th scope="col" className="pb-1.5 text-right font-normal">
+                Values
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {INDICATORS.map((key) => {
+              const buy = evidence.buy[key];
+              const sell = evidence.sell[key];
+              const values = Object.entries(buy?.values ?? {});
+              return (
+                <tr key={key} className="border-t border-rule-soft align-top">
+                  <th scope="row" className="py-2 pr-3 text-left font-medium">
+                    {INDICATOR_NAMES[key]}
+                    {buy?.provisional && (
+                      <span className="ml-1.5">
+                        <ProvisionalBadge />
+                      </span>
+                    )}
+                    <span className="block text-xs font-normal text-mute">{INDICATOR_RULES[key]?.buy}</span>
+                  </th>
+                  <td className="py-2 pr-3">{fired(buy)}</td>
+                  <td className="py-2 pr-3">{fired(sell)}</td>
+                  <td className="py-2 text-right text-[13px] text-ink-2">
+                    {values.map(([name, v]) => (
+                      <span key={name} className="block">
+                        {VALUE_NAMES[name] ?? name} {v === null ? "none" : v.toFixed(2)}
+                      </span>
+                    ))}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function fired(e: DayEvidence["buy"][string] | undefined): string {
+  if (!e || !e.enabled) return "Off";
+  if (!e.fired) return "No";
+  const patterns = e.patterns?.length ? ` (${e.patterns.map(patternName).join(", ")})` : "";
+  return `Fired ${e.session ?? ""}${patterns}`;
 }
