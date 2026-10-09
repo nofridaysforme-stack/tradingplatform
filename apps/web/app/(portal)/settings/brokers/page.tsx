@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { requireForex } from "@/lib/app-settings";
 import { db } from "@/lib/db";
 import { brokerSpreads, brokers, instruments, users } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/session";
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: "Brokers · Trading desk" };
 
 export default async function BrokersPage() {
   await requireAdmin();
+  await requireForex();
   const [list, spreads, pairs, usage] = await Promise.all([
     db.select().from(brokers).orderBy(asc(brokers.name)),
     db.select().from(brokerSpreads),

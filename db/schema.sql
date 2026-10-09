@@ -1,6 +1,6 @@
 \restrict dbmate
 
--- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
+-- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
@@ -176,6 +176,19 @@ CREATE TABLE public.allowlist (
 
 
 --
+-- Name: app_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.app_settings (
+    id boolean DEFAULT true NOT NULL,
+    forex_enabled boolean DEFAULT true NOT NULL,
+    updated_by uuid,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT app_settings_id_check CHECK (id)
+);
+
+
+--
 -- Name: audit_log; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -263,6 +276,19 @@ CREATE TABLE public.econ_events (
     impact public.econ_impact DEFAULT 'high'::public.econ_impact NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: health_alerts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.health_alerts (
+    condition text NOT NULL,
+    first_seen_at timestamp with time zone NOT NULL,
+    last_sent_at timestamp with time zone,
+    resolved_at timestamp with time zone,
+    detail jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 
@@ -389,7 +415,9 @@ CREATE TABLE public.notifications (
     error text,
     payload jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    sent_at timestamp with time zone
+    sent_at timestamp with time zone,
+    next_attempt_at timestamp with time zone,
+    dedupe_key text
 );
 
 
@@ -410,6 +438,17 @@ CREATE SEQUENCE public.notifications_id_seq
 --
 
 ALTER SEQUENCE public.notifications_id_seq OWNED BY public.notifications.id;
+
+
+--
+-- Name: notify_cursor; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notify_cursor (
+    name text NOT NULL,
+    last_id bigint DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
 
 --
@@ -709,6 +748,7 @@ CREATE TABLE public.worker_heartbeat (
     id boolean DEFAULT true NOT NULL,
     at timestamp with time zone NOT NULL,
     version text,
+    market jsonb,
     CONSTRAINT worker_heartbeat_id_check CHECK (id)
 );
 
@@ -758,6 +798,14 @@ ALTER TABLE ONLY public.allowlist
 
 
 --
+-- Name: app_settings app_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_settings
+    ADD CONSTRAINT app_settings_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -803,6 +851,14 @@ ALTER TABLE ONLY public.candles
 
 ALTER TABLE ONLY public.econ_events
     ADD CONSTRAINT econ_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: health_alerts health_alerts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.health_alerts
+    ADD CONSTRAINT health_alerts_pkey PRIMARY KEY (condition);
 
 
 --
@@ -867,6 +923,14 @@ ALTER TABLE ONLY public.notification_prefs
 
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notify_cursor notify_cursor_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notify_cursor
+    ADD CONSTRAINT notify_cursor_pkey PRIMARY KEY (name);
 
 
 --
@@ -1052,6 +1116,20 @@ CREATE INDEX job_runs_job_started_idx ON public.job_runs USING btree (job, start
 
 
 --
+-- Name: notifications_dedupe_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX notifications_dedupe_idx ON public.notifications USING btree (dedupe_key, COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::uuid), channel) WHERE (dedupe_key IS NOT NULL);
+
+
+--
+-- Name: notifications_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX notifications_due_idx ON public.notifications USING btree (next_attempt_at) WHERE (status = 'queued'::public.delivery_status);
+
+
+--
 -- Name: signals_created_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1093,6 +1171,14 @@ ALTER TABLE ONLY public.accounts
 
 ALTER TABLE ONLY public.allowlist
     ADD CONSTRAINT allowlist_added_by_fkey FOREIGN KEY (added_by) REFERENCES public.users(id);
+
+
+--
+-- Name: app_settings app_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_settings
+    ADD CONSTRAINT app_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id);
 
 
 --
@@ -1293,4 +1379,7 @@ ALTER TABLE ONLY public.users
 INSERT INTO public.schema_migrations (version) VALUES
     ('20261001000001'),
     ('20261001000002'),
-    ('20261001000003');
+    ('20261001000003'),
+    ('20261002000001'),
+    ('20261003000001'),
+    ('20261008000001');

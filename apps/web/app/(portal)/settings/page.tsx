@@ -2,28 +2,31 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { Button } from "@/components/ui";
+import { forexEnabled } from "@/lib/app-settings";
 import { NOTICE } from "@/lib/notice";
 import { listBrokers } from "@/lib/signals";
 import { requireUser } from "@/lib/session";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { setTheme, signOutAction } from "./actions";
 import { BrokerChoice } from "./broker-choice";
+import { ForexSwitch } from "./forex-switch";
 import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = { title: "Settings · Trading desk" };
 
+// The fourth value marks forex-only pages, hidden while forex is paused.
 const ADMIN_LINKS = [
-  ["/settings/rules", "Rules", "Parameters, approvals, per-pair overrides, strategy switches"],
-  ["/settings/brokers", "Brokers", "Broker profiles, chart links, spreads per pair"],
-  ["/settings/pairs", "Pairs", "Forex pairs scanned, pip sizes, order"],
-  ["/settings/users", "Users", "Allowlist, roles, deactivate"],
+  ["/settings/rules", "Rules", "Parameters, approvals, per-pair overrides, strategy switches", false],
+  ["/settings/brokers", "Brokers", "Broker profiles, chart links, spreads per pair", true],
+  ["/settings/pairs", "Pairs", "Forex pairs scanned, pip sizes, order", true],
+  ["/settings/users", "Users", "Allowlist, roles, deactivate", false],
 ] as const;
 
 const LABELS = { device: "Follow this device", light: "Light", dark: "Dark" } as const;
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const brokers = await listBrokers();
+  const [brokers, forex] = await Promise.all([listBrokers(), forexEnabled()]);
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <main>
@@ -51,13 +54,15 @@ export default async function SettingsPage() {
         </Link>
       </section>
 
-      <section aria-labelledby="broker-h" className="border-t border-rule px-5 py-5">
-        <h2 id="broker-h" className="mt-0 mb-1 text-[15px] font-semibold">
-          Broker
-        </h2>
-        <p className="mt-0 mb-3 text-[13px] text-mute">Signal prices are adjusted by half this broker&apos;s typical spread.</p>
-        <BrokerChoice current={user.activeBrokerId} brokers={brokers.map((b) => ({ id: b.id, name: b.name }))} />
-      </section>
+      {forex && (
+        <section aria-labelledby="broker-h" className="border-t border-rule px-5 py-5">
+          <h2 id="broker-h" className="mt-0 mb-1 text-[15px] font-semibold">
+            Broker
+          </h2>
+          <p className="mt-0 mb-3 text-[13px] text-mute">Signal prices are adjusted by half this broker&apos;s typical spread.</p>
+          <BrokerChoice current={user.activeBrokerId} brokers={brokers.map((b) => ({ id: b.id, name: b.name }))} />
+        </section>
+      )}
 
       {user.role === "admin" && (
         <section aria-labelledby="admin-h" className="border-t border-rule px-5 py-5">
@@ -65,7 +70,7 @@ export default async function SettingsPage() {
             Admin
           </h2>
           <ul className="m-0 list-none p-0">
-            {ADMIN_LINKS.map(([href, label, hint]) => (
+            {ADMIN_LINKS.filter(([, , , forexOnly]) => forex || !forexOnly).map(([href, label, hint]) => (
               <li key={href} className="border-b border-rule-faint">
                 <Link href={href} className="inline-flex min-h-11 items-center text-sm text-link">
                   {label}
@@ -74,6 +79,8 @@ export default async function SettingsPage() {
               </li>
             ))}
           </ul>
+          <h3 className="mt-5 mb-2 text-sm font-semibold">Forex</h3>
+          <ForexSwitch enabled={forex} />
         </section>
       )}
 

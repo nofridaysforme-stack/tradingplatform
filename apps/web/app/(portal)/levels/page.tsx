@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LevelsView } from "@/components/levels-view";
+import { requireForex } from "@/lib/app-settings";
 import { listPairs, pairLevels } from "@/lib/levels";
 import { requireUser } from "@/lib/session";
 
@@ -8,6 +9,7 @@ export const metadata: Metadata = { title: "Levels · Trading desk" };
 
 export default async function LevelsPage({ searchParams }: PageProps<"/levels">) {
   await requireUser();
+  await requireForex();
   const pairs = await listPairs();
   const { pair } = await searchParams;
   const selected = pairs.find((p) => p.symbol === pair) ?? pairs[0];

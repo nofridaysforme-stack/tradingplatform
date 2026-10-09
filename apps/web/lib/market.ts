@@ -13,9 +13,16 @@ export interface MarketView {
   stale: string[];
 }
 
-export function marketView(heartbeatAt: Date | null, market: WorkerMarket | null, now: Date): MarketView {
+export function marketView(heartbeatAt: Date | null, market: WorkerMarket | null, now: Date, forex = true): MarketView {
   const clock = `${nyTime(now)} NY`;
-  if (!heartbeatAt || !market || now.getTime() - heartbeatAt.getTime() > HEARTBEAT_STALE_MS) {
+  const late = !heartbeatAt || now.getTime() - heartbeatAt.getTime() > HEARTBEAT_STALE_MS;
+  // While forex is paused the scanner reports no market status (decision 2026-10-08).
+  if (!forex) {
+    return late
+      ? { health: "down", line: `The scanner hasn't reported recently · ${clock}`, stale: [] }
+      : { health: "ok", line: `Forex paused · ${clock}`, stale: [] };
+  }
+  if (late || !market) {
     return { health: "down", line: `Market status unknown. The scanner hasn't reported recently · ${clock}`, stale: [] };
   }
   if (!market.forex_open) {

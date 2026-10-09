@@ -195,6 +195,14 @@ export const strategyConfigs = pgTable("strategy_configs", {
   updatedAt: tz("updated_at").notNull().defaultNow(),
 });
 
+/** Portal-wide switches, one row. forex_enabled off pauses the forex side (decision 2026-10-08). */
+export const appSettings = pgTable("app_settings", {
+  id: boolean("id").primaryKey(),
+  forexEnabled: boolean("forex_enabled").notNull(),
+  updatedBy: uuid("updated_by"),
+  updatedAt: tz("updated_at").notNull().defaultNow(),
+});
+
 /** Every rule change bumps this counter; the worker reloads rules when it moves (spec 05). */
 export const ruleConfigRevision = pgTable("rule_config_revision", {
   id: boolean("id").primaryKey(),

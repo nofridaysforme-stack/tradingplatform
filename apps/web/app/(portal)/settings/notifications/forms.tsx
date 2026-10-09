@@ -25,15 +25,19 @@ const STRATEGY_LABELS: [string, string][] = [
   ["fib_pivot", "Fib Pivot signals"],
   ["stocks", "Stock digest and holdings"],
 ];
+const FOREX_STRATEGIES = new Set(["three_eight", "fib_pivot"]);
 
 export function PrefsForm({
   values,
   pairs,
   telegramLinked,
+  forex = true,
 }: {
   values: PrefsValues;
   pairs: { id: string; symbol: string }[];
   telegramLinked: boolean;
+  /** While forex is paused its choices are hidden but kept, so resuming restores them. */
+  forex?: boolean;
 }) {
   const [state, onSubmit, pending] = useFormAction<PrefsState>(savePrefs, {});
   const [some, setSome] = useState(
@@ -100,7 +104,11 @@ export function PrefsForm({
 
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1 text-sm font-semibold">What to send</legend>
-        {STRATEGY_LABELS.map(([value, label]) => (
+        {!forex &&
+          values.strategies
+            .filter((v) => FOREX_STRATEGIES.has(v))
+            .map((v) => <input key={v} type="hidden" name="strategies" value={v} />)}
+        {STRATEGY_LABELS.filter(([value]) => forex || !FOREX_STRATEGIES.has(value)).map(([value, label]) => (
           <label
             key={value}
             className="flex min-h-11 items-center gap-3 border-b border-rule-faint text-sm"
@@ -123,61 +131,70 @@ export function PrefsForm({
         />
       </fieldset>
 
-      <fieldset
-        className="m-0 border-0 p-0"
-        aria-describedby={e.pairs ? "prefs-pairs-error" : undefined}
-      >
-        <legend className="mb-1 text-sm font-semibold">Pairs</legend>
-        <label className="flex min-h-11 items-center gap-3 text-sm">
-          <input
-            type="radio"
-            name="pairs"
-            value="all"
-            defaultChecked={!some}
-            onChange={() => setSome(false)}
-            className="size-4 accent-[var(--ink)]"
-          />
-          All pairs
-        </label>
-        <label className="flex min-h-11 items-center gap-3 text-sm">
-          <input
-            type="radio"
-            name="pairs"
-            value="some"
-            defaultChecked={some}
-            onChange={() => setSome(true)}
-            className="size-4 accent-[var(--ink)]"
-          />
-          Only these pairs
-        </label>
-        {some && (
-          <div className="flex flex-wrap gap-2 pl-7">
-            {pairs.map((p) => (
-              <label
-                key={p.id}
-                className="relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-control border border-rule px-3 text-[13px] has-[:checked]:border-ink has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-long"
-              >
-                <input
-                  type="checkbox"
-                  name="instrumentIds"
-                  value={p.id}
-                  defaultChecked={values.instrumentIds?.includes(p.id) ?? false}
-                  className="peer sr-only"
-                />
-                <span aria-hidden="true" className="hidden peer-checked:inline">
-                  ✓
-                </span>
-                {p.symbol}
-              </label>
-            ))}
-          </div>
-        )}
-        {e.pairs && (
-          <p id="prefs-pairs-error" className="m-0 mt-1 text-[13px] text-error">
-            {e.pairs}
-          </p>
-        )}
-      </fieldset>
+      {!forex && (
+        <>
+          <input type="hidden" name="pairs" value={some ? "some" : "all"} />
+          {some &&
+            values.instrumentIds?.map((id) => <input key={id} type="hidden" name="instrumentIds" value={id} />)}
+        </>
+      )}
+      {forex && (
+        <fieldset
+          className="m-0 border-0 p-0"
+          aria-describedby={e.pairs ? "prefs-pairs-error" : undefined}
+        >
+          <legend className="mb-1 text-sm font-semibold">Pairs</legend>
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input
+              type="radio"
+              name="pairs"
+              value="all"
+              defaultChecked={!some}
+              onChange={() => setSome(false)}
+              className="size-4 accent-[var(--ink)]"
+            />
+            All pairs
+          </label>
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input
+              type="radio"
+              name="pairs"
+              value="some"
+              defaultChecked={some}
+              onChange={() => setSome(true)}
+              className="size-4 accent-[var(--ink)]"
+            />
+            Only these pairs
+          </label>
+          {some && (
+            <div className="flex flex-wrap gap-2 pl-7">
+              {pairs.map((p) => (
+                <label
+                  key={p.id}
+                  className="relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-control border border-rule px-3 text-[13px] has-[:checked]:border-ink has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-long"
+                >
+                  <input
+                    type="checkbox"
+                    name="instrumentIds"
+                    value={p.id}
+                    defaultChecked={values.instrumentIds?.includes(p.id) ?? false}
+                    className="peer sr-only"
+                  />
+                  <span aria-hidden="true" className="hidden peer-checked:inline">
+                    ✓
+                  </span>
+                  {p.symbol}
+                </label>
+              ))}
+            </div>
+          )}
+          {e.pairs && (
+            <p id="prefs-pairs-error" className="m-0 mt-1 text-[13px] text-error">
+              {e.pairs}
+            </p>
+          )}
+        </fieldset>
+      )}
 
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1 text-sm font-semibold">Quiet hours</legend>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HealthDot } from "@/components/health-dot";
+import { forexEnabled } from "@/lib/app-settings";
 import { age, nyDateTime } from "@/lib/format";
 import { healthDetail, type JobView } from "@/lib/health";
 import { marketView } from "@/lib/market";
@@ -20,8 +21,8 @@ const JOB_NAMES: Record<string, string> = {
 export default async function HealthPage() {
   const user = await requireUser();
   const now = new Date();
-  const h = await healthDetail(now);
-  const view = marketView(h.heartbeat ? new Date(h.heartbeat.at) : null, h.market, now);
+  const [h, forex] = await Promise.all([healthDetail(now), forexEnabled()]);
+  const view = marketView(h.heartbeat ? new Date(h.heartbeat.at) : null, h.market, now, forex);
   const admin = user.role === "admin";
   return (
     <main>
@@ -39,7 +40,7 @@ export default async function HealthPage() {
         </h2>
         <dl className="m-0 text-sm">
           <Row label="Heartbeat" value={h.heartbeat ? `${age(new Date(h.heartbeat.at), now)} (version ${h.heartbeat.version ?? "unknown"})` : "Never reported. Check the scanner service in Railway."} warn={view.health === "down"} />
-          <Row label="Last day roll" value={jobText(h.latest.forex_day_roll, now)} warn={h.latest.forex_day_roll?.ok === false} />
+          {forex && <Row label="Last day roll" value={jobText(h.latest.forex_day_roll, now)} warn={h.latest.forex_day_roll?.ok === false} />}
           <Row label="Last stock screen" value={jobText(h.latest.stock_eod, now)} warn={h.latest.stock_eod?.ok === false} />
           <Row label="Last backfill" value={jobText(h.latest.backfill, now)} warn={h.latest.backfill?.ok === false} />
         </dl>
@@ -50,11 +51,15 @@ export default async function HealthPage() {
           Data providers
         </h2>
         <dl className="m-0 text-sm">
-          <Row
-            label="OANDA (forex)"
-            value={h.latest.forex_bar_close ? jobText(h.latest.forex_bar_close, now) : "No bar checks yet. The scanner needs OANDA_API_TOKEN in its settings."}
-            warn={h.latest.forex_bar_close?.ok === false}
-          />
+          {forex ? (
+            <Row
+              label="OANDA (forex)"
+              value={h.latest.forex_bar_close ? jobText(h.latest.forex_bar_close, now) : "No bar checks yet. The scanner needs OANDA_API_TOKEN in its settings."}
+              warn={h.latest.forex_bar_close?.ok === false}
+            />
+          ) : (
+            <Row label="OANDA (forex)" value="Not used while forex is paused." warn={false} />
+          )}
           <Row
             label="Massive (stocks)"
             value={h.latest.stock_eod ? jobText(h.latest.stock_eod, now) : "No stock screens yet. The scanner needs MASSIVE_API_KEY in its settings."}
@@ -63,21 +68,23 @@ export default async function HealthPage() {
         </dl>
       </section>
 
-      <section aria-labelledby="pairs-h" className="border-t border-rule px-5 py-4">
-        <h2 id="pairs-h" className="m-0 mb-2 text-base font-semibold">
-          Last completed bar per pair
-        </h2>
-        <dl className="m-0 text-sm">
-          {h.pairs.map((p) => (
-            <Row
-              key={p.symbol}
-              label={p.symbol}
-              value={p.lastBar ? `${nyDateTime(new Date(new Date(p.lastBar).getTime() + 15 * 60_000))} NY${p.stale ? " · Stale: alerts paused" : ""}` : "No bars yet"}
-              warn={p.stale}
-            />
-          ))}
-        </dl>
-      </section>
+      {forex && (
+        <section aria-labelledby="pairs-h" className="border-t border-rule px-5 py-4">
+          <h2 id="pairs-h" className="m-0 mb-2 text-base font-semibold">
+            Last completed bar per pair
+          </h2>
+          <dl className="m-0 text-sm">
+            {h.pairs.map((p) => (
+              <Row
+                key={p.symbol}
+                label={p.symbol}
+                value={p.lastBar ? `${nyDateTime(new Date(new Date(p.lastBar).getTime() + 15 * 60_000))} NY${p.stale ? " · Stale: alerts paused" : ""}` : "No bars yet"}
+                warn={p.stale}
+              />
+            ))}
+          </dl>
+        </section>
+      )}
 
       {admin && (
         <>

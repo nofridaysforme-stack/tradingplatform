@@ -37,3 +37,35 @@ def test_schedule_matches_spec_16() -> None:
             assert row == (scheduler.VERSION,)
             conn.execute("UPDATE worker_heartbeat SET version = 'seed'")
             conn.commit()
+
+
+def test_paused_forex_skips_forex_jobs_and_market_status() -> None:
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL not set")
+    with db.make_pool(url, max_size=1) as pool:
+        sched = BackgroundScheduler(job_defaults=scheduler.JOB_DEFAULTS)
+        worker = scheduler.build(pool, Settings(database_url=url), sched)
+        with pool.connection() as conn:
+            before = conn.execute("SELECT forex_enabled FROM app_settings").fetchone()
+            conn.execute("UPDATE app_settings SET forex_enabled = false")
+            conn.commit()
+        try:
+            assert worker.forex_paused("forex_bar_close")
+            worker.heartbeat()
+            with pool.connection() as conn:
+                assert conn.execute("SELECT market FROM worker_heartbeat").fetchone() == (None,)
+                conn.execute("UPDATE app_settings SET forex_enabled = true")
+                conn.commit()
+            assert not worker.forex_paused("forex_bar_close")
+            worker.heartbeat()
+            with pool.connection() as conn:
+                market = conn.execute("SELECT market FROM worker_heartbeat").fetchone()
+                assert market is not None and market[0] is not None
+        finally:
+            with pool.connection() as conn:
+                conn.execute(
+                    "UPDATE app_settings SET forex_enabled = %s", (before[0] if before else True,)
+                )
+                conn.execute("UPDATE worker_heartbeat SET version = 'seed', market = NULL")
+                conn.commit()
