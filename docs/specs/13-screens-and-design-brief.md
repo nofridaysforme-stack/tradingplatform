@@ -56,7 +56,7 @@ Email field and "Email me a sign-in link". Confirmation state: "Check your email
 - Top strip: forex market status (open or closed, current session, inside or outside the 3/8 trading window, New York time), active broker name with a switch control.
 - Live signals: open and confirmed signals, newest first. Each row: direction marker, instrument, strategy, small indicator ring (3/8) or ladder marker (Fib Pivot), entry, stop, target, reward-to-risk, time since signal, provisional badge if any, confluence marker if both systems agree.
 - Today's daily goal: pips from closed 3/8 signals today versus the 60 to 75 pip target.
-- Stock digest preview: count of newly confirmed stocks from last session, link to Stocks.
+- Stock preview: buys and watch list joins from the last session, link to Stocks.
 - Health dot: green, amber, red with a link to Health.
 - Empty state: "No open signals. The scanner checks every 15 minutes while the market is open."
 
@@ -73,14 +73,16 @@ Email field and "Email me a sign-in link". Confirmation state: "Check your email
 Per pair (pair switcher at top): daily, weekly, monthly floor pivots; PDH and PDL; the Fibonacci Pivot ladder with the range, chosen Fibonacci number, and all eight levels around the pivot; current price position on the ladder. Mobile: one pair at a time. Desktop: a grid of all pairs.
 
 ### 5. Stocks
-- Table of the last session's results: ticker, status (qualified, trend established, trend confirmed), close, 52-week high and low, APR, five-line values (5, 10, 20, 50 day ACC and APR), consistency flag. Filters by status; sortable columns; search.
+- Buys: open buys first (ticker, buy date, entry, stop now, highest close, projection, result so far), then recent closed buys with their exit reason and result.
+- Watch list: stocks waiting for their pullback, with how many indicators have voted in the window and which.
+- Table of the last session's results: ticker, stage (qualified, momentum, watching), trend status, close, distance below the 52-week high, APR, five-line values (5, 10, 20, 50 day ACC and APR). Filters by stage; sortable columns; search.
 - Session picker for past sessions.
 
 ### 6. Stock detail
-Daily chart (6 months), the five-line bar drawn as a compact visual of the 5, 10, 20, 50 day closes against today, qualification checks with values, history of status changes, "Add to holdings".
+Daily chart (6 months) with buys and exits marked, the five-line bar, each funnel stage with its values (pass or not), the five indicators for the last sessions (fired or not, with values), history of stage changes and buys, "Add to holdings".
 
 ### 7. Holdings
-Per owner: ticker, purchase price, date, expected profit, sales target, total earnings, daily target, weekly target, last close, progress bar toward target, sessions elapsed of 20. Add, edit, close a holding.
+Per owner: ticker, purchase price, date, projection percent, projected price, total earnings, daily target, weekly target, last close, progress toward the projection, sessions elapsed, the stop that applies now (fixed or trailing), and any sell alert. Add, edit, close a holding.
 
 ### 8. History
 Filterable table of all signals: date, strategy, instrument, direction, outcome, result pips, reward-to-risk, rule versions, provisional flag. Summary metrics above the table for the current filter: trades, win rate, net pips, expectancy, profit factor. A small cumulative pips chart. Export CSV.
