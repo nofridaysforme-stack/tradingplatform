@@ -27,7 +27,7 @@ const Holding = z.object({
     .date("Enter the purchase date.")
     .refine((d) => d <= today(), "The purchase date can't be in the future.")
     .refine((d) => d >= "1990-01-01", "Check the purchase date."),
-  // Ranges from the stocks.sales_target rule schema.
+  // Ranges from the stocks.momentum rule schema (projection_pct, horizon_sessions).
   expectedProfitPct: z.coerce.number({ error: "Enter a percentage." }).min(1, "Use 1 or more.").max(1000, "Use 1000 or less."),
   horizonSessions: z.coerce.number({ error: "Enter a number of sessions." }).int("Enter a whole number.").min(1, "Use 1 or more.").max(260, "Use 260 or less."),
   notes: z.string().trim().max(500, "Keep notes under 500 characters.").optional(),

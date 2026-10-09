@@ -17,6 +17,8 @@ from tests.strategy_kit import context
 Conn = psycopg.Connection[Any]
 WORKED = load_fixture("eurusd_worked_example.json")
 
+D = Decimal
+
 
 def candle(code: str, gran: str, row: list[Any]) -> Candle:
     ts, o, h, low, c = row
@@ -140,27 +142,78 @@ def test_stock_eod_screens_and_finds_alerts(conn: Conn) -> None:
                                 l=c * Decimal("0.99"), c=c, volume=500_000))  # fmt: skip
     conn.execute("INSERT INTO stock_tickers (ticker, exchange) VALUES ('RISE', 'XNAS')")
     db.upsert_stock_bars(conn, history[:-1])
-    user = conn.execute(
-        "INSERT INTO users (email) VALUES ('o@example.com') RETURNING id"
-    ).fetchone()
-    assert user is not None
-    conn.execute(
-        "INSERT INTO holdings (user_id, ticker, purchase_price, purchase_date) "
-        "VALUES (%s, 'RISE', 5, %s)",
-        (user[0], sessions[-30]),
-    )
     registry = Registry.load(conn)
     not_yet = stock_eod.run(conn, FakeMassive([]), registry, sessions[-1])
     assert not_yet == {"ready": False, "session": sessions[-1].isoformat()}
 
     detail = stock_eod.run(conn, FakeMassive(history), registry, sessions[-1])
     assert detail["ready"] and detail["bars"] == 1
-    assert detail["confirmed"] == 1 and detail["digest"] == ["RISE"]
-    assert detail["holdings"][0]["alert"] == "target_reached"
-    status = conn.execute(
-        "SELECT status FROM stock_screen_results WHERE ticker = 'RISE'"
+    # A steady rise qualifies but is far too slow for the momentum test.
+    assert (detail["qualified"], detail["momentum"], detail["watch_digest"]) == (1, 0, [])
+    row = conn.execute(
+        "SELECT status, momentum, watching, indicators ? 'buy' FROM stock_screen_results "
+        "WHERE ticker = 'RISE'"
     ).fetchone()
-    assert status == ("trend_confirmed",)
+    assert row == ("trend_confirmed", False, False, True)
+
+
+def test_stock_funnel_day_by_day(conn: Conn) -> None:
+    """The same synthetic stock as tests/test_stock_momentum.py, run session by session
+    through the live job: watch list, buy, a holding on it, and the sell."""
+    from tests.test_stock_momentum import momentum_stock  # noqa: PLC0415
+
+    bars = momentum_stock()
+    conn.execute("INSERT INTO stock_tickers (ticker, exchange) VALUES ('SYN', 'XNAS')")
+    db.upsert_stock_bars(conn, [
+        DailyBar(ticker="SYN", session_date=b.session_date, o=b.o or b.c, h=b.h, l=b.l, c=b.c,
+                 volume=b.volume) for b in bars
+    ])  # fmt: skip
+    for key, params in [("stocks.ind_stoch", '{"k_period": 5, "k_slowing": 1}'),
+                        ("stocks.ind_rsi", '{"period": 5}')]:  # fmt: skip
+        conn.execute(
+            "UPDATE rule_versions v SET params = v.params || %s::jsonb FROM rule_definitions d "
+            "WHERE d.key = v.key AND v.version = d.current_version AND d.key = %s",
+            (params, key),
+        )
+    user = conn.execute(
+        "INSERT INTO users (email) VALUES ('o@example.com') RETURNING id"
+    ).fetchone()
+    assert user is not None
+    rules = Registry.load(conn).ruleset
+    days = {i: stock_eod.screen_session(conn, rules, bars[i].session_date) for i in range(255, 281)}
+    assert [i for i, d in days.items() if d["watch_digest"]] == [257]
+    assert [i for i, d in days.items() if d["buys"]] == [267]
+    sig = conn.execute(
+        "SELECT id, entry, stop_initial, projection, has_provisional, votes -> 'stocks.ind_candle' "
+        "->> 'fired', state FROM stock_signals WHERE ticker = 'SYN'"
+    ).fetchone()
+    assert sig is not None
+    assert sig[1:] == (D("6.889300"), D("6.544835"), D("9.300555"), True, "true", "sold")
+    conn.execute(
+        "INSERT INTO holdings (user_id, ticker, purchase_price, purchase_date, signal_id) "
+        "VALUES (%s, 'SYN', 6.95, %s, %s)",
+        (user[0], bars[268].session_date, sig[0]),
+    )
+    # The holding joins on the next run: rerun the exit session.
+    exit_day = stock_eod.screen_session(conn, rules, bars[280].session_date)
+    assert [a["alert"] for a in exit_day["holdings"]] == ["sold"]
+    events = conn.execute(
+        "SELECT kind, session FROM stock_signal_events WHERE signal_id = %s ORDER BY id", (sig[0],)
+    ).fetchall()
+    assert [e[0] for e in events] == ["bought", "trailing_started", "sold"]
+    assert days[280]["stock_events"] and not days[279]["stock_events"]
+    closed = conn.execute(
+        "SELECT exit_session, exit_price, round(result_pct, 4), exit_votes ? 'stocks.ind_pivot', "
+        "trailing_active FROM stock_signals WHERE id = %s",
+        (sig[0],),
+    ).fetchone()
+    assert closed == (bars[280].session_date, D("8.031100"), D("0.1657"), True, True)
+    held = conn.execute(
+        "SELECT sell_reason, sell_session, trailing_active, tracked_session FROM holdings "
+        "WHERE signal_id = %s",
+        (sig[0],),
+    ).fetchone()
+    assert held == ("sold", bars[280].session_date, True, bars[280].session_date)
 
 
 def test_retention_runs(conn: Conn) -> None:

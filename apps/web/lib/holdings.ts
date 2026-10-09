@@ -18,6 +18,14 @@ export interface HoldingView {
   lastClose: number | null;
   lastSession: string | null;
   check: HoldingCheck | null;
+  /** Written by the scanner after each session (spec 08); null until its first run. */
+  track: {
+    session: string;
+    stopNow: number | null;
+    trailingActive: boolean;
+    highestClose: number | null;
+    sell: { reason: "stopped" | "trailing_stopped" | "sold"; session: string | null; price: number | null } | null;
+  } | null;
 }
 
 /** The caller's own holdings, newest first, with targets and progress. */
@@ -41,23 +49,34 @@ export async function listHoldings(userId: string): Promise<HoldingView[]> {
         lastClose: last?.close ?? null,
         lastSession: last?.session ?? null,
         check: last ? checkHolding(price, pct, h.horizonSessions, last.close, elapsed) : null,
+        track: h.trackedSession
+          ? {
+              session: h.trackedSession,
+              stopNow: h.stopNow === null ? null : Number(h.stopNow),
+              trailingActive: h.trailingActive,
+              highestClose: h.highestClose === null ? null : Number(h.highestClose),
+              sell: h.sellReason
+                ? { reason: h.sellReason, session: h.sellSession, price: h.sellPrice === null ? null : Number(h.sellPrice) }
+                : null,
+            }
+          : null,
       };
     }),
   );
 }
 
-/** New holdings start from the stocks.sales_target rule (spec 08: 30 percent, 20 sessions). */
+/** New holdings start from the stocks.momentum rule's projection (spec 08: 35 percent in 20 sessions). */
 export async function holdingDefaults(): Promise<{ expectedProfitPct: number; horizonSessions: number }> {
   const [r] = await db
     .select({ params: ruleVersions.params })
     .from(ruleVersions)
     .innerJoin(ruleDefinitions, and(eq(ruleDefinitions.key, ruleVersions.key), eq(ruleDefinitions.currentVersion, ruleVersions.version)))
-    .where(eq(ruleVersions.key, "stocks.sales_target"))
+    .where(eq(ruleVersions.key, "stocks.momentum"))
     .limit(1);
-  const pct = Number(r?.params.expected_profit_pct);
+  const pct = Number(r?.params.projection_pct);
   const horizon = Number(r?.params.horizon_sessions);
   return {
-    expectedProfitPct: Number.isFinite(pct) && pct > 0 ? pct : 30,
+    expectedProfitPct: Number.isFinite(pct) && pct > 0 ? pct : 35,
     horizonSessions: Number.isInteger(horizon) && horizon > 0 ? horizon : 20,
   };
 }

@@ -1,7 +1,6 @@
 import csv
 import json
-from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -10,11 +9,11 @@ from scanner.backtest import run as run_cli
 from scanner.backtest import sweeps
 from scanner.backtest.engine import SimTrade
 from scanner.backtest.metrics import compute, indicator_frequency, monthly, split
-from scanner.backtest.stocks import hit_rate, summarize
+from scanner.backtest.stocks import run as run_stocks
+from scanner.backtest.stocks import summarize
 from scanner.backtest.stocks import write as write_stocks
 from scanner.rules.registry import UnknownRuleError, derive
 from scanner.strategies import three_eight
-from scanner.strategies.stock_screener import DayBar
 from tests.conftest import FIXTURES, load_fixture, ruleset_from_snapshot
 from tests.strategy_kit import context
 from tests.synth import make
@@ -117,26 +116,18 @@ def test_cli_needs_data_access() -> None:
         run_cli.main(["--report", "/tmp/x", "--offline"])
 
 
-def _stock(ticker: str, path: list[float], start: date = date(2024, 1, 1)) -> list[DayBar]:
-    out, d = [], start
-    for c in path:
-        while d.weekday() >= 5:
-            d += timedelta(days=1)
-        p = Decimal(str(round(c, 4)))
-        out.append(DayBar(d, p * Decimal("1.01"), p * Decimal("0.99"), p, 500_000))
-        d += timedelta(days=1)
-    return out
+def test_stock_backtest_report(tmp_path: Path) -> None:
+    from tests.test_stock_momentum import FAST, momentum_stock  # noqa: PLC0415
 
-
-def test_stock_hit_rate(tmp_path: Path) -> None:
-    rise = [3 + 6 * k / 259 for k in range(260)]
-    winner = _stock("WIN", [*rise, *[9 * (1 + 0.04 * k) for k in range(1, 25)]])
-    loser = _stock("LOSE", [*rise, *[9.0] * 24])
-    picks = hit_rate({"WIN": winner, "LOSE": loser}, RULES)
-    first = {p.ticker: p for p in sorted(picks, key=lambda p: p.session, reverse=True)}
-    assert any(p.ticker == "WIN" and p.hit for p in picks)
-    assert first["LOSE"].hit in (False, None)
-    s = summarize(picks)
-    assert s["picks"] == len(picks) and 0 <= s["hit_rate"] <= 1
-    write_stocks(tmp_path, picks)
-    assert "excludes companies that later delisted" in (tmp_path / "stock_report.html").read_text()
+    flat = momentum_stock()[:250]  # never passes the momentum test
+    trades, joins = run_stocks({"SYN": momentum_stock(), "FLAT": flat}, FAST)
+    s = summarize(trades, joins)
+    assert (s["watch_entries"], s["buys"], s["closed"], s["sold"]) == (1, 1, 1, 1)
+    assert s["win_rate"] == 1.0 and s["average_pct"] == 16.57
+    assert s["voted:stocks.ind_candle"] == 1 and s["voted:stocks.ind_macd"] == 0
+    write_stocks(tmp_path, trades, joins, ["stocks.ind_rsi.period=5"], ["stocks.ind_macd"])
+    report = (tmp_path / "stock_report.html").read_text()
+    assert "excludes companies that later delisted" in report
+    assert "Varied for this run: stocks.ind_rsi.period=5, stocks.ind_macd off." in report
+    rows = list(csv.DictReader((tmp_path / "stock_trades.csv").open()))
+    assert rows[0]["reason"] == "sold" and "stocks.ind_pivot" in rows[0]["votes"]

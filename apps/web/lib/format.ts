@@ -81,3 +81,10 @@ export function percent(value: number | null | undefined): string {
 export function money(value: number | null | undefined): string {
   return value === null || value === undefined ? "" : value.toFixed(2);
 }
+
+/** A result with its sign: 0.1657 -> "+16.6%", -0.054 -> "-5.4%". */
+export function signedPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "";
+  const text = pctSmall.format(value);
+  return value > 0 ? `+${text}` : text;
+}

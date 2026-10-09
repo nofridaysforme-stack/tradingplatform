@@ -16,7 +16,7 @@ from scanner.data.base import Candle, DailyBar, TickerRef
 from scanner.instruments import Instrument
 
 # The newest migration in db/migrations. A test keeps this in step with the folder.
-EXPECTED_SCHEMA_VERSION = "20261008000001"
+EXPECTED_SCHEMA_VERSION = "20261008000002"
 
 Conn = psycopg.Connection[Any]
 
@@ -335,9 +335,9 @@ def last_m15_bars(conn: Conn) -> dict[str, datetime | None]:
 def stock_bars_since(
     conn: Conn, since: date, tickers: list[str] | None = None
 ) -> list[tuple[Any, ...]]:
-    """(ticker, session_date, h, l, c, volume) ordered by ticker then date."""
+    """(ticker, session_date, h, l, c, volume, o) ordered by ticker then date."""
     sql = (
-        "SELECT b.ticker, b.session_date, b.h, b.l, b.c, b.volume FROM stock_daily_bars b "
+        "SELECT b.ticker, b.session_date, b.h, b.l, b.c, b.volume, b.o FROM stock_daily_bars b "
         "JOIN stock_tickers t ON t.ticker = b.ticker AND t.active "
         "WHERE b.session_date >= %s"
     )
@@ -365,6 +365,9 @@ def stock_sessions_before(conn: Conn, session: date, count: int) -> list[date]:
     return [r[0] for r in rows]
 
 
+JSON_COLS = ("version_set", "indicators")
+
+
 def upsert_screen_results(conn: Conn, rows: list[dict[str, Any]]) -> int:
     if not rows:
         return 0
@@ -375,7 +378,7 @@ def upsert_screen_results(conn: Conn, rows: list[dict[str, Any]]) -> int:
         cur.executemany(
             f"INSERT INTO stock_screen_results ({', '.join(cols)}) VALUES ({placeholders}) "
             f"ON CONFLICT (session_date, ticker) DO UPDATE SET {updates}",
-            [[Jsonb(r[c]) if c == "version_set" else r[c] for c in cols] for r in rows],
+            [[Jsonb(r[c]) if c in JSON_COLS else r[c] for c in cols] for r in rows],
         )
     return len(rows)
 
@@ -396,6 +399,73 @@ def open_holdings(conn: Conn) -> list[tuple[Any, ...]]:
             "SELECT id, user_id, ticker, purchase_price, purchase_date, expected_profit_pct, "
             "horizon_sessions FROM holdings WHERE NOT closed"
         ).fetchall()
+    )
+
+
+# Stock buys and exits (spec 08)
+
+STOCK_SIGNAL_COLS = (
+    "id", "ticker", "buy_session", "entry", "stop_initial", "projection", "projection_pct",
+    "horizon_sessions", "state", "trailing_active", "highest_close", "stop_now",
+    "projection_session", "last_session",
+)  # fmt: skip
+
+
+def open_stock_signals(conn: Conn) -> list[dict[str, Any]]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            f"SELECT {', '.join(STOCK_SIGNAL_COLS)} FROM stock_signals WHERE state = 'open' "
+            "ORDER BY buy_session"
+        )
+        return list(cur.fetchall())
+
+
+def last_stock_exits(conn: Conn) -> dict[str, date]:
+    """The most recent exit session per ticker: a watch list pass must come after it."""
+    rows = conn.execute(
+        "SELECT ticker, max(exit_session) FROM stock_signals WHERE exit_session IS NOT NULL "
+        "GROUP BY ticker"
+    ).fetchall()
+    return {r[0]: r[1] for r in rows}
+
+
+def insert_stock_signal(conn: Conn, row: dict[str, Any]) -> UUID | None:
+    """None when this ticker already has a buy on that session."""
+    cols = list(row)
+    got = conn.execute(
+        f"INSERT INTO stock_signals ({', '.join(cols)}) VALUES ({', '.join(['%s'] * len(cols))}) "
+        "ON CONFLICT DO NOTHING RETURNING id",
+        [Jsonb(row[c]) if c in ("votes", "version_set") else row[c] for c in cols],
+    ).fetchone()
+    return got[0] if got else None
+
+
+def update_stock_signal(conn: Conn, signal_id: UUID, fields: dict[str, Any]) -> None:
+    cols = list(fields)
+    conn.execute(
+        f"UPDATE stock_signals SET {', '.join(f'{c} = %s' for c in cols)} WHERE id = %s",
+        [*(Jsonb(fields[c]) if c == "exit_votes" else fields[c] for c in cols), signal_id],
+    )
+
+
+def add_stock_event(
+    conn: Conn, signal_id: UUID, session: date, kind: str, price: Decimal | None,
+    detail: dict[str, Any] | None = None,
+) -> int | None:  # fmt: skip
+    """None when the signal already has this kind of event (each happens once)."""
+    got = conn.execute(
+        "INSERT INTO stock_signal_events (signal_id, session, kind, price, detail) "
+        "VALUES (%s, %s, %s, %s, %s) ON CONFLICT (signal_id, kind) DO NOTHING RETURNING id",
+        (signal_id, session, kind, price, Jsonb(detail or {})),
+    ).fetchone()
+    return int(got[0]) if got else None
+
+
+def update_holding_track(conn: Conn, holding_id: UUID, fields: dict[str, Any]) -> None:
+    cols = list(fields)
+    conn.execute(
+        f"UPDATE holdings SET {', '.join(f'{c} = %s' for c in cols)} WHERE id = %s",
+        [*(fields[c] for c in cols), holding_id],
     )
 
 

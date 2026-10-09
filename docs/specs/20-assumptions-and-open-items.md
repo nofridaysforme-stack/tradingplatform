@@ -22,9 +22,9 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | A14 | Fib Pivot stop change | Earlier conversation proposed the opposite Break | Pivot by default because the opposite Break gives a ratio below 1; both are settings | Provisional | 07 |
 | A15 | Stock liquidity filter | None | Minimum price $1, minimum 20-day average volume 100,000 | Provisional | 08 |
 | A16 | 52-week high and low | Newspaper figures | Highest high and lowest low over 252 sessions | Approved | 08 |
-| A17 | Stock alert timing | Not stated | Evening digest of newly trend-confirmed stocks | Provisional | 08 |
+| A17 | Stock alert timing | Not stated | After each session: watch list digest, one alert per buy and per sell (revised 2026-10-08) | Provisional | 08 |
 | A18 | Daily target 60 to 75 pips | Stated | Kept as default, flagged because current EUR/USD daily ranges average about 50 pips; backtest tests lower bands | Approved, under review | 06, 12 |
-| A19 | Rule 2 and Rule 3 overlap | Listed as separate rules | Both kept; identical at defaults | Approved | 08 |
+| A19 | Rule 2 and Rule 3 overlap | Listed as separate rules | Both kept; identical at defaults. The owners' "100% APR" is Rule 3 | Approved | 08 |
 | A20 | Which pivots the 3/8 planner uses | "Nearest pivot", "furthest pivot" | Daily pivots only for stop and target; weekly and monthly still count as indicator touches | Decided 2026-10-01 | 06 |
 | A21 | Daily target minimum (60 pips) | Daily target 60 to 75 pips | Setting `reject_below_min` on the Target rule; off by default, so the minimum is shown only | Owners decide in Settings | 06 |
 | A22 | "Price trades within N pips" | Not defined | Any part of the bar (high to low) within N pips of the level; the signal shows the distance from the close | Decided 2026-10-01 | 06 |
@@ -35,6 +35,14 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | A27 | Countertrend reward to risk | Target capped at 25 pips; stop at least 20 | Consequence, not a choice: a countertrend trade can never exceed 1.25 reward to risk, and passes only with a 20-pip stop. Owners may want to review the caps after the backtest | Noted | 06, 12 |
 | A28 | Shaved head or bottom | "Shaved head or bottom" | A bullish bar with almost no upper shadow counts long; a bearish bar with almost no lower shadow counts short | Provisional | 06 |
 | A29 | Provisional flag on a signal | "Provisional indicators always show the provisional badge" | `has_provisional` is set when a fired indicator is provisional (matches the spec 10 example, where entry and target rules are provisional but the flag is false) | Provisional | 10 |
+| A30 | Stock momentum period | "455% with those 10 week" | The 10-day line of the 5 Line Bar: APR_10 at least 455 percent, the pace of 35 percent in 20 sessions on the 260-day year. A true 10 weeks (50 sessions) is a setting away (`stocks.momentum` `period`) | Provisional, confirm with the owners | 08 |
+| A31 | 20-day and 50-day trend checks | "20 Day establishes, 50 day confirms" | Still computed and shown, not required for the watch list; `require_trend_confirmed` turns them into a requirement | Provisional | 08 |
+| A32 | How long a stock waits for its pullback | Not stated | On the watch list for 10 sessions after it last passed the momentum test, while it stays inside the pullback zone | Provisional | 08 |
+| A33 | "Bullish candles on support" | Support not defined once the Fibonacci was dropped | A bullish TA-Lib pattern on a session whose close is inside the pullback zone; the pattern list is a setting | Provisional | 08 |
+| A34 | Stops on closes or intraday | Not stated | Daily closes for the 5 percent stop, the trailing stop, and the sell vote | Provisional | 08 |
+| A35 | Sell side of the indicators | Buy levels given (RSI above 30, Stochastics above 20, MACD and pivot crossovers) | Mirror for selling: bearish pattern, MACD and pivot crossing down, RSI crossing below 70, Stochastics crossing below 80; 3 of 5 within 3 sessions | Provisional | 08 |
+| A36 | Indicator settings | Not stated | MACD 12, 26, 9; RSI 14; Stochastics 14, 3, 3 (slow %K); pivot (high + low + close) / 3 with a 3-session average | Provisional | 08 |
+| A37 | Trailing stop measure | "Trailing stop after it has gained 10%, set at 5%" | 5 percent below the highest close since entry, once that close is 10 percent above entry; it never falls | Approved | 08 |
 
 ## Missing materials
 
@@ -81,3 +89,7 @@ Every interpretation the build relies on, in one place. Owners review this list 
 | 2026-10-02 | The paper-run weekly review is a scanner command (`scanner.ops.weekly_review`) using the backtest's metric definitions, now one shared `summarize` function |
 | 2026-10-06 | Railway settings live in each service's Settings tab, not `railway.json`: Railway deprecated config files (no new opt-ins; existing ones stop on 2026-12-01). The two `railway.json` files are removed |
 | 2026-10-08 | Forex is paused at the owners' request while the stock system is reworked. One switch (`app_settings.forex_enabled`, Settings, Admin, Forex) stops the forex jobs and OANDA calls, hides the forex pages, alerts, and settings, and leaves forex out of the health checks. Nothing is deleted; resuming brings everything back as it was. Saved forex alert choices are kept while hidden |
+| 2026-10-08 | The Fibonacci Pivot is not part of the stock system and is not used for support ("Do not worry about the Fibonacci"). It stays on forex, which is paused |
+| 2026-10-08 | Stock system revised to a staged funnel (spec 08): qualify (Rules 1 to 3), momentum (10-day APR at least 455 percent, the pace of 35 percent in 20 sessions), watch list, buy on 3 of 5 indicators within 3 sessions (bullish candle in the pullback zone, MACD crossover, pivot line hooking above its 3-day average, RSI crossing above 30, Stochastics crossing above 20), then hold until a sell |
+| 2026-10-08 | 35 percent is a price projection, not an exit: shown with the daily and weekly targets, with an information alert when reached. It replaces the 30 percent sales target as the default for holdings |
+| 2026-10-08 | Exits: 5 percent stop below entry; once the trade is up 10 percent, a trailing stop 5 percent below the highest close; or the indicators' sell vote. The same rules run on owners' holdings from their purchase price |

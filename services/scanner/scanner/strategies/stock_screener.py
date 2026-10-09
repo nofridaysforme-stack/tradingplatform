@@ -1,8 +1,9 @@
 """Stock screener, Financial Wealth Building (spec 08). Pure functions over daily bars.
 
 universe -> liquidity filter -> Rule 1 -> Rule 2 -> Rule 3 -> qualified
-qualified -> five line chart -> trend status (established, confirmed) -> digest
-holdings -> sales targets -> progress and alerts
+qualified -> five line chart -> trend status (established, confirmed)
+
+Stage 1 of the momentum funnel; the later stages are in stock_momentum.py.
 """
 
 from collections.abc import Sequence
@@ -24,6 +25,7 @@ class DayBar:
     l: Decimal  # noqa: E741
     c: Decimal
     volume: int
+    o: Decimal | None = None  # the candle patterns need it (spec 08, stocks.ind_candle)
 
 
 @dataclass(frozen=True)
@@ -79,6 +81,21 @@ def apr_52w(high_52w: Decimal, low_52w: Decimal) -> Decimal:
     return (high_52w - low_52w) / low_52w
 
 
+def high_low_52w(bars: Sequence[DayBar], rules: RuleSet) -> tuple[Decimal, Decimal]:
+    """Highest high and lowest low over lookback_sessions, ending with the last bar."""
+    window = bars[-int(rules.params(K + "history_required")["lookback_sessions"]) :]
+    return max(b.h for b in window), min(b.l for b in window)
+
+
+def in_zone(bars: Sequence[DayBar], rules: RuleSet) -> bool:
+    """The pullback zone (spec 08): Rule 1 on the last bar. Always true with Rule 1 off."""
+    if not rules.enabled(K + "rule1_near_high"):
+        return True
+    high, _ = high_low_52w(bars, rules)
+    ratio = Decimal(str(rules.params(K + "rule1_near_high")["ratio"]))
+    return rule1_near_high(bars[-1].c, high, ratio)
+
+
 # Five line chart
 
 
@@ -114,15 +131,11 @@ def screen(ticker: str, bars: Sequence[DayBar], rules: RuleSet) -> ScreenResult 
         if today.c < Decimal(str(liq["min_price"])) or avg_volume < Decimal(liq["min_avg_volume"]):
             return None
 
-    window = bars[-int(hist["lookback_sessions"]) :]
-    high = max(b.h for b in window)
-    low = min(b.l for b in window)
+    high, low = high_low_52w(bars, rules)
     if low <= 0:
         return None
     apr = apr_52w(high, low)
-    if rules.enabled(K + "rule1_near_high") and not rule1_near_high(
-        today.c, high, Decimal(str(rules.params(K + "rule1_near_high")["ratio"]))
-    ):
+    if not in_zone(bars, rules):
         return None
     if rules.enabled(K + "rule2_double") and not rule2_double(
         high, low, Decimal(str(rules.params(K + "rule2_double")["multiple"]))
@@ -147,26 +160,6 @@ def screen(ticker: str, bars: Sequence[DayBar], rules: RuleSet) -> ScreenResult 
     return ScreenResult(
         ticker, today.session_date, status, today.c, high, low, apr, five, consistent
     )
-
-
-def digest_candidates(
-    results: Sequence[ScreenResult],
-    recently_confirmed: set[str],
-    rules: RuleSet,
-) -> list[ScreenResult]:
-    """Rule stocks.alert_new_confirmed: stocks confirmed today that were not confirmed in the
-    prior cooldown_sessions, best APR_20 first, at most max_in_digest."""
-    p = rules.params(K + "alert_new_confirmed")
-    required = rules.params(K + "trend_consistent")["required_for_alert"]
-    picked = [
-        r
-        for r in results
-        if r.status == "trend_confirmed"
-        and r.ticker not in recently_confirmed
-        and (r.consistent or not required)
-    ]
-    picked.sort(key=lambda r: r.five.apr.get(20, Decimal(0)), reverse=True)
-    return picked[: int(p["max_in_digest"])]
 
 
 # Holdings and sales targets

@@ -302,11 +302,20 @@ CREATE TABLE public.holdings (
     ticker text NOT NULL,
     purchase_price numeric(18,6) NOT NULL,
     purchase_date date NOT NULL,
-    expected_profit_pct numeric(6,2) DEFAULT 30 NOT NULL,
+    expected_profit_pct numeric(6,2) DEFAULT 35 NOT NULL,
     horizon_sessions smallint DEFAULT 20 NOT NULL,
     closed boolean DEFAULT false NOT NULL,
     notes text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    signal_id uuid,
+    highest_close numeric(18,6),
+    trailing_active boolean DEFAULT false NOT NULL,
+    stop_now numeric(18,6),
+    sell_reason text,
+    sell_session date,
+    sell_price numeric(18,6),
+    tracked_session date,
+    CONSTRAINT holdings_sell_reason_check CHECK ((sell_reason = ANY (ARRAY['stopped'::text, 'trailing_stopped'::text, 'sold'::text])))
 );
 
 
@@ -654,7 +663,75 @@ CREATE TABLE public.stock_screen_results (
     apr_20 numeric(14,6),
     apr_50 numeric(14,6),
     consistent boolean DEFAULT false NOT NULL,
-    version_set jsonb NOT NULL
+    version_set jsonb NOT NULL,
+    momentum boolean DEFAULT false NOT NULL,
+    watching boolean DEFAULT false NOT NULL,
+    indicators jsonb
+);
+
+
+--
+-- Name: stock_signal_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_signal_events (
+    id bigint NOT NULL,
+    signal_id uuid NOT NULL,
+    session date NOT NULL,
+    kind text NOT NULL,
+    price numeric(18,6),
+    detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: stock_signal_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.stock_signal_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: stock_signal_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.stock_signal_events_id_seq OWNED BY public.stock_signal_events.id;
+
+
+--
+-- Name: stock_signals; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_signals (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    ticker text NOT NULL,
+    buy_session date NOT NULL,
+    entry numeric(18,6) NOT NULL,
+    stop_initial numeric(18,6) NOT NULL,
+    projection numeric(18,6) NOT NULL,
+    projection_pct numeric(8,2) NOT NULL,
+    horizon_sessions smallint NOT NULL,
+    state text DEFAULT 'open'::text NOT NULL,
+    trailing_active boolean DEFAULT false NOT NULL,
+    highest_close numeric(18,6) NOT NULL,
+    stop_now numeric(18,6) NOT NULL,
+    projection_session date,
+    last_session date NOT NULL,
+    exit_session date,
+    exit_price numeric(18,6),
+    result_pct numeric(12,6),
+    votes jsonb NOT NULL,
+    exit_votes jsonb,
+    version_set jsonb NOT NULL,
+    has_provisional boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT stock_signals_state_check CHECK ((state = ANY (ARRAY['open'::text, 'stopped'::text, 'trailing_stopped'::text, 'sold'::text])))
 );
 
 
@@ -779,6 +856,13 @@ ALTER TABLE ONLY public.notifications ALTER COLUMN id SET DEFAULT nextval('publi
 --
 
 ALTER TABLE ONLY public.signal_events ALTER COLUMN id SET DEFAULT nextval('public.signal_events_id_seq'::regclass);
+
+
+--
+-- Name: stock_signal_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_signal_events ALTER COLUMN id SET DEFAULT nextval('public.stock_signal_events_id_seq'::regclass);
 
 
 --
@@ -1030,6 +1114,38 @@ ALTER TABLE ONLY public.stock_screen_results
 
 
 --
+-- Name: stock_signal_events stock_signal_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_signal_events
+    ADD CONSTRAINT stock_signal_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_signal_events stock_signal_events_signal_id_kind_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_signal_events
+    ADD CONSTRAINT stock_signal_events_signal_id_kind_key UNIQUE (signal_id, kind);
+
+
+--
+-- Name: stock_signals stock_signals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_signals
+    ADD CONSTRAINT stock_signals_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_signals stock_signals_ticker_buy_session_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_signals
+    ADD CONSTRAINT stock_signals_ticker_buy_session_key UNIQUE (ticker, buy_session);
+
+
+--
 -- Name: stock_tickers stock_tickers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1158,6 +1274,20 @@ CREATE INDEX stock_daily_bars_date_idx ON public.stock_daily_bars USING btree (s
 
 
 --
+-- Name: stock_signals_buy_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_signals_buy_idx ON public.stock_signals USING btree (buy_session DESC);
+
+
+--
+-- Name: stock_signals_one_open_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX stock_signals_one_open_idx ON public.stock_signals USING btree (ticker) WHERE (state = 'open'::text);
+
+
+--
 -- Name: accounts accounts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1219,6 +1349,14 @@ ALTER TABLE ONLY public.candles
 
 ALTER TABLE ONLY public.econ_events
     ADD CONSTRAINT econ_events_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: holdings holdings_signal_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.holdings
+    ADD CONSTRAINT holdings_signal_id_fkey FOREIGN KEY (signal_id) REFERENCES public.stock_signals(id) ON DELETE SET NULL;
 
 
 --
@@ -1318,6 +1456,14 @@ ALTER TABLE ONLY public.signals
 
 
 --
+-- Name: stock_signal_events stock_signal_events_signal_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_signal_events
+    ADD CONSTRAINT stock_signal_events_signal_id_fkey FOREIGN KEY (signal_id) REFERENCES public.stock_signals(id) ON DELETE CASCADE;
+
+
+--
 -- Name: strategy_configs strategy_configs_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1382,4 +1528,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261001000003'),
     ('20261002000001'),
     ('20261003000001'),
-    ('20261008000001');
+    ('20261008000001'),
+    ('20261008000002');

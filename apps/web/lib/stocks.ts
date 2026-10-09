@@ -1,8 +1,20 @@
 import "server-only";
-import { and, asc, count, desc, eq, gt, ilike, or, sql as dsql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, ne, or, sql as dsql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ruleVersions, stockDailyBars, stockScreenResults, stockTickers, type ScreenStatus } from "@/lib/db/schema";
+import { INDICATORS } from "@/lib/stock-names";
+import {
+  ruleVersions,
+  stockDailyBars,
+  stockScreenResults,
+  stockSignalEvents,
+  stockSignals,
+  stockTickers,
+  type DayEvidence,
+  type Evidence,
+  type ScreenStatus,
+  type StockSignalState,
+} from "@/lib/db/schema";
 
 // Reads what the stock_eod job wrote (spec 08). Statuses and five-line values come from the
 // worker; nothing here re-runs the screen.
@@ -14,6 +26,14 @@ export const STATUS_NAMES: Record<ScreenStatus, string> = {
   trend_confirmed: "Trend confirmed",
 };
 export const RESULTS_PAGE = 50;
+
+// The funnel stage of a screened stock (spec 08). Every stored row is qualified.
+export const STAGES = ["momentum", "watching"] as const;
+export type Stage = "qualified" | (typeof STAGES)[number];
+export const STAGE_NAMES: Record<Stage, string> = { qualified: "Qualified", momentum: "Momentum", watching: "Watching" };
+export function stageOf(r: { momentum: boolean; watching: boolean }): Stage {
+  return r.watching ? "watching" : r.momentum ? "momentum" : "qualified";
+}
 
 const SORTS = {
   ticker: stockScreenResults.ticker,
@@ -38,6 +58,7 @@ const blank = z.literal("").transform(() => undefined);
 export const ResultsQuery = z.object({
   session: z.iso.date().optional().or(blank),
   status: z.enum(STATUSES).optional().or(blank),
+  stage: z.enum(STAGES).optional().or(blank),
   q: z.string().trim().max(20).optional().or(blank),
   sort: z.enum(SORT_KEYS as [SortKey, ...SortKey[]]).optional().or(blank),
   dir: z.enum(["asc", "desc"]).optional().or(blank),
@@ -86,6 +107,8 @@ export interface ResultRow {
   acc: Record<5 | 10 | 20 | 50, number | null>;
   apr: Record<5 | 10 | 20 | 50, number | null>;
   consistent: boolean;
+  stage: Stage;
+  evidence: DayEvidence | null;
 }
 
 export interface ResultsPage {
@@ -105,6 +128,8 @@ export async function results(q: ResultsQuery): Promise<ResultsPage> {
   if (!session) return { session: null, rows: [], total: 0, page: 1, pages: 1, sort, dir };
   const where: SQL[] = [eq(stockScreenResults.sessionDate, session)];
   if (q.status) where.push(eq(stockScreenResults.status, q.status));
+  if (q.stage === "watching") where.push(eq(stockScreenResults.watching, true));
+  if (q.stage === "momentum") where.push(eq(stockScreenResults.momentum, true));
   if (q.q) {
     const term = q.q.replace(/[%_\\]/g, "");
     where.push(or(ilike(stockScreenResults.ticker, `${term}%`), ilike(stockTickers.name, `%${term}%`))!);
@@ -141,6 +166,8 @@ function toRow(r: typeof stockScreenResults.$inferSelect, name: string | null): 
     acc: { 5: n(r.acc5), 10: n(r.acc10), 20: n(r.acc20), 50: n(r.acc50) },
     apr: { 5: n(r.apr5), 10: n(r.apr10), 20: n(r.apr20), 50: n(r.apr50) },
     consistent: r.consistent,
+    stage: stageOf(r),
+    evidence: r.indicators ?? null,
   };
 }
 
@@ -151,6 +178,8 @@ export interface StockDetail {
   latest: (ResultRow & { session: string; closes: Record<0 | 5 | 10 | 20 | 50, number | null> }) | null;
   bars: { time: string; open: number; high: number; low: number; close: number }[];
   history: { session: string; status: ScreenStatus }[];
+  stages: { session: string; stage: Stage }[];
+  buys: StockBuy[];
   thresholds: { ratio: number | null; multiple: number | null; minApr: number | null };
 }
 
@@ -181,10 +210,17 @@ export async function stockDetail(ticker: string): Promise<StockDetail | null> {
     const h = history[i]!;
     if (changes.at(-1)?.status !== h.status) changes.push({ session: h.sessionDate, status: h.status });
   }
+  const stages: StockDetail["stages"] = [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    const stage = stageOf(history[i]!);
+    if (stages.at(-1)?.stage !== stage) stages.push({ session: history[i]!.sessionDate, stage });
+  }
   return {
     ticker,
     name: info?.name ?? null,
     exchange: info?.exchange ?? null,
+    stages: stages.reverse(),
+    buys: await stockBuys({ ticker }),
     latest: last
       ? {
           ...toRow(last, info?.name ?? null),
@@ -229,4 +265,109 @@ export async function sessionsSince(ticker: string, purchaseDate: string): Promi
     .from(stockDailyBars)
     .where(and(eq(stockDailyBars.ticker, ticker), gt(stockDailyBars.sessionDate, purchaseDate)));
   return r?.n ?? 0;
+}
+
+// Buys and exits, written by the stock_eod job (spec 08).
+
+export const EXIT_NAMES: Record<Exclude<StockSignalState, "open">, string> = {
+  stopped: "Stop",
+  trailing_stopped: "Trailing stop",
+  sold: "Sell signal",
+};
+
+export interface StockBuy {
+  id: string;
+  ticker: string;
+  buySession: string;
+  entry: number;
+  stopInitial: number;
+  stopNow: number;
+  trailingActive: boolean;
+  highestClose: number;
+  projection: number;
+  projectionPct: number;
+  horizonSessions: number;
+  projectionSession: string | null;
+  state: StockSignalState;
+  exitSession: string | null;
+  exitPrice: number | null;
+  resultPct: number | null;
+  lastClose: number | null;
+  votes: Evidence;
+  exitVotes: Evidence | null;
+  hasProvisional: boolean;
+  events: { session: string; kind: string; price: number | null }[];
+}
+
+/** Open buys first (newest first), then closed ones, newest exit first. */
+export async function stockBuys(opts: { ticker?: string; closedLimit?: number } = {}): Promise<StockBuy[]> {
+  const cond = opts.ticker ? eq(stockSignals.ticker, opts.ticker) : undefined;
+  const [open, closed] = await Promise.all([
+    db.select().from(stockSignals).where(and(eq(stockSignals.state, "open"), cond)).orderBy(desc(stockSignals.buySession)),
+    db
+      .select()
+      .from(stockSignals)
+      .where(and(ne(stockSignals.state, "open"), cond))
+      .orderBy(desc(stockSignals.exitSession), desc(stockSignals.buySession))
+      .limit(opts.closedLimit ?? 20),
+  ]);
+  const rows = [...open, ...closed];
+  if (rows.length === 0) return [];
+  const [events, closes] = await Promise.all([
+    db
+      .select()
+      .from(stockSignalEvents)
+      .where(inArray(stockSignalEvents.signalId, rows.map((r) => r.id)))
+      .orderBy(asc(stockSignalEvents.id)),
+    Promise.all(rows.map((r) => lastClose(r.ticker))),
+  ]);
+  return rows.map((r, i) => ({
+    id: r.id,
+    ticker: r.ticker,
+    buySession: r.buySession,
+    entry: Number(r.entry),
+    stopInitial: Number(r.stopInitial),
+    stopNow: Number(r.stopNow),
+    trailingActive: r.trailingActive,
+    highestClose: Number(r.highestClose),
+    projection: Number(r.projection),
+    projectionPct: Number(r.projectionPct),
+    horizonSessions: r.horizonSessions,
+    projectionSession: r.projectionSession,
+    state: r.state,
+    exitSession: r.exitSession,
+    exitPrice: n(r.exitPrice),
+    resultPct: n(r.resultPct),
+    lastClose: closes[i]?.close ?? null,
+    votes: r.votes,
+    exitVotes: r.exitVotes,
+    hasProvisional: r.hasProvisional,
+    events: events.filter((e) => e.signalId === r.id).map((e) => ({ session: e.session, kind: e.kind, price: n(e.price) })),
+  }));
+}
+
+export interface WatchRow {
+  ticker: string;
+  name: string | null;
+  close: number;
+  high_52w: number;
+  apr10: number | null;
+  votes: number;
+  fired: string[];
+}
+
+/** The session's watch list, most buy votes first. */
+export async function watchList(session: string | null): Promise<WatchRow[]> {
+  if (!session) return [];
+  const rows = await db
+    .select({ r: stockScreenResults, name: stockTickers.name })
+    .from(stockScreenResults)
+    .leftJoin(stockTickers, eq(stockTickers.ticker, stockScreenResults.ticker))
+    .where(and(eq(stockScreenResults.sessionDate, session), eq(stockScreenResults.watching, true)));
+  return rows
+    .map(({ r, name }) => {
+      const fired = INDICATORS.filter((k) => r.indicators?.buy[k]?.fired);
+      return { ticker: r.ticker, name, close: Number(r.close), high_52w: Number(r.high52w), apr10: n(r.apr10), votes: fired.length, fired };
+    })
+    .sort((a, b) => b.votes - a.votes || (b.apr10 ?? 0) - (a.apr10 ?? 0) || a.ticker.localeCompare(b.ticker));
 }

@@ -14,7 +14,7 @@ interface Values {
   notes?: string | null;
 }
 
-/** Add or edit a holding (spec 08: ticker, purchase price, date, expected profit). */
+/** Add or edit a holding (spec 08: ticker, purchase price, date, projection). */
 export function HoldingForm({ values, idPrefix, submit, lockTicker = false }: { values: Values; idPrefix: string; submit: string; lockTicker?: boolean }) {
   const editing = Boolean(values.id);
   const [state, onSubmit, pending] = useFormAction<HoldingState>(editing ? updateHolding : createHolding, {}, { resetOnSuccess: !editing });
@@ -57,7 +57,7 @@ export function HoldingForm({ values, idPrefix, submit, lockTicker = false }: { 
         )}
         {field("purchasePrice", "Purchase price", { inputMode: "decimal" })}
         {field("purchaseDate", "Purchase date", { type: "date" })}
-        {field("expectedProfitPct", "Expected profit", { inputMode: "decimal" }, "%")}
+        {field("expectedProfitPct", "Projection", { inputMode: "decimal" }, "%")}
         {field("horizonSessions", "Horizon", { inputMode: "numeric" }, "sessions")}
         {field("notes", "Notes (optional)", { maxLength: 500 })}
       </div>

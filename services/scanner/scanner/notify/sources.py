@@ -1,7 +1,7 @@
 """Turn what the worker wrote into notifications (spec 11, "What triggers a notification")."""
 
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -12,16 +12,21 @@ from scanner import db
 from scanner.notify.channels import Sender
 from scanner.notify.dispatcher import Planned, Recipient, enqueue, plan_for, recipients
 from scanner.notify.messages import (
-    DigestRow,
+    INDICATOR_NAMES,
+    SELL_NAMES,
+    Message,
     SignalFacts,
-    digest_message,
-    holding_message,
+    StockBuy,
+    WatchRow,
     signal_message,
+    stock_buy_message,
+    stock_exit_message,
+    stock_update_message,
     update_message,
+    watch_message,
 )
 from scanner.notify.prefs import Channel
 from scanner.signals.broker_adjust import adjust
-from scanner.strategies.stock_screener import sales_target
 
 CURSOR = "signal_events"
 MAX_AGE = timedelta(hours=2)  # an older event is not news any more (outage catch-up)
@@ -137,7 +142,7 @@ def _facts(conn: db.Conn, ev: dict[str, Any], r: Recipient) -> SignalFacts:
     )  # fmt: skip
 
 
-def dispatch_digest(
+def dispatch_watch(
     conn: db.Conn,
     tickers: Sequence[str],
     session: str,
@@ -145,16 +150,20 @@ def dispatch_digest(
     now: datetime,
     base_url: str,
 ) -> int:
-    """One evening digest of newly confirmed stocks (written by the stock_eod job)."""
+    """One evening digest of stocks that joined the watch list (spec 08, written by stock_eod)."""
     if not tickers:
         return 0
     rows = conn.execute(
-        "SELECT ticker, close, apr_20, apr_50 FROM stock_screen_results "
-        "WHERE session_date = %s AND ticker = ANY(%s) ORDER BY apr_20 DESC NULLS LAST",
+        "SELECT ticker, close, high_52w, apr_10 FROM stock_screen_results "
+        "WHERE session_date = %s AND ticker = ANY(%s)",
         (session, list(tickers)),
     ).fetchall()
-    msg = digest_message(
-        [DigestRow(t, float(c), _f(a20), _f(a50)) for t, c, a20, a50 in rows], session, base_url
+    order = {t: k for k, t in enumerate(tickers)}
+    rows.sort(key=lambda r: order[r[0]])
+    msg = watch_message(
+        [WatchRow(t, float(c), float((h - c) / h), _f(a10)) for t, c, h, a10 in rows],
+        session,
+        base_url,
     )
     with conn.transaction():
         return sum(
@@ -164,7 +173,7 @@ def dispatch_digest(
                     r,
                     kind="digest",
                     message=msg,
-                    dedupe_key=f"digest:{session}",
+                    dedupe_key=f"watch:{session}",
                     now=now,
                     senders=senders,
                     strategy="stocks",
@@ -175,6 +184,111 @@ def dispatch_digest(
         )
 
 
+def _voted(evidence: dict[str, Any] | None, names: Mapping[str, str]) -> list[str]:
+    if not evidence:
+        return []
+    out = []
+    for key, e in evidence.items():
+        if not e.get("fired"):
+            continue
+        label = names.get(key, key)
+        if key == "stocks.ind_candle" and e.get("patterns"):
+            label = f"{label} ({', '.join(p.replace('_', ' ') for p in e['patterns'])})"
+        out.append(label)
+    return out
+
+
+def dispatch_stock_events(
+    conn: db.Conn,
+    event_ids: Sequence[int],
+    senders: Mapping[Channel, Sender],
+    now: datetime,
+    base_url: str,
+) -> int:
+    """Buys, sells, and updates on stock buys (spec 08 alerts), to everyone with stock alerts on.
+    Buys and sells are "signal" notifications; the rest are updates."""
+    if not event_ids:
+        return 0
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            "SELECT e.signal_id, e.kind, e.session, e.price, s.ticker, s.buy_session, s.entry, "
+            "s.stop_initial, s.projection, s.projection_pct, s.horizon_sessions, s.votes, "
+            "s.exit_votes, s.has_provisional, s.highest_close, s.stop_now "
+            "FROM stock_signal_events e "
+            "JOIN stock_signals s ON s.id = e.signal_id WHERE e.id = ANY(%s) ORDER BY e.id",
+            (list(event_ids),),
+        )
+        events = cur.fetchall()
+    stop_pct = float(_param(conn, "stocks.stop_loss", "stop_pct") or 5)
+    written = 0
+    with conn.transaction():
+        people = recipients(conn)
+        for e in events:
+            kind = str(e["kind"])
+            entry = float(e["entry"])
+            price = float(e["price"])
+            msg: Message
+            if kind == "bought":
+                msg = stock_buy_message(
+                    StockBuy(
+                        str(e["signal_id"]), e["ticker"], str(e["session"]), entry,
+                        float(e["stop_initial"]), stop_pct, float(e["projection"]),
+                        float(e["projection_pct"]), int(e["horizon_sessions"]),
+                        _voted(e["votes"], INDICATOR_NAMES), bool(e["has_provisional"]),
+                    ),
+                    base_url,
+                )  # fmt: skip
+                note = "signal"
+            elif kind in ("stopped", "trailing_stopped", "sold"):
+                sessions = _sessions_between(conn, e["ticker"], e["buy_session"], e["session"])
+                msg = stock_exit_message(
+                    ticker=e["ticker"], kind=kind, price=price, entry=entry, sessions=sessions,
+                    highest=float(e["highest_close"]), voted=_voted(e["exit_votes"], SELL_NAMES),
+                    base_url=base_url,
+                )  # fmt: skip
+                note = "signal"
+            else:
+                msg = stock_update_message(
+                    ticker=e["ticker"], kind=kind, price=price, entry=entry,
+                    stop=_f(e["stop_now"]), projection=float(e["projection"]),
+                    horizon=int(e["horizon_sessions"]), base_url=base_url,
+                )  # fmt: skip
+                note = "update"
+            for r in people:
+                written += enqueue(
+                    conn,
+                    plan_for(
+                        r,
+                        kind="signal" if note == "signal" else "update",
+                        message=msg,
+                        dedupe_key=f"stock:{e['signal_id']}:{kind}",
+                        now=now,
+                        senders=senders,
+                        strategy="stocks",
+                    ),
+                    now,
+                )
+    return written
+
+
+def _param(conn: db.Conn, key: str, name: str) -> str | None:
+    row = conn.execute(
+        "SELECT v.params ->> %s FROM rule_definitions d JOIN rule_versions v "
+        "ON v.key = d.key AND v.version = d.current_version WHERE d.key = %s",
+        (name, key),
+    ).fetchone()
+    return str(row[0]) if row and row[0] is not None else None
+
+
+def _sessions_between(conn: db.Conn, ticker: str, first: date, last: date) -> int:
+    row = conn.execute(
+        "SELECT count(*) FROM stock_daily_bars WHERE ticker = %s AND session_date > %s "
+        "AND session_date <= %s",
+        (ticker, first, last),
+    ).fetchone()
+    return int(row[0]) if row else 0
+
+
 def dispatch_holdings(
     conn: db.Conn,
     alerts: Sequence[dict[str, Any]],
@@ -183,24 +297,32 @@ def dispatch_holdings(
     now: datetime,
     base_url: str,
 ) -> int:
-    """Holding alerts go to the holding's owner only."""
+    """Holding alerts (stops, sell signal, projection) go to the holding's owner only."""
     written = 0
     with conn.transaction():
         for a in alerts:
             row = conn.execute(
-                "SELECT h.user_id, h.ticker, h.purchase_price, h.expected_profit_pct, "
-                "h.horizon_sessions, (SELECT c FROM stock_daily_bars b WHERE b.ticker = h.ticker "
-                "AND b.session_date = %s) FROM holdings h WHERE h.id = %s",
-                (session, a["holding_id"]),
+                "SELECT user_id, ticker, purchase_price, purchase_date, expected_profit_pct, "
+                "horizon_sessions, highest_close, stop_now FROM holdings WHERE id = %s",
+                (a["holding_id"],),
             ).fetchone()
-            if row is None or row[5] is None:
+            if row is None:
                 continue
-            user_id, ticker, price, pct, horizon, close = row
-            target = sales_target(Decimal(price), Decimal(pct), int(horizon)).target
-            msg = holding_message(
-                ticker=ticker, alert=a["alert"], target=float(target), last_close=float(close),
-                horizon=int(horizon), base_url=base_url,
-            )  # fmt: skip
+            user_id, ticker, price, bought, pct, horizon, highest, stop_now = row
+            entry = float(price)
+            close = float(a["price"])
+            projection = entry * (1 + float(pct) / 100)
+            if a["alert"] in ("stopped", "trailing_stopped", "sold"):
+                msg = stock_exit_message(
+                    ticker=ticker, kind=a["alert"], price=close, entry=entry,
+                    sessions=_sessions_between(conn, ticker, bought, date.fromisoformat(session)),
+                    highest=float(highest or price), voted=[], base_url=base_url, holding=True,
+                )  # fmt: skip
+            else:
+                msg = stock_update_message(
+                    ticker=ticker, kind=a["alert"], price=close, entry=entry, stop=_f(stop_now),
+                    projection=projection, horizon=int(horizon), base_url=base_url, holding=True,
+                )  # fmt: skip
             for r in recipients(conn, user_id=UUID(str(user_id))):
                 written += enqueue(
                     conn,

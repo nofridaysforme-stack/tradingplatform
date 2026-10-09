@@ -266,10 +266,24 @@
    "strategy": "fib_pivot",
    "version": 1
   },
+  "stocks.alert_horizon": {
+   "counts_toward_minimum": false,
+   "description": "An information alert when horizon_sessions pass without reaching the projected price. Off by default.",
+   "enabled": false,
+   "key": "stocks.alert_horizon",
+   "kind": "lifecycle",
+   "name": "Horizon passed",
+   "params": {},
+   "params_schema": {},
+   "source": "Spec 08 interpretation",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
   "stocks.alert_new_confirmed": {
    "counts_toward_minimum": false,
    "description": "One evening digest lists stocks that reached trend confirmed today and were not confirmed in the prior cooldown_sessions, up to max_in_digest.",
-   "enabled": true,
+   "enabled": false,
    "key": "stocks.alert_new_confirmed",
    "kind": "lifecycle",
    "name": "Newly confirmed digest",
@@ -294,12 +308,26 @@
    "source": "Spec 08 interpretation (alert timing not stated)",
    "status": "provisional",
    "strategy": "stocks",
+   "version": 2
+  },
+  "stocks.alert_projection": {
+   "counts_toward_minimum": false,
+   "description": "An information alert when a buy or a holding first closes at or above its projected price.",
+   "enabled": true,
+   "key": "stocks.alert_projection",
+   "kind": "lifecycle",
+   "name": "Projection reached",
+   "params": {},
+   "params_schema": {},
+   "source": "Spec 08 interpretation",
+   "status": "provisional",
+   "strategy": "stocks",
    "version": 1
   },
   "stocks.alert_target_reached": {
    "counts_toward_minimum": false,
    "description": "Alert when a holding closes at or above its sales target.",
-   "enabled": true,
+   "enabled": false,
    "key": "stocks.alert_target_reached",
    "kind": "lifecycle",
    "name": "Sales target reached",
@@ -308,12 +336,12 @@
    "source": "Entry Points and Sales Targets",
    "status": "approved",
    "strategy": "stocks",
-   "version": 1
+   "version": 2
   },
   "stocks.alert_time_elapsed": {
    "counts_toward_minimum": false,
    "description": "Alert when a holding reaches horizon_sessions without hitting its target.",
-   "enabled": true,
+   "enabled": false,
    "key": "stocks.alert_time_elapsed",
    "kind": "lifecycle",
    "name": "Time elapsed",
@@ -330,6 +358,59 @@
    },
    "source": "Spec 08 interpretation",
    "status": "provisional",
+   "strategy": "stocks",
+   "version": 2
+  },
+  "stocks.alert_watch": {
+   "counts_toward_minimum": false,
+   "description": "One evening digest lists the stocks that joined the watch list that session, best momentum first, up to max_in_digest.",
+   "enabled": true,
+   "key": "stocks.alert_watch",
+   "kind": "lifecycle",
+   "name": "Watch list digest",
+   "params": {
+    "max_in_digest": 25
+   },
+   "params_schema": {
+    "max_in_digest": {
+     "default": 25,
+     "max": 500,
+     "min": 1,
+     "type": "integer"
+    }
+   },
+   "source": "Spec 08 interpretation (alert timing not stated)",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.buy_vote": {
+   "counts_toward_minimum": false,
+   "description": "A watched stock is bought when at least min_votes different buy indicators fired within the last window_sessions sessions and the close is inside the pullback zone.",
+   "enabled": true,
+   "key": "stocks.buy_vote",
+   "kind": "gate",
+   "name": "Buy vote",
+   "params": {
+    "min_votes": 3,
+    "window_sessions": 3
+   },
+   "params_schema": {
+    "min_votes": {
+     "default": 3,
+     "max": 5,
+     "min": 1,
+     "type": "integer"
+    },
+    "window_sessions": {
+     "default": 3,
+     "max": 20,
+     "min": 1,
+     "type": "sessions"
+    }
+   },
+   "source": "Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days",
+   "status": "approved",
    "strategy": "stocks",
    "version": 1
   },
@@ -407,6 +488,227 @@
    "strategy": "stocks",
    "version": 1
   },
+  "stocks.ind_candle": {
+   "counts_toward_minimum": true,
+   "description": "Buy: a bullish pattern completes on a session whose close is inside the pullback zone. Sell: a bearish pattern completes. TA-Lib patterns on daily bars.",
+   "enabled": true,
+   "key": "stocks.ind_candle",
+   "kind": "indicator",
+   "name": "Price and candle",
+   "params": {
+    "bearish": [
+     "engulfing",
+     "dark_cloud_cover",
+     "hanging_man",
+     "shooting_star",
+     "evening_star",
+     "harami"
+    ],
+    "bullish": [
+     "hammer",
+     "inverted_hammer",
+     "engulfing",
+     "piercing",
+     "morning_star",
+     "harami",
+     "dragonfly_doji"
+    ]
+   },
+   "params_schema": {
+    "bearish": {
+     "default": [
+      "engulfing",
+      "dark_cloud_cover",
+      "hanging_man",
+      "shooting_star",
+      "evening_star",
+      "harami"
+     ],
+     "options": [
+      "engulfing",
+      "dark_cloud_cover",
+      "hanging_man",
+      "shooting_star",
+      "evening_star",
+      "harami"
+     ],
+     "type": "list"
+    },
+    "bullish": {
+     "default": [
+      "hammer",
+      "inverted_hammer",
+      "engulfing",
+      "piercing",
+      "morning_star",
+      "harami",
+      "dragonfly_doji"
+     ],
+     "options": [
+      "hammer",
+      "inverted_hammer",
+      "engulfing",
+      "piercing",
+      "morning_star",
+      "harami",
+      "dragonfly_doji"
+     ],
+     "type": "list"
+    }
+   },
+   "source": "Owners 2026-10-08: price is the number one indicator, with bullish candles on support",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.ind_macd": {
+   "counts_toward_minimum": true,
+   "description": "Buy: the MACD line crosses above its signal line. Sell: it crosses below.",
+   "enabled": true,
+   "key": "stocks.ind_macd",
+   "kind": "indicator",
+   "name": "MACD crossover",
+   "params": {
+    "fast": 12,
+    "signal": 9,
+    "slow": 26
+   },
+   "params_schema": {
+    "fast": {
+     "default": 12,
+     "max": 100,
+     "min": 2,
+     "type": "sessions"
+    },
+    "signal": {
+     "default": 9,
+     "max": 100,
+     "min": 2,
+     "type": "sessions"
+    },
+    "slow": {
+     "default": 26,
+     "max": 200,
+     "min": 3,
+     "type": "sessions"
+    }
+   },
+   "source": "Owners 2026-10-08: the crossing of the 2 MACD lines",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.ind_pivot": {
+   "counts_toward_minimum": true,
+   "description": "Each session's pivot is (high + low + close) / 3. Buy: the pivot line hooks above its average of the last average_sessions pivots. Sell: it hooks below.",
+   "enabled": true,
+   "key": "stocks.ind_pivot",
+   "kind": "indicator",
+   "name": "Pivot point crossover",
+   "params": {
+    "average_sessions": 3
+   },
+   "params_schema": {
+    "average_sessions": {
+     "default": 3,
+     "max": 50,
+     "min": 2,
+     "type": "sessions"
+    }
+   },
+   "source": "Owners 2026-10-08: the pivot point as a line, with a 3 day average crossover",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.ind_rsi": {
+   "counts_toward_minimum": true,
+   "description": "Buy: RSI crosses above buy_level. Sell: RSI crosses below sell_level.",
+   "enabled": true,
+   "key": "stocks.ind_rsi",
+   "kind": "indicator",
+   "name": "RSI",
+   "params": {
+    "buy_level": 30,
+    "period": 14,
+    "sell_level": 70
+   },
+   "params_schema": {
+    "buy_level": {
+     "default": 30,
+     "max": 99,
+     "min": 1,
+     "type": "integer"
+    },
+    "period": {
+     "default": 14,
+     "max": 100,
+     "min": 2,
+     "type": "sessions"
+    },
+    "sell_level": {
+     "default": 70,
+     "max": 99,
+     "min": 1,
+     "type": "integer"
+    }
+   },
+   "source": "Owners 2026-10-08: RSI crossing above 30; sell level is a spec 08 interpretation",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.ind_stoch": {
+   "counts_toward_minimum": true,
+   "description": "Slow %K. Buy: %K crosses above buy_level. Sell: %K crosses below sell_level.",
+   "enabled": true,
+   "key": "stocks.ind_stoch",
+   "kind": "indicator",
+   "name": "Stochastics",
+   "params": {
+    "buy_level": 20,
+    "d_period": 3,
+    "k_period": 14,
+    "k_slowing": 3,
+    "sell_level": 80
+   },
+   "params_schema": {
+    "buy_level": {
+     "default": 20,
+     "max": 99,
+     "min": 1,
+     "type": "integer"
+    },
+    "d_period": {
+     "default": 3,
+     "max": 20,
+     "min": 1,
+     "type": "sessions"
+    },
+    "k_period": {
+     "default": 14,
+     "max": 100,
+     "min": 2,
+     "type": "sessions"
+    },
+    "k_slowing": {
+     "default": 3,
+     "max": 20,
+     "min": 1,
+     "type": "sessions"
+    },
+    "sell_level": {
+     "default": 80,
+     "max": 99,
+     "min": 1,
+     "type": "integer"
+    }
+   },
+   "source": "Owners 2026-10-08: Stochastics crossing over the 20; sell level is a spec 08 interpretation",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
   "stocks.liquidity": {
    "counts_toward_minimum": false,
    "description": "Exclude stocks below min_price or with average volume over avg_volume_sessions below min_avg_volume. Set both to 0 to switch off.",
@@ -441,6 +743,57 @@
    },
    "source": "Spec 08 interpretation (documents set no filter)",
    "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.momentum": {
+   "counts_toward_minimum": false,
+   "description": "The period-day APR from the five line chart is at least projection_pct / 100 / horizon_sessions times the trader year (0.35 / 20 x 260 = 455 percent).",
+   "enabled": true,
+   "key": "stocks.momentum",
+   "kind": "gate",
+   "name": "Momentum",
+   "params": {
+    "horizon_sessions": 20,
+    "period": 10,
+    "projection_pct": 35
+   },
+   "params_schema": {
+    "horizon_sessions": {
+     "default": 20,
+     "max": 260,
+     "min": 1,
+     "type": "sessions"
+    },
+    "period": {
+     "default": 10,
+     "max": 50,
+     "min": 5,
+     "type": "sessions"
+    },
+    "projection_pct": {
+     "default": 35,
+     "max": 1000,
+     "min": 1,
+     "type": "percent"
+    }
+   },
+   "source": "Owners 2026-10-08: 455% with the 10 day, so 35% in 20 days; 5 Line Bar",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.projection": {
+   "counts_toward_minimum": false,
+   "description": "Projected price = entry x (1 + projection_pct) within horizon_sessions (from the Momentum rule), with daily and weekly targets. A guide, not an exit.",
+   "enabled": true,
+   "key": "stocks.projection",
+   "kind": "plan",
+   "name": "Projection",
+   "params": {},
+   "params_schema": {},
+   "source": "Owners 2026-10-08: 35% is a price projection; Entry Points and Sales Targets",
+   "status": "approved",
    "strategy": "stocks",
    "version": 1
   },
@@ -516,7 +869,7 @@
   "stocks.sales_target": {
    "counts_toward_minimum": false,
    "description": "Sales target = purchase price times (1 + expected profit). Daily target = earnings / horizon_sessions; weekly = daily times 5. Defaults for new holdings.",
-   "enabled": true,
+   "enabled": false,
    "key": "stocks.sales_target",
    "kind": "plan",
    "name": "Sales target",
@@ -539,6 +892,89 @@
     }
    },
    "source": "Entry Points and Sales Targets",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 2
+  },
+  "stocks.sell_vote": {
+   "counts_toward_minimum": false,
+   "description": "A sell signal exit when at least min_votes different sell indicators fired within the last window_sessions sessions.",
+   "enabled": true,
+   "key": "stocks.sell_vote",
+   "kind": "gate",
+   "name": "Sell vote",
+   "params": {
+    "min_votes": 3,
+    "window_sessions": 3
+   },
+   "params_schema": {
+    "min_votes": {
+     "default": 3,
+     "max": 5,
+     "min": 1,
+     "type": "integer"
+    },
+    "window_sessions": {
+     "default": 3,
+     "max": 20,
+     "min": 1,
+     "type": "sessions"
+    }
+   },
+   "source": "Owners 2026-10-08: ride the trend until the indicators give a sell; 3 of 5 is a spec 08 interpretation",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.stop_loss": {
+   "counts_toward_minimum": false,
+   "description": "Until the trailing stop starts, a close at or below entry x (1 - stop_pct) is a stop exit.",
+   "enabled": true,
+   "key": "stocks.stop_loss",
+   "kind": "plan",
+   "name": "Stop loss",
+   "params": {
+    "stop_pct": 5
+   },
+   "params_schema": {
+    "stop_pct": {
+     "default": 5,
+     "max": 50,
+     "min": 0.5,
+     "type": "percent"
+    }
+   },
+   "source": "Owners 2026-10-08: 5% if the trade goes against us",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.trailing_stop": {
+   "counts_toward_minimum": false,
+   "description": "Once the highest close since entry is trail_after_pct above entry, the stop is trail_pct below the highest close and never falls. A close at or below it is a trailing stop exit.",
+   "enabled": true,
+   "key": "stocks.trailing_stop",
+   "kind": "plan",
+   "name": "Trailing stop",
+   "params": {
+    "trail_after_pct": 10,
+    "trail_pct": 5
+   },
+   "params_schema": {
+    "trail_after_pct": {
+     "default": 10,
+     "max": 500,
+     "min": 0,
+     "type": "percent"
+    },
+    "trail_pct": {
+     "default": 5,
+     "max": 50,
+     "min": 0.5,
+     "type": "percent"
+    }
+   },
+   "source": "Owners 2026-10-08: after it has gained 10%, a trailing stop set at 5%",
    "status": "approved",
    "strategy": "stocks",
    "version": 1
@@ -648,6 +1084,34 @@
    },
    "source": "Financial Wealth Building, comb through the entire NYSE and the Nasdaq",
    "status": "approved",
+   "strategy": "stocks",
+   "version": 1
+  },
+  "stocks.watch": {
+   "counts_toward_minimum": false,
+   "description": "A qualified stock that passes the momentum test joins the watch list. It stays while it is still qualified, for up to watch_sessions after it last passed, and leaves when bought.",
+   "enabled": true,
+   "key": "stocks.watch",
+   "kind": "lifecycle",
+   "name": "Watch list",
+   "params": {
+    "require_trend_confirmed": false,
+    "watch_sessions": 10
+   },
+   "params_schema": {
+    "require_trend_confirmed": {
+     "default": false,
+     "type": "boolean"
+    },
+    "watch_sessions": {
+     "default": 10,
+     "max": 60,
+     "min": 1,
+     "type": "sessions"
+    }
+   },
+   "source": "Owners 2026-10-08: catch the support within the 10% pullback; spec 08 interpretation",
+   "status": "provisional",
    "strategy": "stocks",
    "version": 1
   },

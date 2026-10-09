@@ -302,6 +302,30 @@ export interface WorkerMarket {
 
 export type ScreenStatus = "qualified" | "trend_established" | "trend_confirmed";
 
+/** One indicator's result, as the scanner stores it (spec 08, CLAUDE.md rule 3). */
+export interface IndicatorEvidence {
+  enabled: boolean;
+  fired: boolean;
+  session?: string;
+  patterns?: string[];
+  values?: Record<string, number | null>;
+  provisional: boolean;
+}
+export type Evidence = Record<string, IndicatorEvidence>;
+export interface MomentumEvidence {
+  enabled: boolean;
+  period: number;
+  rate: number | null;
+  threshold: number;
+  passed: boolean;
+}
+export interface DayEvidence {
+  buy: Evidence;
+  sell: Evidence;
+  momentum?: MomentumEvidence;
+}
+export type StockSignalState = "open" | "stopped" | "trailing_stopped" | "sold";
+
 export const stockTickers = pgTable("stock_tickers", {
   ticker: text("ticker").primaryKey(),
   name: text("name"),
@@ -347,9 +371,46 @@ export const stockScreenResults = pgTable(
     apr50: numeric("apr_50"),
     consistent: boolean("consistent").notNull(),
     versionSet: jsonb("version_set").$type<Record<string, number>>().notNull(),
+    momentum: boolean("momentum").notNull(),
+    watching: boolean("watching").notNull(),
+    indicators: jsonb("indicators").$type<DayEvidence>(),
   },
   (t) => [primaryKey({ columns: [t.sessionDate, t.ticker] })],
 );
+
+export const stockSignals = pgTable("stock_signals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticker: text("ticker").notNull(),
+  buySession: date("buy_session").notNull(),
+  entry: numeric("entry").notNull(),
+  stopInitial: numeric("stop_initial").notNull(),
+  projection: numeric("projection").notNull(),
+  projectionPct: numeric("projection_pct").notNull(),
+  horizonSessions: smallint("horizon_sessions").notNull(),
+  state: text("state").$type<StockSignalState>().notNull(),
+  trailingActive: boolean("trailing_active").notNull(),
+  highestClose: numeric("highest_close").notNull(),
+  stopNow: numeric("stop_now").notNull(),
+  projectionSession: date("projection_session"),
+  lastSession: date("last_session").notNull(),
+  exitSession: date("exit_session"),
+  exitPrice: numeric("exit_price"),
+  resultPct: numeric("result_pct"),
+  votes: jsonb("votes").$type<Evidence>().notNull(),
+  exitVotes: jsonb("exit_votes").$type<Evidence>(),
+  versionSet: jsonb("version_set").$type<Record<string, number>>().notNull(),
+  hasProvisional: boolean("has_provisional").notNull(),
+  createdAt: tz("created_at").notNull().defaultNow(),
+});
+
+export const stockSignalEvents = pgTable("stock_signal_events", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  signalId: uuid("signal_id").notNull(),
+  session: date("session").notNull(),
+  kind: text("kind").notNull(),
+  price: numeric("price"),
+  detail: jsonb("detail").$type<Record<string, unknown>>().notNull(),
+});
 
 export const holdings = pgTable("holdings", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -362,6 +423,15 @@ export const holdings = pgTable("holdings", {
   closed: boolean("closed").notNull().default(false),
   notes: text("notes"),
   createdAt: tz("created_at").notNull().defaultNow(),
+  // Written by the scanner after each session (spec 08): where the holding stands.
+  signalId: uuid("signal_id"),
+  highestClose: numeric("highest_close"),
+  trailingActive: boolean("trailing_active").notNull().default(false),
+  stopNow: numeric("stop_now"),
+  sellReason: text("sell_reason").$type<Exclude<StockSignalState, "open">>(),
+  sellSession: date("sell_session"),
+  sellPrice: numeric("sell_price"),
+  trackedSession: date("tracked_session"),
 });
 
 export const econEvents = pgTable("econ_events", {

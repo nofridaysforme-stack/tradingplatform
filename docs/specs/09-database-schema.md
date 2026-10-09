@@ -285,7 +285,48 @@ CREATE TABLE stock_screen_results (
   apr_5 numeric(14,6), apr_10 numeric(14,6), apr_20 numeric(14,6), apr_50 numeric(14,6),
   consistent    boolean NOT NULL DEFAULT false,
   version_set   jsonb NOT NULL,
+  momentum      boolean NOT NULL DEFAULT false,   -- spec 08 stage 2 passed this session
+  watching      boolean NOT NULL DEFAULT false,   -- on the watch list this session
+  indicators    jsonb,                            -- the session's buy and sell evidence
   PRIMARY KEY (session_date, ticker)
+);
+
+-- Stock buys and their exits (spec 08). One open buy per ticker.
+CREATE TABLE stock_signals (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticker           text NOT NULL,
+  buy_session      date NOT NULL,
+  entry            numeric(18,6) NOT NULL,       -- close of the buy session
+  stop_initial     numeric(18,6) NOT NULL,
+  projection       numeric(18,6) NOT NULL,
+  projection_pct   numeric(8,2) NOT NULL,
+  horizon_sessions smallint NOT NULL,
+  state            text NOT NULL DEFAULT 'open', -- open, stopped, trailing_stopped, sold
+  trailing_active  boolean NOT NULL DEFAULT false,
+  highest_close    numeric(18,6) NOT NULL,
+  stop_now         numeric(18,6) NOT NULL,
+  projection_session date,
+  last_session     date NOT NULL,
+  exit_session     date,
+  exit_price       numeric(18,6),
+  result_pct       numeric(12,6),
+  votes            jsonb NOT NULL,               -- every indicator's buy evidence
+  exit_votes       jsonb,                        -- sell evidence for a sell-signal exit
+  version_set      jsonb NOT NULL,
+  has_provisional  boolean NOT NULL DEFAULT false,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (ticker, buy_session)
+);
+
+CREATE TABLE stock_signal_events (
+  id         bigserial PRIMARY KEY,
+  signal_id  uuid NOT NULL REFERENCES stock_signals(id) ON DELETE CASCADE,
+  session    date NOT NULL,
+  kind       text NOT NULL,  -- bought, trailing_started, projection_reached, horizon_passed, stopped, trailing_stopped, sold
+  price      numeric(18,6),
+  detail     jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (signal_id, kind)
 );
 
 CREATE TABLE holdings (
@@ -294,11 +335,20 @@ CREATE TABLE holdings (
   ticker        text NOT NULL,
   purchase_price numeric(18,6) NOT NULL,
   purchase_date date NOT NULL,
-  expected_profit_pct numeric(6,2) NOT NULL DEFAULT 30,
+  expected_profit_pct numeric(6,2) NOT NULL DEFAULT 35, -- the projection (spec 08)
   horizon_sessions smallint NOT NULL DEFAULT 20,
   closed        boolean NOT NULL DEFAULT false,
   notes         text,
-  created_at    timestamptz NOT NULL DEFAULT now()
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  signal_id     uuid REFERENCES stock_signals(id) ON DELETE SET NULL,
+  -- Written by the scanner after each session: where the holding stands.
+  highest_close numeric(18,6),
+  trailing_active boolean NOT NULL DEFAULT false,
+  stop_now      numeric(18,6),
+  sell_reason   text,          -- stopped, trailing_stopped, sold
+  sell_session  date,
+  sell_price    numeric(18,6),
+  tracked_session date
 );
 ```
 
