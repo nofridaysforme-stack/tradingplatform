@@ -105,6 +105,33 @@ test("an admin adds a pair and turns it off", async ({ page }) => {
   expect(await audits()).toEqual(["instrument.add", "instrument.update"]);
 });
 
+test("an admin creates a sign-in link that signs the person in once", async ({ page, browser }) => {
+  await makeAdmin();
+  await withSql((sql) => sql`insert into allowlist (email) values (${NEW_EMAIL})`);
+  await page.goto("/settings/users");
+  const row = page.getByRole("listitem").filter({ hasText: NEW_EMAIL });
+  await row.getByRole("button", { name: `Create a sign-in link for ${NEW_EMAIL}` }).click();
+  const field = row.getByLabel(`Sign-in link for ${NEW_EMAIL}. Send it only to them. It works once, within 24 hours.`);
+  const link = await field.inputValue();
+  expect(link).toContain("/api/auth/callback/email");
+  // Valid for a day, not 15 minutes; the link itself is not in the audit log.
+  const [token] = await withSql((sql) => sql`select extract(epoch from expires - now()) as secs from verification_tokens where identifier = ${NEW_EMAIL}`);
+  expect(Number(token!.secs)).toBeGreaterThan(23 * 3600);
+  expect(await audits()).toContain("allowlist.sign_in_link");
+
+  const them = await browser.newContext();
+  const theirPage = await them.newPage();
+  await theirPage.goto(link);
+  await expect(theirPage).toHaveURL(/\/notice$/);
+  await theirPage.getByRole("button", { name: "I understand" }).click();
+  await expect(theirPage).not.toHaveURL(/sign-in/);
+  // Used once: the same link no longer signs anyone in.
+  const again = await (await browser.newContext()).newPage();
+  await again.goto(link);
+  await expect(again).toHaveURL(/sign-in/);
+  await them.close();
+});
+
 test("an admin manages the allowlist, roles, and access", async ({ page, browser }) => {
   await makeAdmin();
   await page.goto("/settings/users");
