@@ -113,22 +113,30 @@ test("an admin creates a sign-in link that signs the person in once", async ({ p
   await row.getByRole("button", { name: `Create a sign-in link for ${NEW_EMAIL}` }).click();
   const field = row.getByLabel(`Sign-in link for ${NEW_EMAIL}. Send it only to them. It works once, within 24 hours.`);
   const link = await field.inputValue();
-  expect(link).toContain("/api/auth/callback/email");
+  expect(link).toContain("/sign-in/continue?token=");
   // Valid for a day, not 15 minutes; the link itself is not in the audit log.
   const [token] = await withSql((sql) => sql`select extract(epoch from expires - now()) as secs from verification_tokens where identifier = ${NEW_EMAIL}`);
   expect(Number(token!.secs)).toBeGreaterThan(23 * 3600);
   expect(await audits()).toContain("allowlist.sign_in_link");
 
+  // A message app opening the link for its preview does not use it up.
+  const preview = await (await browser.newContext()).newPage();
+  await preview.goto(link);
+  await expect(preview.getByRole("heading", { name: `Sign in as ${NEW_EMAIL}` })).toBeVisible();
+  await expectNoAxeViolations(preview);
+
   const them = await browser.newContext();
   const theirPage = await them.newPage();
   await theirPage.goto(link);
+  await theirPage.getByRole("button", { name: "Sign in" }).click();
   await expect(theirPage).toHaveURL(/\/notice$/);
   await theirPage.getByRole("button", { name: "I understand" }).click();
   await expect(theirPage).not.toHaveURL(/sign-in/);
   // Used once: the same link no longer signs anyone in.
   const again = await (await browser.newContext()).newPage();
   await again.goto(link);
-  await expect(again).toHaveURL(/sign-in/);
+  await again.getByRole("button", { name: "Sign in" }).click();
+  await expect(again.getByText("That sign-in link has expired or was already used.")).toBeVisible();
   await them.close();
 });
 
