@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui";
 import { db } from "@/lib/db";
 import { allowlist, users } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/session";
-import { AddEmailForm, RemoveEmail, UserControls } from "./forms";
+import { AddEmailForm, RemoveEmail, SignInLink, UserControls } from "./forms";
 
 export const metadata: Metadata = { title: "Users · Trading desk" };
 
@@ -26,7 +26,8 @@ export default async function UsersPage() {
       <header className="px-5 pt-1.5 pb-3.5">
         <h1 className="m-0 text-[22px] font-semibold leading-tight">Users</h1>
         <p className="m-0 mt-1 max-w-[62ch] text-[13px] text-mute">
-          Only approved emails can sign in. There is no public sign-up. Admins manage rules, brokers, pairs, and users.
+          Only approved emails can sign in. There is no public sign-up. Admins manage rules, brokers, pairs, and users. If email can&apos;t reach someone yet,
+          create a sign-in link and send it to them yourself.
         </p>
       </header>
       <section aria-labelledby="people-h" className="border-t border-rule">
@@ -55,6 +56,7 @@ export default async function UsersPage() {
                 ) : (
                   <RemoveEmail email={email} />
                 )}
+                {user?.id !== me.id && user?.active !== false && <SignInLink email={email} />}
               </div>
             </li>
           ))}

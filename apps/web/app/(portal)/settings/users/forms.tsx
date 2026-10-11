@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui";
 import { useFormAction } from "@/lib/use-form-action";
-import { addAllowlistEmail, removeAllowlistEmail, setUserActive, setUserRole, type UserState } from "./actions";
+import { useState } from "react";
+import { addAllowlistEmail, createSignInLink, removeAllowlistEmail, setUserActive, setUserRole, type UserState } from "./actions";
 
 function Feedback({ state }: { state: UserState }) {
   if (state.error && !state.fieldErrors)
@@ -97,5 +98,58 @@ export function RemoveEmail({ email }: { email: string }) {
       </Button>
       <Feedback state={state} />
     </form>
+  );
+}
+
+/** Makes a sign-in link the admin sends to the person themselves (text or chat). */
+export function SignInLink({ email }: { email: string }) {
+  const [state, onSubmit, pending] = useFormAction<UserState>(createSignInLink, {});
+  const [copied, setCopied] = useState(false);
+  const id = `link-${email.replace(/[^a-z0-9]/gi, "-")}`;
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-3">
+        <input type="hidden" name="email" value={email} />
+        <Button kind="inline" type="submit" disabled={pending} aria-label={`Create a sign-in link for ${email}`}>
+          Create sign-in link
+        </Button>
+        {state.error && (
+          <span role="alert" className="text-[13px] text-error">
+            {state.error}
+          </span>
+        )}
+      </form>
+      {state.ok && state.link && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={id} className="text-[13px] text-ink-2">
+            Sign-in link for {email}. Send it only to them. It works once, within 24 hours.
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id={id}
+              readOnly
+              value={state.link}
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-10 min-w-0 flex-1 rounded-control border border-rule bg-input px-2.5 text-[13px] text-ink"
+            />
+            <Button
+              kind="secondary"
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard.writeText(state.link!).catch(() => {});
+                setCopied(true);
+              }}
+            >
+              Copy link
+            </Button>
+            {copied && (
+              <span role="status" className="text-[13px] text-ink">
+                Copied
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

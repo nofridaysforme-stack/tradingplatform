@@ -1,9 +1,14 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Resend } from "resend";
 
 export class EmailNotConfiguredError extends Error {}
+
+/** While an admin creates a sign-in link to hand over themselves, the link is kept here
+ *  instead of being emailed (Settings, Users). */
+export const linkCapture = new AsyncLocalStorage<{ url?: string }>();
 
 /** Whether sign-in links can be delivered: Resend is set up, or a test mailbox is in use. */
 export function emailConfigured(): boolean {
@@ -16,6 +21,11 @@ export function emailConfigured(): boolean {
  * (spec 15). Without Resend or a test mailbox, sign-in is unavailable.
  */
 export async function sendSignInLink(email: string, url: string): Promise<void> {
+  const capture = linkCapture.getStore();
+  if (capture) {
+    capture.url = url;
+    return;
+  }
   const mailbox = process.env.AUTH_TEST_MAILBOX;
   if (mailbox) {
     await mkdir(mailbox, { recursive: true });
