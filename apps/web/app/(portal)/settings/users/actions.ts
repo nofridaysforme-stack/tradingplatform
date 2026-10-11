@@ -136,5 +136,18 @@ export async function createSignInLink(_: UserState, form: FormData): Promise<Us
     // The link itself is never stored in the audit log or logged (spec 15).
     await audit(tx, { userId: admin.id, action: "allowlist.sign_in_link", target: email });
   });
-  return { ok: true, message: `Link for ${email}`, link: capture.url };
+  return { ok: true, message: `Link for ${email}`, link: handoverUrl(capture.url) };
+}
+
+/** The emailed link signs in as soon as it is opened. A link sent by text goes to a page with
+ *  a Sign in button instead, so a message app's link preview can't use it up. */
+function handoverUrl(callback: string): string {
+  const u = new URL(callback);
+  const next = u.searchParams.get("callbackUrl") ?? "/dashboard";
+  const path = next.startsWith("/") ? next : new URL(next).pathname;
+  const out = new URL("/sign-in/continue", u.origin);
+  out.searchParams.set("token", u.searchParams.get("token") ?? "");
+  out.searchParams.set("email", u.searchParams.get("email") ?? "");
+  out.searchParams.set("callbackUrl", path);
+  return out.toString();
 }
