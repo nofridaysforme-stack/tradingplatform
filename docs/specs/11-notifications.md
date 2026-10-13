@@ -100,7 +100,7 @@ Target: notifications sent within 30 seconds of signal creation; end-to-end with
 ## Telegram setup
 
 - Create a bot with BotFather; store `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME`.
-- `POST /api/telegram/webhook` (secret path segment plus `X-Telegram-Bot-Api-Secret-Token` header) receives `/start <link_token>`, matches the token, stores `chat_id`, replies "Connected. You will receive trade alerts here."
+- `POST /api/telegram/webhook` (secret path segment plus `X-Telegram-Bot-Api-Secret-Token` header) receives `/start <link_token>`, matches the token, stores `chat_id`, replies "Connected. You will receive trade alerts here." Connecting also turns Telegram on as an alert channel in the owner's preferences; disconnecting turns it off.
 - Owners can disconnect in Settings, which clears the link and sends a goodbye message.
 
 ## Health alerts

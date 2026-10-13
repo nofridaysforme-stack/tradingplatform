@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { telegramLinks } from "@/lib/db/schema";
-import { CONNECTED, EXPIRED, safeEqual, sendTelegram } from "@/lib/telegram";
+import { CONNECTED, EXPIRED, safeEqual, sendTelegram, setTelegramChannel } from "@/lib/telegram";
 
 const Update = z.object({
   message: z
@@ -32,6 +32,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/telegram/we
     .set({ chatId: msg.chat.id, linkedAt: new Date(), linkToken: null })
     .where(eq(telegramLinks.linkToken, match[1]!))
     .returning({ userId: telegramLinks.userId });
+  if (link) await setTelegramChannel(link.userId, true);
   await sendTelegram(msg.chat.id, link ? CONNECTED : EXPIRED);
   return NextResponse.json({ ok: true });
 }
