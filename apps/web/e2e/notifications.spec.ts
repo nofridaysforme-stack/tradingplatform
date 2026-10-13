@@ -253,6 +253,14 @@ test("Telegram connects through the bot link and the webhook, then disconnects",
       sql`select t.chat_id::text, t.link_token from telegram_links t join users u on u.id = t.user_id where u.email = ${E2E_EMAIL}`,
   );
   expect(row).toEqual({ chat_id: "987654321", link_token: null });
+  const channels = async () =>
+    (
+      await withSql(
+        (sql) =>
+          sql`select p.channels::text[] as c from notification_prefs p join users u on u.id = p.user_id where u.email = ${E2E_EMAIL}`,
+      )
+    )[0]?.c;
+  expect(await channels()).toContain("telegram"); // connecting turns the channel on
   expect((await hook(SECRET, SECRET)).status()).toBe(200); // the token works once
   await anon.dispose();
 
@@ -261,10 +269,12 @@ test("Telegram connects through the bot link and the webhook, then disconnects",
     "Connected",
   );
   await expect(page.getByRole("switch", { name: /Telegram/ })).toBeEnabled();
+  await expect(page.getByRole("switch", { name: /Telegram/ })).toBeChecked();
   await page.getByRole("button", { name: "Disconnect Telegram" }).click();
   await expect(
     page.getByRole("button", { name: "Connect Telegram" }),
   ).toBeVisible();
+  expect(await channels()).not.toContain("telegram");
   const left = await withSql(
     (sql) =>
       sql`select count(*)::int as n from telegram_links t join users u on u.id = t.user_id where u.email = ${E2E_EMAIL}`,

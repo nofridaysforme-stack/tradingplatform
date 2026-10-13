@@ -12,7 +12,7 @@ import {
   type ChannelKind,
 } from "@/lib/db/schema";
 import { requireUser } from "@/lib/session";
-import { GOODBYE, sendTelegram } from "@/lib/telegram";
+import { GOODBYE, sendTelegram, setTelegramChannel } from "@/lib/telegram";
 
 export interface PrefsState {
   ok?: boolean;
@@ -127,6 +127,7 @@ export async function disconnectTelegram(): Promise<PrefsState> {
     .delete(telegramLinks)
     .where(eq(telegramLinks.userId, user.id))
     .returning();
+  await setTelegramChannel(user.id, false);
   if (link?.chatId) await sendTelegram(link.chatId, GOODBYE);
   revalidatePath("/settings/notifications");
   return { ok: true, message: "Telegram disconnected" };
