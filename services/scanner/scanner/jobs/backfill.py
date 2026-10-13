@@ -4,9 +4,10 @@
     python -m scanner.jobs.backfill stocks [--sessions 300]
 
 Forex: M15 for 120 trading days, D for 400 days, W for 104 weeks, M for 36 months, then
-levels for the most recent trading days. Stocks: grouped daily bars for the last 300
-sessions at 5 calls per minute (about an hour), skipping sessions already stored, then
-the ticker universe. Progress is written to job_runs.
+levels for the most recent trading days. Stocks: first the ticker universe, then stored bars
+outside it are deleted, then grouped daily bars for the last 300 sessions at 5 calls per
+minute (about an hour), skipping sessions already stored and keeping only universe stocks
+and held stocks. Progress is written to job_runs.
 """
 
 import argparse
@@ -20,7 +21,13 @@ from scanner.config import MASSIVE_HOST, Settings
 from scanner.data.base import ProviderError, StockDataProvider
 from scanner.data.massive import MassiveClient
 from scanner.data.oanda import OandaClient
-from scanner.data.sync import load_grouped_day, now_utc, refresh_universe, sync_forex
+from scanner.data.sync import (
+    kept_tickers,
+    load_grouped_day,
+    now_utc,
+    refresh_universe,
+    sync_forex,
+)
 from scanner.instruments import Instrument
 from scanner.levels.compute import compute_and_store
 from scanner.main import configure_logging
@@ -94,7 +101,9 @@ def backfill_stocks(
     today: date,
     sessions: int = STOCK_SESSIONS,
     on_progress: Callable[[int, int], None] | None = None,
+    vacuum: bool = False,
 ) -> dict[str, Any]:
+    """`vacuum` reclaims the space of purged bars before loading (autocommit connections)."""
     hol = db.holidays(conn, "us_stocks")
     # Today's session is not published until the evening, so start from yesterday.
     wanted = us_stock_sessions_back(today - timedelta(days=1), sessions, hol)
@@ -110,6 +119,13 @@ def backfill_stocks(
     }
     ok = True
     try:
+        active, retired = refresh_universe(conn, provider)
+        detail["tickers"] = {"active": active, "retired": retired}
+        keep = kept_tickers(conn)
+        detail["purged"] = 0 if keep is None else db.purge_stock_bars(conn, keep)
+        if detail["purged"] and vacuum:
+            db.vacuum_stock_bars(conn)
+        db.update_job(conn, run_id, detail)
         for i, session in enumerate(todo, start=1):
             if load_grouped_day(conn, provider, session) == 0:
                 detail["empty_sessions"].append(session.isoformat())
@@ -119,8 +135,6 @@ def backfill_stocks(
                 db.update_job(conn, run_id, {**detail, "progress": f"{i}/{len(todo)}"})
                 if on_progress:
                     on_progress(i, len(todo))
-        active, retired = refresh_universe(conn, provider)
-        detail["tickers"] = {"active": active, "retired": retired}
     except ProviderError as exc:
         ok = False
         detail["error"] = str(exc)
@@ -164,6 +178,7 @@ def main(argv: list[str] | None = None) -> None:
                 now_utc().date(),
                 args.sessions,
                 on_progress=lambda i, n: log.info("stock backfill %s/%s", i, n),
+                vacuum=True,
             )
 
 
