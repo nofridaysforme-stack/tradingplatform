@@ -102,6 +102,8 @@ The Massive client enforces 5 calls per rolling 60 seconds with a token bucket. 
 
 Fetch grouped daily bars for the last 300 trading sessions (enough for 252-session highs and lows plus the 50-session close). At 5 calls per minute this takes about an hour, once. Run it as a one-time job with progress logged to `job_runs`.
 
+Only the bars of the stock universe (active common stocks on the `stocks.universe` exchanges) and of stocks an owner still holds are stored. The grouped file also carries ETFs, warrants, and funds, about half its rows, which nothing reads. The backfill refreshes the ticker list first, deletes stored bars outside it, then loads. Before the ticker list exists, everything is stored.
+
 ### Splits
 
 Stored bars are adjusted as of the day they were fetched. When a split executes, older stored bars for that ticker become inconsistent. Each evening, after loading the grouped bars, call the splits endpoint for that date and refetch full history for each affected ticker with the single-ticker endpoint, replacing its stored rows.

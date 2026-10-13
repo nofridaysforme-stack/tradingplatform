@@ -182,6 +182,16 @@ class FakeMassive:
 def test_backfill_stocks_resumes_and_records_progress(conn: Conn) -> None:
     conn.execute("INSERT INTO market_holidays (day, market) VALUES ('2026-09-07', 'us_stocks')")
     conn.execute("INSERT INTO stock_tickers (ticker, active) VALUES ('GONE', true), ('AAPL', true)")
+    # Stored before the universe filter: an ETF, and a fund an owner still holds.
+    db.upsert_stock_bars(conn, [_bar("SPY", date(2026, 9, 24)), _bar("HELD", date(2026, 9, 24))])
+    user = conn.execute("INSERT INTO users (email) VALUES ('o@example.com') RETURNING id")
+    owner = user.fetchone()
+    assert owner is not None
+    conn.execute(
+        "INSERT INTO holdings (user_id, ticker, purchase_price, purchase_date) "
+        "VALUES (%s, 'HELD', 10, '2026-09-24')",
+        (owner[0],),
+    )
     published = {date(2026, 9, 25), date(2026, 9, 28)}
     fake = FakeMassive(published)
     today = date(2026, 9, 30)
@@ -191,6 +201,11 @@ def test_backfill_stocks_resumes_and_records_progress(conn: Conn) -> None:
     assert detail["loaded"] == 2
     assert detail["empty_sessions"] == ["2026-09-29"]
     assert detail["tickers"] == {"active": 1, "retired": 1}
+    assert detail["purged"] == 1  # SPY; the held fund stays
+    stored = conn.execute(
+        "SELECT ticker, count(*) FROM stock_daily_bars GROUP BY 1 ORDER BY 1"
+    ).fetchall()
+    assert stored == [("AAPL", 2), ("HELD", 1)]  # IBM is not a universe stock
 
     fake.grouped_calls.clear()
     detail = backfill_stocks(conn, fake, today, sessions=3)
@@ -199,6 +214,11 @@ def test_backfill_stocks_resumes_and_records_progress(conn: Conn) -> None:
 
     active = conn.execute("SELECT ticker FROM stock_tickers WHERE active ORDER BY 1").fetchall()
     assert active == [("AAPL",)]
+
+
+def test_split_refetch_skips_stocks_outside_the_universe(conn: Conn) -> None:
+    conn.execute("INSERT INTO stock_tickers (ticker, exchange) VALUES ('AAPL', 'XNAS')")
+    assert refetch_split_tickers(conn, FakeMassive(set()), date(2026, 9, 29)) == []
 
 
 def test_split_refetch_replaces_history(conn: Conn) -> None:

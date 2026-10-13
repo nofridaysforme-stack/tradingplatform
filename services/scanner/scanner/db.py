@@ -230,6 +230,17 @@ def replace_ticker_history(conn: Conn, ticker: str, bars: list[DailyBar]) -> int
         return upsert_stock_bars(conn, bars)
 
 
+def purge_stock_bars(conn: Conn, keep: Iterable[str]) -> int:
+    """Delete the stored bars of every ticker outside `keep`. Returns the rows deleted."""
+    cur = conn.execute("DELETE FROM stock_daily_bars WHERE NOT (ticker = ANY(%s))", (sorted(keep),))
+    return cur.rowcount
+
+
+def vacuum_stock_bars(conn: Conn) -> None:
+    """Make the space of deleted bars reusable now. Needs an autocommit connection."""
+    conn.execute("VACUUM stock_daily_bars")
+
+
 def stock_sessions_present(conn: Conn, sessions: Iterable[date]) -> set[date]:
     rows = conn.execute(
         "SELECT DISTINCT session_date FROM stock_daily_bars WHERE session_date = ANY(%s)",
@@ -354,6 +365,11 @@ def active_tickers(conn: Conn, exchanges: list[str]) -> list[str]:
         "SELECT ticker FROM stock_tickers WHERE active AND exchange = ANY(%s)", (exchanges,)
     )
     return [r[0] for r in rows]
+
+
+def held_tickers(conn: Conn) -> set[str]:
+    rows = conn.execute("SELECT DISTINCT ticker FROM holdings WHERE NOT closed")
+    return {r[0] for r in rows}
 
 
 def stock_sessions_before(conn: Conn, session: date, count: int) -> list[date]:
