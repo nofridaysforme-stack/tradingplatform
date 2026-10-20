@@ -5,7 +5,7 @@ import { HoldingForm } from "@/components/holding-form";
 import { StockBuys } from "@/components/stock-buys";
 import { StockChart } from "@/components/stock-chart";
 import { Badge, ProvisionalBadge } from "@/components/ui";
-import type { DayEvidence } from "@/lib/db/schema";
+import type { DayEvidence, MomentumEvidence } from "@/lib/db/schema";
 import { holdingDefaults } from "@/lib/holdings";
 import { money, percent } from "@/lib/format";
 import { requireUser } from "@/lib/session";
@@ -22,6 +22,7 @@ export default async function StockPage({ params }: PageProps<"/stocks/[ticker]"
   if (!s) notFound();
   const r = s.latest;
   const t = s.thresholds;
+  const m = r?.evidence?.momentum;
   const lastBar = s.bars.at(-1);
   return (
     <main>
@@ -77,20 +78,19 @@ export default async function StockPage({ params }: PageProps<"/stocks/[ticker]"
             </h2>
             <ul className="m-0 list-none p-0 text-sm">
               <Stage
-                title="Momentum"
-                passed={r.evidence?.momentum?.passed ?? r.stage !== "qualified"}
-                detail={
-                  r.evidence?.momentum
-                    ? `${r.evidence.momentum.period}-day APR ${percent(r.evidence.momentum.rate)}, needs ${percent(r.evidence.momentum.threshold)} or more (the pace of the projection)`
-                    : "Not recorded for this session."
-                }
+                title={m?.weeks ? "10-week momentum" : "Momentum"}
+                passed={m ? (m.weeks ? Boolean(m.qualifying) || m.passed : m.passed) : r.stage !== "qualified"}
+                detail={momentumText(m)}
               />
+              {m?.weeks && <Ladder m={m} />}
               <Stage
                 title="Watch list"
                 passed={r.stage === "watching"}
                 detail={
                   r.stage === "watching"
-                    ? "Waiting for a buy: 3 of 5 indicators within 3 sessions while the close stays inside 10% of the 52-week high."
+                    ? `Waiting for a buy: 3 of 5 indicators within 3 sessions while the close stays inside 10% of the 52-week high.${
+                        m?.qualifying ? ` Qualifying date ${m.qualifying}${t.watchSessions !== null ? `, watched for up to ${t.watchSessions} sessions from it` : ""}.` : ""
+                      }`
                     : s.buys.some((b) => b.state === "open")
                       ? "Not watched while a buy is open."
                       : "Not on the watch list this session."
@@ -248,6 +248,55 @@ function FiveLine({
         })}
       </tbody>
     </table>
+  );
+}
+
+function momentumText(m: MomentumEvidence | undefined): string {
+  if (!m) return "Not recorded for this session.";
+  if (!m.weeks) {
+    return `${m.period ?? 10}-day APR ${percent(m.rate ?? null)}, needs ${percent(m.threshold)} or more (the pace of the projection)`;
+  }
+  const close = m.today ? `This session's close (${m.week_close}) is the week's close` : `Last week close ${m.week_close}`;
+  return `${close}: ${m.passes} of ${m.weeks.length} weeks back at ${percent(m.threshold)} or more, needs ${m.needed}.${m.qualifying ? ` Qualifying date ${m.qualifying}.` : ""}`;
+}
+
+/** The ten weekly rates the scanner computed from the week close (spec 08 Stage 2). */
+function Ladder({ m }: { m: MomentumEvidence }) {
+  return (
+    <li className="border-b border-rule-soft py-2.5">
+      <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Weekly rates, scrolls sideways">
+        <table className="w-full min-w-[420px] border-collapse font-condensed text-sm">
+          <caption className="pb-1.5 text-left text-[13px] text-mute">
+            From the {m.week_close} close of {money(m.close ?? null)}: (close − that week&apos;s close) ÷ that week&apos;s close ÷ days × the trader year
+          </caption>
+          <thead>
+            <tr className="text-xs text-mute">
+              <th scope="col" className="pb-1.5 text-left font-normal">Weeks back</th>
+              <th scope="col" className="pb-1.5 text-left font-normal">Week close</th>
+              <th scope="col" className="pb-1.5 text-right font-normal">Close</th>
+              <th scope="col" className="pb-1.5 text-right font-normal">Days</th>
+              <th scope="col" className="pb-1.5 text-right font-normal">Rate</th>
+              <th scope="col" className="pb-1.5 pl-3 text-left font-normal">At {percent(m.threshold)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {m.weeks?.map((w) => (
+              <tr key={w.weeks} className="border-t border-rule-soft">
+                <th scope="row" className="py-1.5 text-left font-normal">{w.weeks}</th>
+                <td className="py-1.5">{w.session ?? "No data"}</td>
+                <td className="py-1.5 text-right">{money(w.close)}</td>
+                <td className="py-1.5 text-right">{w.days}</td>
+                <td className="py-1.5 text-right">{percent(w.rate)}</td>
+                <td className="py-1.5 pl-3">
+                  <span aria-hidden="true">{w.passed ? "✓ " : "· "}</span>
+                  {w.passed ? "Yes" : "No"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </li>
   );
 }
 

@@ -748,40 +748,54 @@
   },
   "stocks.momentum": {
    "counts_toward_minimum": false,
-   "description": "The period-day APR from the five line chart is at least projection_pct / 100 / horizon_sessions times the trader year (0.35 / 20 x 260 = 455 percent).",
+   "description": "On the week's close (the Friday, or the session before a closed Friday) that passes the qualifying rules: for each of 1 to weeks weeks back, (close - that week's close) / that week's close / (weeks back x days_per_week) x the trader year. Passes when at least min_weeks_passing of them reach projection_pct / 100 / horizon_sessions x the trader year (0.35 / 20 x 260 = 455 percent).",
    "enabled": true,
    "key": "stocks.momentum",
    "kind": "gate",
-   "name": "Momentum",
+   "name": "10-week momentum",
    "params": {
+    "days_per_week": 5,
     "horizon_sessions": 20,
-    "period": 10,
-    "projection_pct": 35
+    "min_weeks_passing": 5,
+    "projection_pct": 35,
+    "weeks": 10
    },
    "params_schema": {
+    "days_per_week": {
+     "default": 5,
+     "max": 7,
+     "min": 1,
+     "type": "integer"
+    },
     "horizon_sessions": {
      "default": 20,
      "max": 260,
      "min": 1,
      "type": "sessions"
     },
-    "period": {
-     "default": 10,
-     "max": 50,
-     "min": 5,
-     "type": "sessions"
+    "min_weeks_passing": {
+     "default": 5,
+     "max": 52,
+     "min": 1,
+     "type": "integer"
     },
     "projection_pct": {
      "default": 35,
      "max": 1000,
      "min": 1,
      "type": "percent"
+    },
+    "weeks": {
+     "default": 10,
+     "max": 52,
+     "min": 1,
+     "type": "integer"
     }
    },
-   "source": "Owners 2026-10-08: 455% with the 10 day, so 35% in 20 days; 5 Line Bar",
-   "status": "provisional",
+   "source": "Owners 2026-10-20: the Friday close, 10 weeks back, 455% on at least 5 of 10",
+   "status": "approved",
    "strategy": "stocks",
-   "version": 1
+   "version": 2
   },
   "stocks.projection": {
    "counts_toward_minimum": false,
@@ -1089,14 +1103,14 @@
   },
   "stocks.watch": {
    "counts_toward_minimum": false,
-   "description": "A qualified stock that passes the momentum test joins the watch list. It stays while it is still qualified, for up to watch_sessions after it last passed, and leaves when bought.",
+   "description": "A qualified stock that passes the momentum test on the week's close (its qualifying date) joins the watch list. It stays while it is still qualified, for up to watch_sessions after it last passed, and leaves when bought.",
    "enabled": true,
    "key": "stocks.watch",
    "kind": "lifecycle",
    "name": "Watch list",
    "params": {
     "require_trend_confirmed": false,
-    "watch_sessions": 10
+    "watch_sessions": 40
    },
    "params_schema": {
     "require_trend_confirmed": {
@@ -1104,16 +1118,16 @@
      "type": "boolean"
     },
     "watch_sessions": {
-     "default": 10,
-     "max": 60,
+     "default": 40,
+     "max": 260,
      "min": 1,
      "type": "sessions"
     }
    },
-   "source": "Owners 2026-10-08: catch the support within the 10% pullback; spec 08 interpretation",
+   "source": "Owners 2026-10-20: the qualifying date stays open 40 sessions; leaving below the zone is a spec 08 interpretation",
    "status": "provisional",
    "strategy": "stocks",
-   "version": 1
+   "version": 2
   },
   "three_eight.candlestick": {
    "counts_toward_minimum": true,

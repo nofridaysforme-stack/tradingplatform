@@ -14,7 +14,7 @@ Start a new session with: "Read docs/handoff.md and CLAUDE.md, then continue."
 
 | Area | State | Where |
 |---|---|---|
-| Stock momentum system | The client's funnel: 100 percent APR and within 10 percent of the 52-week high, then the 10-day pace (455 percent APR, about 35 percent in 20 sessions), then a buy on 3 of 5 indicators inside 3 sessions (bullish candle in the pullback zone, MACD crossover, pivot line over its 3-day average, RSI crossing above 30, Stochastics crossing above 20). Exits: 5 percent stop, then a 5 percent trailing stop once up 10 percent, or a 3 of 5 sell vote. The 35 percent is a projection, not an exit. No Fibonacci. | Spec 08; `services/scanner/scanner/strategies/stock_momentum.py`; migration `20261008000002` |
+| Stock momentum system | The client's funnel: 100 percent APR and within 10 percent of the 52-week high, then, on the Friday close (Thursday when Friday is a holiday), the 10-week filter: at least 5 of the 10 weekly rates (5 to 50 days back) at 455 percent APR. A pass is the qualifying date and keeps the stock on the watch list for 40 sessions. Then a buy on 3 of 5 indicators inside 3 sessions (bullish candle in the pullback zone, MACD crossover, pivot line over its 3-day average, RSI crossing above 30, Stochastics crossing above 20). Exits: 5 percent stop, then a 5 percent trailing stop once up 10 percent, or a 3 of 5 sell vote. The 35 percent is a projection, not an exit. No Fibonacci. | Spec 08; `services/scanner/scanner/strategies/stock_momentum.py`; migrations `20261008000002` and `20261020000001` |
 | Forex | Paused by `app_settings.forex_enabled = false`. Pages and jobs hide or skip themselves. Turning it back on is one setting. | Migration `20261008000001`; `apps/web/lib/app-settings.ts` |
 | Sign-in | Email magic links cannot reach clients yet (Resend's test sender only delivers to the Resend account owner). Instead an admin opens Settings, Users, presses **Create sign-in link**, and texts the link. Links last 24 hours and work once; a continue page stops message previews from using them up. | PRs #25 and #26 |
 | Stock storage | Only the stock universe (active common stocks on NYSE, Nasdaq, NYSE American) and held stocks are stored. The backfill refreshes the ticker list first and purges other rows. | PR #27; spec 04 |
@@ -34,8 +34,8 @@ Start a new session with: "Read docs/handoff.md and CLAUDE.md, then continue."
 
 ## Waiting on the client
 
-- Confirm the provisional assumptions **A30 to A36** in `docs/specs/20-assumptions-and-open-items.md` (A37 is approved). The most important:
-  - A30: the momentum period is read as 10 sessions (the "10-day line"), not 10 weeks.
+- Confirm the provisional assumptions **A31 to A36** in `docs/specs/20-assumptions-and-open-items.md` (A30 and A37 are approved; A32's 40 sessions is approved). The most important:
+  - A32: a stock leaves the watch list early when it closes below the pullback zone. Confirm that is intended.
   - A36: indicator settings. With the default RSI 14 and Stochastics 14, those two rarely vote during a pullback under 10 percent, so most buys come from the candle, MACD, and pivot. The client should say whether that is intended or give shorter lengths.
 - Review the backtest report once it exists, so everyone knows how often the system finds trades.
 

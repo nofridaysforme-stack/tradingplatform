@@ -11,6 +11,7 @@ from scanner.time import (
     trading_day_end,
     trading_day_of,
     trading_day_start,
+    us_stock_holidays,
     us_stock_sessions_back,
 )
 
@@ -73,3 +74,16 @@ def test_us_stock_sessions_back() -> None:
 def test_naive_datetimes_are_rejected() -> None:
     with pytest.raises(ValueError, match="naive"):
         to_new_york(datetime(2026, 9, 28, 12))  # noqa: DTZ001
+
+
+def test_us_stock_holidays_follow_the_nyse_rules() -> None:
+    assert sorted(us_stock_holidays(2026)) == [
+        date(2026, 1, 1), date(2026, 1, 19), date(2026, 2, 16), date(2026, 4, 3),
+        date(2026, 5, 25), date(2026, 6, 19), date(2026, 7, 3), date(2026, 9, 7),
+        date(2026, 11, 26), date(2026, 12, 25),
+    ]  # fmt: skip
+    later = us_stock_holidays(2027)
+    assert {date(2027, 3, 26), date(2027, 6, 18), date(2027, 7, 5), date(2027, 12, 24)} <= later
+    # A Saturday New Year's Day is not observed; Juneteenth starts in 2022.
+    assert not any(d.month == 1 and d.day < 3 for d in us_stock_holidays(2022))
+    assert date(2021, 6, 18) not in us_stock_holidays(2021)

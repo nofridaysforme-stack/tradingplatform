@@ -180,7 +180,7 @@ export interface StockDetail {
   history: { session: string; status: ScreenStatus }[];
   stages: { session: string; stage: Stage }[];
   buys: StockBuy[];
-  thresholds: { ratio: number | null; multiple: number | null; minApr: number | null };
+  thresholds: { ratio: number | null; multiple: number | null; minApr: number | null; watchSessions: number | null };
 }
 
 const CHART_SESSIONS = 130; // about six months
@@ -203,7 +203,7 @@ export async function stockDetail(ticker: string): Promise<StockDetail | null> {
   ]);
   if (!info && bars.length === 0 && history.length === 0) return null;
   const last = history[0];
-  const thresholds = last ? await thresholdsAt(last.versionSet) : { ratio: null, multiple: null, minApr: null };
+  const thresholds = last ? await thresholdsAt(last.versionSet) : { ratio: null, multiple: null, minApr: null, watchSessions: null };
   // Status history: the sessions where the status changed, newest first.
   const changes: StockDetail["history"] = [];
   for (let i = history.length - 1; i >= 0; i--) {
@@ -238,14 +238,19 @@ export async function stockDetail(ticker: string): Promise<StockDetail | null> {
 
 /** The qualification thresholds in force when the result was screened (its version set). */
 async function thresholdsAt(versionSet: Record<string, number>) {
-  const keys = ["stocks.rule1_near_high", "stocks.rule2_double", "stocks.rule3_apr"];
+  const keys = ["stocks.rule1_near_high", "stocks.rule2_double", "stocks.rule3_apr", "stocks.watch"];
   const pairs = keys.filter((k) => versionSet[k] !== undefined).map((k) => and(eq(ruleVersions.key, k), eq(ruleVersions.version, versionSet[k]!)));
   const rows = pairs.length ? await db.select({ key: ruleVersions.key, params: ruleVersions.params }).from(ruleVersions).where(or(...pairs)) : [];
   const p = (k: string, name: string) => {
     const v = rows.find((r) => r.key === k)?.params[name];
     return typeof v === "number" ? v : v === undefined ? null : Number(v);
   };
-  return { ratio: p(keys[0]!, "ratio"), multiple: p(keys[1]!, "multiple"), minApr: p(keys[2]!, "min_apr") };
+  return {
+    ratio: p(keys[0]!, "ratio"),
+    multiple: p(keys[1]!, "multiple"),
+    minApr: p(keys[2]!, "min_apr"),
+    watchSessions: p(keys[3]!, "watch_sessions"),
+  };
 }
 
 export async function lastClose(ticker: string): Promise<{ close: number; session: string } | null> {
@@ -352,6 +357,8 @@ export interface WatchRow {
   close: number;
   high_52w: number;
   apr10: number | null;
+  /** The week close that put the stock on the watch list. */
+  qualifying: string | null;
   votes: number;
   fired: string[];
 }
@@ -367,7 +374,8 @@ export async function watchList(session: string | null): Promise<WatchRow[]> {
   return rows
     .map(({ r, name }) => {
       const fired = INDICATORS.filter((k) => r.indicators?.buy[k]?.fired);
-      return { ticker: r.ticker, name, close: Number(r.close), high_52w: Number(r.high52w), apr10: n(r.apr10), votes: fired.length, fired };
+      const qualifying = r.indicators?.momentum?.qualifying ?? null;
+      return { ticker: r.ticker, name, close: Number(r.close), high_52w: Number(r.high52w), apr10: n(r.apr10), qualifying, votes: fired.length, fired };
     })
     .sort((a, b) => b.votes - a.votes || (b.apr10 ?? 0) - (a.apr10 ?? 0) || a.ticker.localeCompare(b.ticker));
 }

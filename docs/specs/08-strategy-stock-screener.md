@@ -1,6 +1,6 @@
 # Strategy: Stock Momentum System (Financial Wealth Building)
 
-Source: Financial Wealth Building pages (Step 1, Step 2, Steps 3 to 5), Financial Wealth Building 1 (three rules and five line chart), Entry Points and Sales Targets, the newspaper clip-out, and the owners' instructions of 2026-10-08 (momentum test, buy and sell vote, stops). Timeframe: daily bars, evaluated after each US session closes. Universe: US common stocks.
+Source: Financial Wealth Building pages (Step 1, Step 2, Steps 3 to 5), Financial Wealth Building 1 (three rules and five line chart), Entry Points and Sales Targets, the newspaper clip-out, the owners' instructions of 2026-10-08 (momentum test, buy and sell vote, stops), and the owners' note and recordings of 2026-10-20 (the 10-week momentum filter on the Friday close, the 40-session watch). Timeframe: daily bars, evaluated after each US session closes. Universe: US common stocks.
 
 Revised 2026-10-08. The earlier version ended at "trend confirmed" with a 30 percent sales target. The owners now want a staged funnel: find strong stocks near their high, keep the ones moving fast enough, wait for a small pullback, buy when the indicators agree, and ride the trend until a stop or the indicators say sell. Every number below is a setting in Settings, Rules.
 
@@ -8,8 +8,8 @@ Revised 2026-10-08. The earlier version ended at "trend confirmed" with a 30 per
 
 ```
 universe -> liquidity filter -> Stage 1 Qualify (Rules 1, 2, 3)
-         -> Stage 2 Momentum (10-day rate at least 455%)
-         -> Stage 3 Watch list (waits for a pullback inside the 10% zone)
+         -> Stage 2 10-week momentum on the week's close (5 of 10 weeks at 455%)
+         -> Stage 3 Watch list (up to 40 sessions, waits for a pullback inside the 10% zone)
          -> Stage 4 Buy (3 of 5 indicators within 3 sessions)
          -> Stage 5 Hold (35% projection shown, not an exit)
          -> Stage 6 Sell (fixed stop, trailing stop, or 3 of 5 sell indicators)
@@ -65,23 +65,35 @@ Worked example from the documents: today 5.36, 5-day close 3.85. ACC_5 = 1.51 / 
 
 Status values: `qualified`, `trend_established`, `trend_confirmed`. They stay on the stock pages as context. The funnel does not require them unless `stocks.watch` sets `require_trend_confirmed` (open item A31).
 
-## Stage 2: Momentum
+## Stage 2: 10-week momentum
+
+Revised 2026-10-20 from the owners' note and recordings. The test runs on the **week's close**: the Friday close, or the Thursday close (the week's last session) when the market is closed on the Friday. A week close where the stock passes Stage 1 and this test is its **qualifying date**.
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.momentum` | Approved concept, provisional settings | The stock's N-day APR from the five line chart is at least the rate that delivers `projection_pct` in `horizon_sessions`: threshold = `projection_pct` / 100 / `horizon_sessions` x `trader_year`. At the defaults that is 0.35 / 20 x 260 = **4.55 (455 percent)**, so the 10-day close must be about 17.5 percent below today's. | `period=10`, `projection_pct=35`, `horizon_sessions=20` |
+| `stocks.momentum` | Approved | From the week's close, go back one week at a time for `weeks` weeks. Each earlier week's close is that week's "low". For each week back: rate = (week close - that low) / that low / days x `trader_year`, where days = weeks back x `days_per_week` (1 week is 5 days, 2 weeks are 10, up to 50). The stock passes when at least `min_weeks_passing` of the rates reach the threshold = `projection_pct` / 100 / `horizon_sessions` x `trader_year`, which is 0.35 / 20 x 260 = **4.55 (455 percent)** at the defaults. | `weeks=10`, `min_weeks_passing=5`, `days_per_week=5`, `projection_pct=35`, `horizon_sessions=20` |
 
-The owners' words: "determine if the stock is capable of generating 455% with those 10 [days]. That will determine if the stock can generate 35% in a 20 day period." The 5 Line Bar example on the Steps 3 to 5 page shows the 10-day line at 1340 percent, the same kind of number. "10 week" in the note is read as the 10-day line (open item A30).
+The owners' words: "Then we sent them through a 10 week filter to determine if the stock is capable of generating 455% consistently within the 10 weeks", and "if that number is 455% consistently, then we want at least 5 of those out of the 10."
 
-Changing `projection_pct` moves the threshold with it: 30 percent gives 390 percent.
+Worked example from the owners' note (a fixture test): the qualifying Friday 10/16 closes at 12.00. One week back, 10/9 closed at 11.00: (12.00 - 11.00) / 11.00 / 5 x 260 = **472 percent**, a pass. Two weeks back, 10/2 closed at 10.00: (12.00 - 10.00) / 10.00 / 10 x 260 = **520 percent**, a pass. The same continues for 9/25 (15 days) through 8/7 (50 days).
+
+What 455 percent means for each week back: the close must be at least 8.75 percent above the close 1 week back, 17.5 percent above 2 weeks back, 35 percent above 4 weeks back, and 87.5 percent above 10 weeks back. Five of the ten must meet their mark; which five does not matter.
+
+Other details:
+
+- The weekly closes for the earlier weeks are the last stored session of each week, so a holiday Friday in an earlier week uses that week's Thursday too.
+- The week's close is found with the NYSE calendar: the standing holidays (New Year's Day, Martin Luther King Jr. Day, Washington's Birthday, Good Friday, Memorial Day, Juneteenth, Independence Day, Labor Day, Thanksgiving, Christmas, with the exchange's weekend rules) plus any extra closures an admin adds to `market_holidays`.
+- On the other sessions of the week no momentum test runs. The stock page shows the ladder from the latest week close.
+- Changing `projection_pct` moves the threshold with it: 30 percent gives 390 percent.
+- The five line chart (5, 10, 20, 50 sessions) is still computed and shown as context.
 
 ## Stage 3: Watch list
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.watch` | Provisional | A qualified stock that passes Stage 2 joins the watch list that session. It stays on the list while it is still qualified (inside the pullback zone) for up to `watch_sessions` sessions after it last passed Stage 2. It leaves the list when it closes below the zone, when the time runs out, or when it is bought. | `watch_sessions=10`, `require_trend_confirmed=false` |
+| `stocks.watch` | Approved length, provisional leaving rule | A stock that passes Stage 2 on a qualifying date joins the watch list that session. It stays on the list for up to `watch_sessions` sessions after its last qualifying date (the owners: "stay open for at least 40 days, two months"). A later qualifying date restarts the count. It leaves the list when it closes below the pullback zone or stops qualifying, when the time runs out, or when it is bought. | `watch_sessions=40`, `require_trend_confirmed=false` |
 
-Why the stock stays on the list: a stock that gained 17.5 percent in 10 days rarely keeps that pace through a pullback. The momentum test is passed once; the buy comes during the pullback that follows. Requiring both on the same session would almost never buy (open item A32).
+Why the stock stays on the list: a stock that passes the 10-week test rarely keeps that pace through a pullback. The test is passed on the qualifying date; the buy comes during the pullback that follows. Leaving the list on a close below the zone is a spec 08 interpretation (open item A32).
 
 ## Stage 4: Buy
 
@@ -152,7 +164,7 @@ All evening, after the stock screen (spec 11 channels and preferences, strategy 
 
 | Alert | When | Who |
 |---|---|---|
-| Watch list | One digest listing stocks that joined the watch list today, best 10-day APR first, at most `max_in_digest` | Everyone with stock alerts on |
+| Watch list | One digest listing stocks that joined the watch list today, best 10-day APR first (the five line chart value), at most `max_in_digest` | Everyone with stock alerts on |
 | Buy | One alert per buy: ticker, entry, stop, projection, and the indicators that voted | Everyone with stock alerts on |
 | Sell | One alert per closed buy: reason (stop, trailing stop, sell signal), exit close, result in percent | Everyone with stock alerts on |
 | Trailing stop started, projection reached | Information updates on an open buy (with "Updates" on) | Everyone with stock alerts and updates on |

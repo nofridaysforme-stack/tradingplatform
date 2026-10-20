@@ -285,7 +285,7 @@ CREATE TABLE stock_screen_results (
   apr_5 numeric(14,6), apr_10 numeric(14,6), apr_20 numeric(14,6), apr_50 numeric(14,6),
   consistent    boolean NOT NULL DEFAULT false,
   version_set   jsonb NOT NULL,
-  momentum      boolean NOT NULL DEFAULT false,   -- spec 08 stage 2 passed this session
+  momentum      boolean NOT NULL DEFAULT false,   -- spec 08 stage 2 passed this session (a week close)
   watching      boolean NOT NULL DEFAULT false,   -- on the watch list this session
   indicators    jsonb,                            -- the session's buy and sell evidence
   PRIMARY KEY (session_date, ticker)
