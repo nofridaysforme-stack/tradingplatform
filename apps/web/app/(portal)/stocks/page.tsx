@@ -81,7 +81,7 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
         ) : (
           // Scrolls sideways on a phone; focusable so the keyboard can scroll it too.
           <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Watch list, scrolls sideways">
-            <table className="mt-2 w-full min-w-[560px] border-collapse font-condensed text-sm">
+            <table className="mt-2 w-full min-w-[660px] border-collapse font-condensed text-sm">
               <caption className="sr-only">Watch list, most buy votes first</caption>
               <thead>
                 <tr className="text-xs text-mute">
@@ -89,6 +89,7 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
                   <th scope="col" className="border-b border-rule px-2 py-2 text-right font-normal">Close</th>
                   <th scope="col" className="border-b border-rule px-2 py-2 text-right font-normal">Below the high</th>
                   <th scope="col" className="border-b border-rule px-2 py-2 text-right font-normal">APR 10</th>
+                  <th scope="col" className="border-b border-rule px-2 py-2 text-right font-normal">Qualifying date</th>
                   <th scope="col" className="border-b border-rule px-2 py-2 pr-5 text-left font-normal">Buy votes</th>
                 </tr>
               </thead>
@@ -104,6 +105,7 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
                     <td className="px-2 py-2 text-right">{money(w.close)}</td>
                     <td className="px-2 py-2 text-right">{percent((w.high_52w - w.close) / w.high_52w)}</td>
                     <td className="px-2 py-2 text-right">{percent(w.apr10)}</td>
+                    <td className="px-2 py-2 text-right">{w.qualifying ?? "Not recorded"}</td>
                     <td className="px-2 py-2 pr-5">
                       <span className="font-semibold">{w.votes} of 5</span>
                       {w.fired.length > 0 && <span className="block text-xs text-mute">{w.fired.map((k) => INDICATOR_NAMES[k] ?? k).join(", ")}</span>}
@@ -224,8 +226,9 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
         </nav>
       )}
       <p className="m-0 border-t border-rule px-5 py-4 text-[13px] text-mute">
-        ACC is the change since the close N sessions ago; APR annualizes it over the trader year set in the five-line rule (260 sessions by default). Momentum means the 10-day APR is fast
-        enough to make the 35% projection in 20 sessions.
+        ACC is the change since the close N sessions ago; APR annualizes it over the trader year set in the five-line rule (260 sessions by default). Momentum is tested on the week&apos;s close (Thursday when
+        the market is closed on Friday): at least 5 of the last 10 weekly closes must give an APR fast enough to make the 35% projection in 20 sessions. That close is the
+        qualifying date.
       </p>
 
       {closed.length > 0 && (

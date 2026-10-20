@@ -157,7 +157,7 @@ export async function seedStocks(sql: postgres.Sql) {
     }),
   );
   await sql`insert into stock_daily_bars ${sql(bars)}`;
-  const versions = sql.json({ "stocks.rule1_near_high": 1, "stocks.rule2_double": 1, "stocks.rule3_apr": 1 });
+  const versions = sql.json({ "stocks.rule1_near_high": 1, "stocks.rule2_double": 1, "stocks.rule3_apr": 1, "stocks.watch": 2 });
   const row = (session_date: string, ticker: string, status: string, close: number, high: number, low: number, closes: [number, number, number, number], consistent: boolean) => {
     const acc = closes.map((x) => (close - x) / x);
     const apr = acc.map((a, i) => (a / [5, 10, 20, 50][i]!) * 260);
@@ -209,7 +209,17 @@ const sellVotes = Object.fromEntries(IND.map((k, i) => [k, vote(i < 3, "2026-09-
 function evidence(n: number) {
   const side = (fired: number) =>
     Object.fromEntries(IND.map((k, i) => [k, vote(i < fired, SESSION, { values: k === "stocks.ind_rsi" ? { rsi: 48.2 } : {}, provisional: k === "stocks.ind_rsi" })]));
-  return { buy: side(n), sell: side(0), momentum: { enabled: true, period: 10, rate: n === 2 ? 5.12 : 0.9, threshold: 4.55, passed: n === 2 } };
+  if (n !== 2) return { buy: side(n), sell: side(0), momentum: { enabled: true, period: 10, rate: 0.9, threshold: 4.55, passed: false } };
+  // E2EB: the 10-week ladder from Friday 2026-09-25, 9 of 10 weeks at 455 percent.
+  const weeks = Array.from({ length: 10 }, (_, k) => {
+    const close = [26.5, 24, 21.5, 19.5, 18, 17.5, 17, 16.8, 16.5, 16.2][k]!;
+    const rate = ((29.5 - close) / close / (5 * (k + 1))) * 260;
+    const session = new Date(Date.UTC(2026, 8, 25 - 7 * (k + 1))).toISOString().slice(0, 10);
+    return { weeks: k + 1, days: 5 * (k + 1), session, close, rate, passed: rate >= 4.55 };
+  });
+  const passes = weeks.filter((w) => w.passed).length;
+  const momentum = { enabled: true, week_close: "2026-09-25", today: false, close: 29.5, threshold: 4.55, needed: 5, passes, passed: passes >= 5, weeks, qualifying: "2026-09-25" };
+  return { buy: side(n), sell: side(0), momentum };
 }
 
 export async function clearStocks(sql: postgres.Sql) {

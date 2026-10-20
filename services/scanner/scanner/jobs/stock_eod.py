@@ -63,6 +63,7 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
             )
 
     version_set = rules.version_set(strategy="stocks")
+    is_open = sm.us_sessions(db.holidays(conn, "us_stocks"))
     results: dict[str, ScreenResult] = {}
     for ticker, bars in by_ticker.items():
         if bars[-1].session_date != session:
@@ -90,7 +91,7 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
         today = len(bars) - 1
         fired = fired_for(ticker)
         if ticker in open_signals:
-            day = sm.Day(today, r, sm.passes_momentum(bars, rules), False, False)
+            day = sm.Day(today, r, sm.passes_momentum(bars, rules, is_open), False, False)
         else:
             exit_session = last_exits.get(ticker)
             state = sm.WatchState(
@@ -99,13 +100,11 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
                 else -1
             )
             for i in range(max(0, today - watch_sessions), today + 1):
-                day = sm.step(ticker, bars, i, rules, state)
+                day = sm.step(ticker, bars, i, rules, state, is_open)
         row = r.as_row(version_set)
-        row.update(
-            momentum=day.momentum,
-            watching=day.watching,
-            indicators=sm.today_values(bars, fired, rules),
-        )
+        values = sm.today_values(bars, fired, rules, is_open)
+        values["momentum"]["qualifying"] = day.qualifying.isoformat() if day.qualifying else None
+        row.update(momentum=day.momentum, watching=day.watching, indicators=values)
         rows.append(row)
         if day.joined:
             joined.append(ticker)

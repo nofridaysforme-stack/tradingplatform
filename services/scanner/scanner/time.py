@@ -74,3 +74,53 @@ def us_stock_sessions_back(day: date, count: int, holidays: Collection[date] = (
             sessions.append(d)
         d -= timedelta(days=1)
     return sessions
+
+
+def _nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
+    """The nth weekday (0 Monday) of a month; n = -1 for the last."""
+    if n > 0:
+        first = date(year, month, 1)
+        return first + timedelta(days=(weekday - first.weekday()) % 7 + 7 * (n - 1))
+    last = date(year + month // 12, month % 12 + 1, 1) - timedelta(days=1)
+    return last - timedelta(days=(last.weekday() - weekday) % 7)
+
+
+def _easter(year: int) -> date:
+    """Gregorian Easter Sunday (anonymous Gregorian algorithm)."""
+    a, b, c = year % 19, year // 100, year % 100
+    d, e = b // 4, b % 4
+    g = (8 * b + 13) // 25
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l_ = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l_) // 451
+    n = h + l_ - 7 * m + 114
+    return date(year, n // 31, n % 31 + 1)
+
+
+def _observed(day: date) -> date | None:
+    """NYSE observance: Sunday moves to Monday; Saturday moves to Friday, except that a
+    Saturday New Year's Day is not observed (NYSE Rule 7.2)."""
+    if day.weekday() == 6:
+        return day + timedelta(days=1)
+    if day.weekday() == 5:
+        return None if (day.month, day.day) == (1, 1) else day - timedelta(days=1)
+    return day
+
+
+def us_stock_holidays(year: int) -> set[date]:
+    """The NYSE full-day holidays of a year, by the exchange's standing rules. Unscheduled
+    closures (a national day of mourning) are added in market_holidays."""
+    fixed = [date(year, 1, 1), date(year, 7, 4), date(year, 12, 25)]
+    if year >= 2022:
+        fixed.append(date(year, 6, 19))
+    out = {d for d in map(_observed, fixed) if d is not None}
+    out |= {
+        _nth_weekday(year, 1, 0, 3),  # Martin Luther King Jr. Day
+        _nth_weekday(year, 2, 0, 3),  # Washington's Birthday
+        _easter(year) - timedelta(days=2),  # Good Friday
+        _nth_weekday(year, 5, 0, -1),  # Memorial Day
+        _nth_weekday(year, 9, 0, 1),  # Labor Day
+        _nth_weekday(year, 11, 3, 4),  # Thanksgiving
+    }
+    return out

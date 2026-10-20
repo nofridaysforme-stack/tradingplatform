@@ -312,12 +312,31 @@ export interface IndicatorEvidence {
   provisional: boolean;
 }
 export type Evidence = Record<string, IndicatorEvidence>;
+/** One week back on the 10-week ladder (spec 08 Stage 2). */
+export interface MomentumWeek {
+  weeks: number;
+  days: number;
+  session: string | null;
+  close: number | null;
+  rate: number | null;
+  passed: boolean;
+}
 export interface MomentumEvidence {
   enabled: boolean;
-  period: number;
-  rate: number | null;
   threshold: number;
   passed: boolean;
+  /** The 10-week ladder from the latest week close (screens from 2026-10-20). */
+  week_close?: string;
+  today?: boolean;
+  close?: number;
+  needed?: number;
+  passes?: number;
+  weeks?: MomentumWeek[];
+  /** The week close whose pass keeps the stock on the watch list. */
+  qualifying?: string | null;
+  /** The 10-day test (screens before 2026-10-20). */
+  period?: number;
+  rate?: number | null;
 }
 export interface DayEvidence {
   buy: Evidence;

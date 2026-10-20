@@ -75,7 +75,7 @@ test("the stocks page shows open buys, the watch list, and closed buys", async (
   await expect(open.getByText("Provisional")).toBeVisible();
 
   const watch = page.getByRole("table", { name: /Watch list/ });
-  await expect(watch.getByRole("row", { name: /E2EB.*29\.80.*6\.9%.*2 of 5/ })).toBeVisible();
+  await expect(watch.getByRole("row", { name: /E2EB.*29\.80.*6\.9%.*2026-09-25.*2 of 5/ })).toBeVisible();
   await expect(watch).toContainText("Price and candle, MACD crossover");
 
   const closed = page.getByRole("region", { name: "Closed buys" }).getByRole("listitem");
@@ -87,7 +87,11 @@ test("the stocks page shows open buys, the watch list, and closed buys", async (
 test("stock detail shows momentum, the indicators, and the stock's buys", async ({ page }) => {
   await page.goto("/stocks/E2EB");
   const funnel = page.getByRole("region", { name: "Momentum and watch list" });
-  await expect(funnel).toContainText("10-day APR 512%, needs 455% or more");
+  await expect(funnel).toContainText("Last week close 2026-09-25: 9 of 10 weeks back at 455% or more, needs 5. Qualifying date 2026-09-25.");
+  await expect(funnel).toContainText("watched for up to 40 sessions from it");
+  const ladder = funnel.getByRole("table");
+  await expect(ladder.getByRole("row", { name: /^1 2026-09-18 26\.50 5 588\.7% Yes$/ })).toBeVisible();
+  await expect(ladder.getByRole("row", { name: /^10 2026-07-17 16\.20 50 426\.9% No$/ })).toBeVisible();
   await expect(funnel).toContainText("Waiting for a buy: 3 of 5 indicators within 3 sessions");
   const ind = page.getByRole("region", { name: "Indicators" });
   await expect(ind).toContainText(`After the ${SESSION} session: 2 of 5 for a buy, 0 of 5 for a sell`);

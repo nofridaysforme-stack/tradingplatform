@@ -180,40 +180,40 @@ def test_stock_funnel_day_by_day(conn: Conn) -> None:
     ).fetchone()
     assert user is not None
     rules = Registry.load(conn).ruleset
-    days = {i: stock_eod.screen_session(conn, rules, bars[i].session_date) for i in range(255, 281)}
-    assert [i for i, d in days.items() if d["watch_digest"]] == [257]
-    assert [i for i, d in days.items() if d["buys"]] == [267]
+    days = {i: stock_eod.screen_session(conn, rules, bars[i].session_date) for i in range(260, 297)}
+    assert [i for i, d in days.items() if d["watch_digest"]] == [269]
+    assert [i for i, d in days.items() if d["buys"]] == [282]
     sig = conn.execute(
         "SELECT id, entry, stop_initial, projection, has_provisional, votes -> 'stocks.ind_candle' "
         "->> 'fired', state FROM stock_signals WHERE ticker = 'SYN'"
     ).fetchone()
     assert sig is not None
-    assert sig[1:] == (D("6.889300"), D("6.544835"), D("9.300555"), True, "true", "sold")
+    assert sig[1:] == (D("9.272100"), D("8.808495"), D("12.517335"), True, "true", "sold")
     conn.execute(
         "INSERT INTO holdings (user_id, ticker, purchase_price, purchase_date, signal_id) "
-        "VALUES (%s, 'SYN', 6.95, %s, %s)",
-        (user[0], bars[268].session_date, sig[0]),
+        "VALUES (%s, 'SYN', 9.35, %s, %s)",
+        (user[0], bars[283].session_date, sig[0]),
     )
     # The holding joins on the next run: rerun the exit session.
-    exit_day = stock_eod.screen_session(conn, rules, bars[280].session_date)
+    exit_day = stock_eod.screen_session(conn, rules, bars[295].session_date)
     assert [a["alert"] for a in exit_day["holdings"]] == ["sold"]
     events = conn.execute(
         "SELECT kind, session FROM stock_signal_events WHERE signal_id = %s ORDER BY id", (sig[0],)
     ).fetchall()
     assert [e[0] for e in events] == ["bought", "trailing_started", "sold"]
-    assert days[280]["stock_events"] and not days[279]["stock_events"]
+    assert days[295]["stock_events"] and not days[294]["stock_events"]
     closed = conn.execute(
         "SELECT exit_session, exit_price, round(result_pct, 4), exit_votes ? 'stocks.ind_pivot', "
         "trailing_active FROM stock_signals WHERE id = %s",
         (sig[0],),
     ).fetchone()
-    assert closed == (bars[280].session_date, D("8.031100"), D("0.1657"), True, True)
+    assert closed == (bars[295].session_date, D("10.808700"), D("0.1657"), True, True)
     held = conn.execute(
         "SELECT sell_reason, sell_session, trailing_active, tracked_session FROM holdings "
         "WHERE signal_id = %s",
         (sig[0],),
     ).fetchone()
-    assert held == ("sold", bars[280].session_date, True, bars[280].session_date)
+    assert held == ("sold", bars[295].session_date, True, bars[295].session_date)
 
 
 def test_retention_runs(conn: Conn) -> None:

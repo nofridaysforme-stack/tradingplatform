@@ -56,15 +56,19 @@ class Trade:
     has_provisional: bool
 
 
-def replay(ticker: str, bars: Sequence[DayBar], rules: RuleSet) -> tuple[list[Trade], int]:
-    """The funnel over one stock's whole history. Returns its trades and watch list entries."""
+def replay(
+    ticker: str, bars: Sequence[DayBar], rules: RuleSet, is_open: sm.IsOpen | None = None
+) -> tuple[list[Trade], int]:
+    """The funnel over one stock's whole history. Returns its trades and watch list entries.
+    is_open defaults to the NYSE calendar without extra closures."""
+    is_open = is_open or sm.us_sessions()
     fired = sm.indicators(bars, rules)
     state = sm.WatchState()
     trades: list[Trade] = []
     joins = 0
     i = max(0, int(rules.params("stocks.history_required")["min_sessions"]) - 1)
     while i < len(bars):
-        day = sm.step(ticker, bars, i, rules, state)
+        day = sm.step(ticker, bars, i, rules, state, is_open)
         joins += day.joined
         if sm.is_buy(bars, fired, day, rules):
             found = sm.buy_votes(bars, fired, i, rules)
@@ -96,12 +100,13 @@ def run(
     by_ticker: dict[str, list[DayBar]],
     rules: RuleSet,
     on_progress: Callable[[int, int], None] | None = None,
+    is_open: sm.IsOpen | None = None,
 ) -> tuple[list[Trade], int]:
     trades: list[Trade] = []
     joins = 0
     tickers = sorted(by_ticker)
     for n, ticker in enumerate(tickers):
-        got, j = replay(ticker, by_ticker[ticker], rules)
+        got, j = replay(ticker, by_ticker[ticker], rules, is_open)
         trades += got
         joins += j
         if on_progress and n % 250 == 0:
@@ -150,13 +155,14 @@ def main(argv: list[str] | None = None) -> None:
         rules = derive(load_ruleset(conn), parse_sets(args.set), set(args.disable))
         exchanges = list(rules.params("stocks.universe")["exchanges"])
         universe = set(db.active_tickers(conn, exchanges))
+        is_open = sm.us_sessions(db.holidays(conn, "us_stocks"))
         by_ticker: dict[str, list[DayBar]] = defaultdict(list)
         for ticker, d, h, low, c, v, o in db.stock_bars_since(conn, date(1900, 1, 1)):
             if ticker in universe:
                 by_ticker[ticker].append(
                     DayBar(d, Decimal(h), Decimal(low), Decimal(c), int(v), Decimal(o))
                 )
-    trades, joins = run(by_ticker, rules, lambda n, t: log.info("replaying %s/%s", n, t))
+    trades, joins = run(by_ticker, rules, lambda n, t: log.info("replaying %s/%s", n, t), is_open)
     write(args.report, trades, joins, args.set, args.disable)
 
 
