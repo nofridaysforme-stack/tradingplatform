@@ -359,7 +359,9 @@ def step(
     is_open: IsOpen,
 ) -> Day:  # fmt: skip
     """Stages 1 to 3 on session i. A pass on the week's close (the qualifying date) keeps the
-    stock watched for watch_sessions. Updates state; buys are decided by the caller."""
+    stock watched for watch_sessions, even on sessions when it no longer qualifies (owners
+    2026-10-20: a drop below the pullback zone does not end the watch). Updates state; buys
+    are decided by the caller."""
     upto = bars[: i + 1]
     result = screen(ticker, upto, rules)
     watch = rules.params(K + "watch")
@@ -370,11 +372,7 @@ def step(
     ):
         result = None
     was = state.watching
-    if result is None:
-        state.momentum_at = None
-        state.watching = False
-        return Day(i, None, False, False, False)
-    mom = passes_momentum(upto, rules, is_open)
+    mom = result is not None and passes_momentum(upto, rules, is_open)
     if mom and i > state.blocked_through:
         state.momentum_at = i
     sessions = int(watch["watch_sessions"]) if rules.enabled(K + "watch") else 1
@@ -392,8 +390,9 @@ def buy_votes(
 
 
 def is_buy(bars: Sequence[DayBar], fired: dict[str, Fired], day: Day, rules: RuleSet) -> bool:
-    """Stage 4: a watched stock, inside the zone, with enough buy votes in the window."""
-    if not day.watching or not in_zone(bars[: day.index + 1], rules):
+    """Stage 4: a watched stock that qualifies on the session (so its close is inside the
+    zone), with enough buy votes in the window."""
+    if not day.watching or day.result is None or not in_zone(bars[: day.index + 1], rules):
         return False
     return vote_passes(buy_votes(bars, fired, day.index, rules), K + "buy_vote", rules)
 

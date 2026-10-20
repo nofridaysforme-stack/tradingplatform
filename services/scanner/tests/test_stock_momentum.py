@@ -140,16 +140,21 @@ def test_a_closed_friday_makes_thursday_the_weeks_close() -> None:
 
 
 def test_a_qualifying_date_keeps_the_stock_watched_for_40_sessions() -> None:
-    """After its last pass (Friday 2025-01-17, index 274) a stock that holds inside the zone
-    stays on the watch list for 40 sessions (owners 2026-10-20)."""
+    """After its last pass (Friday 2025-01-17, index 274) the stock stays on the watch list
+    for 40 sessions, through a drop below the pullback zone (owners 2026-10-20)."""
     bars = momentum_stock()[:275]
-    flat = bars[-1]
-    for _ in range(45):
+    top = bars[-1]
+    for k in range(45):
         d = bars[-1].session_date + timedelta(days=3 if bars[-1].session_date.weekday() == 4 else 1)
-        bars.append(DayBar(d, flat.h, flat.l, flat.c, flat.volume, flat.c))
+        c = top.c * D("0.8") if 10 <= k < 15 else top.c  # 20 percent below for 5 sessions
+        bars.append(DayBar(d, top.h if c == top.c else c, c, c, top.volume, c))
     state = sm.WatchState()
     days = {i: sm.step("SYN", bars, i, RULES, state, OPEN) for i in range(249, len(bars))}
     assert [i for i, d in days.items() if d.momentum] == [269, 274]
+    dropped = [i for i, d in days.items() if i > 274 and d.result is None]
+    assert dropped == list(range(285, 290))
+    assert all(days[i].watching for i in dropped)
+    assert [i for i, d in days.items() if d.joined] == [269]  # never rejoins after the drop
     assert days[274 + 39].watching and not days[274 + 40].watching
 
 
@@ -163,7 +168,10 @@ def test_the_funnel_buys_after_the_pullback_and_sells_on_the_vote() -> None:
     assert [i for i, d in days.items() if d.momentum] == [269, 274]  # Fridays only
     assert days[264].result is not None and not days[264].momentum  # 4 of 10
     assert days[278].watching and days[278].qualifying == bars[274].session_date
-    assert not days[299].watching  # closed below the pullback zone
+    # Below the pullback zone the stock no longer qualifies, but it stays watched (owners
+    # 2026-10-20) and cannot be bought there.
+    assert days[299].result is None and days[299].watching
+    assert not sm.is_buy(bars, fired, days[299], FAST)
     # The first buy is 282; the votes stay in the window for two more sessions, but by then
     # the stock is held (the replay below opens one position).
     assert next(i for i in range(270, 299) if sm.is_buy(bars, fired, days[i], FAST)) == 282

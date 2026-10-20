@@ -91,9 +91,11 @@ Other details:
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.watch` | Approved length, provisional leaving rule | A stock that passes Stage 2 on a qualifying date joins the watch list that session. It stays on the list for up to `watch_sessions` sessions after its last qualifying date (the owners: "stay open for at least 40 days, two months"). A later qualifying date restarts the count. It leaves the list when it closes below the pullback zone or stops qualifying, when the time runs out, or when it is bought. | `watch_sessions=40`, `require_trend_confirmed=false` |
+| `stocks.watch` | Approved | A stock that passes Stage 2 on a qualifying date joins the watch list that session. It stays watched for `watch_sessions` sessions after its last qualifying date (the owners: "stay open for at least 40 days, two months"), also on sessions when it closes below the pullback zone ("do not worry about dropping below 10%"). A later qualifying date restarts the count. It leaves the list when the time runs out or when it is bought. | `watch_sessions=40`, `require_trend_confirmed=false` |
 
-Why the stock stays on the list: a stock that passes the 10-week test rarely keeps that pace through a pullback. The test is passed on the qualifying date; the buy comes during the pullback that follows. Leaving the list on a close below the zone is a spec 08 interpretation (open item A32).
+Why the stock stays on the list: a stock that passes the 10-week test rarely keeps that pace through a pullback. The test is passed on the qualifying date; the buy comes during the pullback that follows.
+
+A buy still needs the stock to qualify on the buy session, so its close is back inside the pullback zone (Stage 4). On a session when a watched stock closes below the zone, the screen stores no result for it, so the portal's watch list leaves it out that session; it is still watched and shows again, without a new digest entry, once it closes inside the zone.
 
 ## Stage 4: Buy
 

@@ -3,7 +3,8 @@
 -- The 10-week momentum filter (spec 08, owners' instructions of 2026-10-20). The momentum test
 -- moves from the 10-day APR on every session to a ladder on the week's close: from the Friday
 -- close (Thursday when Friday is closed), the rate from each of the last 10 weekly closes, with
--- at least 5 of the 10 at the threshold. A pass keeps the stock watched for 40 sessions.
+-- at least 5 of the 10 at the threshold. A pass keeps the stock watched for 40 sessions, also
+-- through a drop below the pullback zone.
 -- Each rule gets a new version on top of its current one, keeping the owners' projection,
 -- horizon, and trend setting.
 
@@ -26,8 +27,8 @@ WHERE v.key = 'stocks.momentum';
 
 INSERT INTO rule_versions (key, version, status, enabled, counts_toward_minimum,
                            description, params_schema, params, change_note)
-SELECT v.key, v.version + 1, v.status, v.enabled, v.counts_toward_minimum,
-       'A qualified stock that passes the momentum test on the week''s close (its qualifying date) joins the watch list. It stays while it is still qualified, for up to watch_sessions after it last passed, and leaves when bought.',
+SELECT v.key, v.version + 1, 'approved', v.enabled, v.counts_toward_minimum,
+       'A qualified stock that passes the momentum test on the week''s close (its qualifying date) joins the watch list. It stays for watch_sessions after its last qualifying date, also on sessions when it closes below the pullback zone, and leaves when bought.',
        '{"watch_sessions": {"type": "sessions", "default": 40, "min": 1, "max": 260},
          "require_trend_confirmed": {"type": "boolean", "default": false}}',
        jsonb_build_object('watch_sessions', 40,
@@ -41,7 +42,7 @@ UPDATE rule_definitions d SET current_version = d.current_version + 1,
   name = CASE d.key WHEN 'stocks.momentum' THEN '10-week momentum' ELSE d.name END,
   source = CASE d.key
     WHEN 'stocks.momentum' THEN 'Owners 2026-10-20: the Friday close, 10 weeks back, 455% on at least 5 of 10'
-    ELSE 'Owners 2026-10-20: the qualifying date stays open 40 sessions; leaving below the zone is a spec 08 interpretation'
+    ELSE 'Owners 2026-10-20: the qualifying date stays open 40 sessions, even below the 10% zone'
   END
 WHERE d.key IN ('stocks.momentum', 'stocks.watch');
 

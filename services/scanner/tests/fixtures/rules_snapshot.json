@@ -1103,7 +1103,7 @@
   },
   "stocks.watch": {
    "counts_toward_minimum": false,
-   "description": "A qualified stock that passes the momentum test on the week's close (its qualifying date) joins the watch list. It stays while it is still qualified, for up to watch_sessions after it last passed, and leaves when bought.",
+   "description": "A qualified stock that passes the momentum test on the week's close (its qualifying date) joins the watch list. It stays for watch_sessions after its last qualifying date, also on sessions when it closes below the pullback zone, and leaves when bought.",
    "enabled": true,
    "key": "stocks.watch",
    "kind": "lifecycle",
@@ -1124,8 +1124,8 @@
      "type": "sessions"
     }
    },
-   "source": "Owners 2026-10-20: the qualifying date stays open 40 sessions; leaving below the zone is a spec 08 interpretation",
-   "status": "provisional",
+   "source": "Owners 2026-10-20: the qualifying date stays open 40 sessions, even below the 10% zone",
+   "status": "approved",
    "strategy": "stocks",
    "version": 2
   },
