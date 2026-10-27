@@ -28,7 +28,7 @@ Start a new session with: "Read docs/handoff.md and CLAUDE.md, then continue."
    - `python -m scanner.jobs.backfill stocks` (resumes; skips stored sessions)
    - `python -m scanner.jobs.stock_eod --date <last trading day>`
    - `python -m scanner.backtest.stocks --report out/stocks`
-   After this the Health page shows a time for "Last stock screen". Until a screen runs, its Massive line wrongly says the key is missing; the key is fine if the backfill ran.
+   After this the Health page shows a time for "Last stock screen". Until a screen runs, its Massive line says it is waiting for the first screen.
 3. **Telegram.** Create a bot with BotFather. On `web` set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` (48 random hex characters); on `scanner` set `TELEGRAM_BOT_TOKEN`. The web deploy log should show `telegram-webhook: registered`. Each person then taps Connect Telegram in Settings, Notifications and sends a test.
 4. **Users list.** Check Settings, Users for a mistyped admin email (one entry was one letter off the owner's address).
 
@@ -42,7 +42,6 @@ Start a new session with: "Read docs/handoff.md and CLAUDE.md, then continue."
 
 - A real domain, a verified Resend sender (then email sign-in and email alerts reach clients), and a separate production Telegram bot. See `docs/production.md`.
 - Update the owner guide PDF for the stock system and the sign-in link flow.
-- Small portal fix: the Health page's Massive line should say "Waiting for the first screen (runs 6:30 pm New York)" instead of blaming the key.
 
 ## How work is done here
 
