@@ -19,12 +19,12 @@ Start a new session with: "Read docs/handoff.md and CLAUDE.md, then continue."
 | Sign-in | Email magic links cannot reach clients yet (Resend's test sender only delivers to the Resend account owner). Instead an admin opens Settings, Users, presses **Create sign-in link**, and texts the link. Links last 24 hours and work once; a continue page stops message previews from using them up. | PRs #25 and #26 |
 | Stock storage | Only the stock universe (active common stocks on NYSE, Nasdaq, NYSE American) and held stocks are stored. The backfill refreshes the ticker list first and purges other rows. | PR #27; spec 04 |
 | Telegram | Built and tested. Connecting the bot turns Telegram alerts on; disconnecting turns them off. Needs the bot and variables below before it works. | PR #28; spec 11 |
-| Owner guide | `docs/owner-guide.pdf`. **Out of date**: written before the stock system change and the sign-in link flow. | |
+| Owner guide | `docs/owner-guide.pdf`, second edition (2026-10-27): the stock system, sign-in links, Telegram. Forex appears only as paused. | |
 
 ## Waiting on the project owner (Railway and accounts)
 
 1. **Database space.** The first stock backfill stopped at 110 of 300 sessions with "No space left on device". Upgrade Railway to Hobby and grow the Postgres volume (5 GB is plenty), then redeploy the scanner.
-2. **Finish the data**, in the scanner service:
+2. **Finish the data**, in the scanner service console. The console shell uses the system Python, so write `/app/.venv/bin/python` where these say `python`:
    - `python -m scanner.jobs.backfill stocks` (resumes; skips stored sessions)
    - `python -m scanner.jobs.stock_eod --date <last trading day>`
    - `python -m scanner.backtest.stocks --report out/stocks`
@@ -41,7 +41,6 @@ Start a new session with: "Read docs/handoff.md and CLAUDE.md, then continue."
 ## Later (not now, by the owner's decision)
 
 - A real domain, a verified Resend sender (then email sign-in and email alerts reach clients), and a separate production Telegram bot. See `docs/production.md`.
-- Update the owner guide PDF for the stock system and the sign-in link flow.
 
 ## How work is done here
 
