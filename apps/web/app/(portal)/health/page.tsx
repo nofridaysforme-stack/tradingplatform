@@ -62,7 +62,7 @@ export default async function HealthPage() {
           )}
           <Row
             label="Massive (stocks)"
-            value={h.latest.stock_eod ? jobText(h.latest.stock_eod, now) : "No stock screens yet. The scanner needs MASSIVE_API_KEY in its settings."}
+            value={h.latest.stock_eod ? jobText(h.latest.stock_eod, now) : "Waiting for the first stock screen. It runs at 6:30 pm New York time on trading days."}
             warn={h.latest.stock_eod?.ok === false}
           />
         </dl>
