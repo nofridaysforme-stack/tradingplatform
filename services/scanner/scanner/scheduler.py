@@ -3,7 +3,8 @@ handles daylight saving. Every job: max_instances=1, coalesce=True, and a job_ru
 
 import logging
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from functools import partial
 from typing import Any
 
 from apscheduler.schedulers.base import BaseScheduler
@@ -15,6 +16,7 @@ from psycopg_pool import ConnectionPool
 
 from scanner import db
 from scanner.config import MASSIVE_HOST, Settings
+from scanner.data.base import ProviderAuthError, ProviderBlockedError
 from scanner.data.massive import MassiveClient
 from scanner.data.oanda import OandaClient
 from scanner.data.sync import refresh_universe
@@ -32,6 +34,12 @@ BAR_RETRIES = (20, 40)  # seconds after the first attempt
 STOCK_RETRY = timedelta(minutes=15)
 STOCK_LAST_TRY_HOUR = 23  # New York
 JOB_DEFAULTS = {"max_instances": 1, "coalesce": True, "misfire_grace_time": 60}
+
+
+def _screen(
+    conn: db.Conn, *, massive: MassiveClient, registry: Registry, day: date
+) -> dict[str, Any]:
+    return stock_eod.run(conn, massive, registry, day)
 
 
 class Worker:
@@ -147,12 +155,21 @@ class Worker:
             return
         massive = self.massive
         session = datetime.now(NEW_YORK).date()
-        detail = self._record(
-            "stock_eod", lambda conn: stock_eod.run(conn, massive, self.registry, session)
-        )
+
+        def work(conn: db.Conn) -> dict[str, Any]:
+            try:
+                return stock_eod.run(conn, massive, self.registry, session)
+            except (ProviderAuthError, ProviderBlockedError):
+                # Massive's free plan refuses the same-day file until the day is over. The
+                # morning catch-up screens this session; a bad key fails loudly there.
+                return {"ready": False, "session": session.isoformat(), "deferred": True}
+
+        detail = self._record("stock_eod", work)
         if detail.get("ready") and "watch_digest" in detail:
             self.stock_notifications(detail)
-        if detail.get("ready") is False:
+        if detail.get("deferred"):
+            log.info("stock_eod deferred to the morning catch-up", extra={"session": str(session)})
+        elif detail.get("ready") is False:
             retry_at = datetime.now(UTC) + STOCK_RETRY
             if retry_at.astimezone(NEW_YORK).hour < STOCK_LAST_TRY_HOUR:
                 self.scheduler.add_job(
@@ -163,6 +180,24 @@ class Worker:
                 )
             else:
                 log.warning("stock bars missing by 23:00", extra={"session": str(session)})
+
+    def stock_catch_up(self) -> None:
+        """Weekday mornings: screen the finished sessions the evening run missed, oldest
+        first, and send their alerts. Stops at a session whose prices are not available."""
+        if self.massive is None:
+            return
+        massive = self.massive
+        with self.pool.connection() as conn:
+            todo = stock_eod.sessions_to_catch_up(conn, datetime.now(NEW_YORK).date())
+        for session in todo:
+            detail = self._record(
+                "stock_eod", partial(_screen, massive=massive, registry=self.registry, day=session)
+            )
+            if detail.get("ready") and "watch_digest" in detail:
+                self.stock_notifications(detail)
+            if not detail.get("ready"):
+                log.warning("stock catch-up stopped", extra={"session": str(session)})
+                break
 
     def ticker_refresh(self) -> None:
         if self.massive is None:
@@ -268,6 +303,11 @@ def build(
         w.stock_eod,
         CronTrigger(day_of_week="mon-fri", hour=18, minute=30, timezone=ny),
         id="stock_eod",
+    )
+    sched.add_job(
+        w.stock_catch_up,
+        CronTrigger(day_of_week="mon-fri", hour=6, minute=30, timezone=ny),
+        id="stock_catch_up",
     )
     sched.add_job(
         w.ticker_refresh,

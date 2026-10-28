@@ -531,6 +531,16 @@ def update_job(conn: Conn, run_id: int, detail: dict[str, Any]) -> None:
     conn.execute("UPDATE job_runs SET detail = %s WHERE id = %s", (Jsonb(detail), run_id))
 
 
+def screened_sessions(conn: Conn, sessions: Iterable[date]) -> set[date]:
+    """The sessions a stock_eod run (scheduled or manual) finished screening."""
+    rows = conn.execute(
+        "SELECT DISTINCT detail->>'session' FROM job_runs WHERE job = 'stock_eod' AND ok "
+        "AND detail->>'ready' = 'true' AND detail->>'session' = ANY(%s)",
+        ([d.isoformat() for d in sessions],),
+    )
+    return {date.fromisoformat(r[0]) for r in rows}
+
+
 def finish_job(conn: Conn, run_id: int, ok: bool, detail: dict[str, Any]) -> None:
     conn.execute(
         "UPDATE job_runs SET finished_at = now(), ok = %s, detail = %s WHERE id = %s",

@@ -19,6 +19,7 @@ Start a new session with: "Read docs/handoff.md and CLAUDE.md, then continue."
 | Sign-in | Email magic links cannot reach clients yet (Resend's test sender only delivers to the Resend account owner). Instead an admin opens Settings, Users, presses **Create sign-in link**, and texts the link. Links last 24 hours and work once; a continue page stops message previews from using them up. | PRs #25 and #26 |
 | Stock storage | Only the stock universe (active common stocks on NYSE, Nasdaq, NYSE American) and held stocks are stored. The backfill refreshes the ticker list first and purges other rows. | PR #27; spec 04 |
 | Telegram | Built and tested. Connecting the bot turns Telegram alerts on; disconnecting turns them off. Needs the bot and variables below before it works. | PR #28; spec 11 |
+| Stock screen timing | Massive's free plan refuses the same-day file (403), so the 18:30 run defers and the 06:30 New York catch-up screens the previous session before the open. With a paid plan the evening run works and the catch-up finds nothing to do. The owner guide still says 6:30 pm. | Spec 16; `scanner/scheduler.py` |
 | Owner guide | `docs/owner-guide.pdf`, second edition (2026-10-27): the stock system, sign-in links, Telegram. Forex appears only as paused. | |
 
 ## Waiting on the project owner (Railway and accounts)

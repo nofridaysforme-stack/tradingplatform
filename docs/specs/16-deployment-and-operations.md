@@ -44,7 +44,8 @@ Accounts (OANDA, Massive, Railway, Resend, Telegram bot) are opened in the clien
 | heartbeat | every 60 s | Updates `worker_heartbeat` |
 | forex_bar_close | minutes 0, 15, 30, 45 at second 5, while forex is open | Fetch, outcomes, strategies, notify (retries at +20 s and +40 s if the bar is not complete) |
 | forex_day_roll | 17:01 America/New_York, Sunday to Friday | Daily levels, Fib Pivot ladder, weekly and monthly pivots when due, expire day-bound signals |
-| stock_eod | 18:30 America/New_York on US trading days, retry every 15 min until 23:00 | Grouped bars, splits, screener, holdings, digest |
+| stock_eod | 18:30 America/New_York on US trading days, retry every 15 min until 23:00. A 403 (Massive's free plan refuses the same-day file) defers to the catch-up without retries | Grouped bars, splits, screener, holdings, digest |
+| stock_catch_up | 06:30 America/New_York on weekdays | Runs stock_eod, oldest first, for each finished session after the latest screened one (last 5 sessions). On the free plan this is when each session is screened |
 | ticker_refresh | Sunday 12:00 America/New_York | Refresh stock universe |
 | retention | 03:00 daily | Delete expired rows |
 | health_check | every 5 min | Staleness checks, health alerts |
