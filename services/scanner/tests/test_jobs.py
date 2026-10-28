@@ -223,3 +223,30 @@ def test_retention_runs(conn: Conn) -> None:
         (Jsonb({}),),
     )
     assert db.apply_retention(conn)["job_runs"] == 1
+
+
+def _screened(conn: Conn, session: str, ok: bool = True, ready: bool = True) -> None:
+    conn.execute(
+        "INSERT INTO job_runs (job, finished_at, ok, detail) VALUES ('stock_eod', now(), %s, %s)",
+        (ok, Jsonb({"session": session, "ready": ready})),
+    )
+
+
+def test_catch_up_finds_the_sessions_after_the_last_screen(conn: Conn) -> None:
+    conn.execute("DELETE FROM job_runs WHERE job = 'stock_eod'")
+    today = date(2026, 10, 28)  # a Wednesday
+    # Nothing screened yet: the last five sessions, oldest first.
+    assert stock_eod.sessions_to_catch_up(conn, today) == [
+        date(2026, 10, 21), date(2026, 10, 22), date(2026, 10, 23),
+        date(2026, 10, 26), date(2026, 10, 27),
+    ]  # fmt: skip
+    _screened(conn, "2026-10-23")
+    _screened(conn, "2026-10-26", ok=False, ready=False)  # a failed or unpublished try
+    assert stock_eod.sessions_to_catch_up(conn, today) == [date(2026, 10, 26), date(2026, 10, 27)]
+    _screened(conn, "2026-10-27")
+    assert stock_eod.sessions_to_catch_up(conn, today) == []  # the gap on the 26th stays
+    # The next Monday picks up the rest of the week; a market holiday is not a session.
+    conn.execute("INSERT INTO market_holidays (day, market) VALUES ('2026-10-30', 'us_stocks')")
+    assert stock_eod.sessions_to_catch_up(conn, date(2026, 11, 2)) == [
+        date(2026, 10, 28), date(2026, 10, 29),
+    ]  # fmt: skip

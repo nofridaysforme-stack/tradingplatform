@@ -2,6 +2,10 @@
 23:00. Load the session's grouped bars, refetch split tickers, run the screener, and find
 digest candidates and holdings that need an alert (sent from Phase 6).
 
+The morning catch-up (06:30 New York on weekdays) screens, oldest first, the finished
+sessions the evening run missed. On Massive's free plan the same-day file is refused (403)
+until the day is over, so there the catch-up is when each session is screened.
+
     python -m scanner.jobs.stock_eod --date YYYY-MM-DD
 """
 
@@ -9,7 +13,7 @@ import argparse
 import logging
 from collections import defaultdict
 from collections.abc import Callable
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -22,10 +26,32 @@ from scanner.main import configure_logging
 from scanner.rules.registry import Registry, RuleSet
 from scanner.strategies import stock_momentum as sm
 from scanner.strategies.stock_screener import DayBar, ScreenResult, screen
+from scanner.time import us_stock_holidays, us_stock_sessions_back
 
 log = logging.getLogger(__name__)
 # Calendar days of bars to load: covers 300 sessions with holidays.
 HISTORY_DAYS = 450
+# How far back the morning catch-up looks for sessions the evening run missed.
+CATCH_UP_SESSIONS = 5
+
+
+def sessions_to_catch_up(conn: db.Conn, today: date) -> list[date]:
+    """Finished sessions before `today` that were never screened, oldest first: those after
+    the latest screened session among the last CATCH_UP_SESSIONS. An older gap is left alone,
+    because screening it after a newer session would replay the watch list out of order."""
+    hol = (
+        db.holidays(conn, "us_stocks")
+        | us_stock_holidays(today.year)
+        | us_stock_holidays(today.year - 1)
+    )
+    recent = us_stock_sessions_back(today - timedelta(days=1), CATCH_UP_SESSIONS, hol)
+    done = db.screened_sessions(conn, recent)
+    todo: list[date] = []
+    for session in recent:  # newest first
+        if session in done:
+            break
+        todo.append(session)
+    return todo[::-1]
 
 
 def run(

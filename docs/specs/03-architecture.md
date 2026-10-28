@@ -108,7 +108,7 @@ The forex strategy runs every 15 minutes, 24 hours a day, five days a week, and 
 
 ## Data flow: stock end of day
 
-1. At 18:30 New York on weekdays, request the grouped daily bars for the session date. Retry every 15 minutes until 23:00 if not yet available.
+1. At 18:30 New York on weekdays, request the grouped daily bars for the session date. Retry every 15 minutes until 23:00 if not yet available. If Massive refuses the same-day file (403 on the free plan), stop and leave the session to the morning catch-up: at 06:30 New York on weekdays, screen each finished session after the latest screened one, oldest first.
 2. Upsert into `stock_daily_bars`. Check the splits endpoint for that date and refetch history for split tickers.
 3. Run the stock screener over the universe. Store results in `stock_screen_results`.
 4. Create alerts for newly qualified, trend-confirmed stocks and for holdings that reached their sales target.
