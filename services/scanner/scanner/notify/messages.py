@@ -179,16 +179,20 @@ def watch_message(rows: list[WatchRow], session: str, base_url: str) -> Message:
 INDICATOR_NAMES = {
     "stocks.ind_candle": "change in direction candle",
     "stocks.ind_macd": "MACD crossed up",
-    "stocks.ind_pivot": "pivot hooked up",
+    "stocks.ind_pivot": "close crossed above the pivot",
     "stocks.ind_rsi": "RSI crossed",
     "stocks.ind_stoch": "Stochastics crossed",
+    "stocks.ind_ma": "moving averages crossed up",
+    "stocks.ind_volume": "volume spike",
 }
 SELL_NAMES = {
     "stocks.ind_candle": "close below the previous low",
     "stocks.ind_macd": "MACD crossed down",
-    "stocks.ind_pivot": "pivot hooked down",
+    "stocks.ind_pivot": "close crossed below the pivot",
     "stocks.ind_rsi": "RSI crossed",
     "stocks.ind_stoch": "Stochastics crossed",
+    "stocks.ind_ma": "moving averages crossed down",
+    "stocks.ind_volume": "volume spike",
 }
 
 
@@ -205,12 +209,13 @@ class StockBuy:
     horizon: int
     voted: list[str]  # readable indicator names
     has_provisional: bool
+    indicators: int = 7  # how many indicators voted on the buy
 
 
 def stock_buy_message(b: StockBuy, base_url: str) -> Message:
     """Spec 11, stock buy."""
     lines = [
-        f"{len(b.voted)} of 5 indicators: {', '.join(b.voted)}.",
+        f"{len(b.voted)} of {b.indicators} indicators: {', '.join(b.voted)}.",
         f"Stop {money(b.stop)} ({b.stop_pct:g}%). Projection {money(b.projection)} "
         f"({b.projection_pct:g}% in {b.horizon} sessions). Close of {b.session}.",
     ]

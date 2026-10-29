@@ -1,5 +1,6 @@
 """The stock momentum system (spec 08, revised 2026-10-08 and 2026-10-20)."""
 
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -41,6 +42,13 @@ def closes(values: list[float]) -> list[DayBar]:
     return bars_of([(v, v) for v in values])
 
 
+def with_volume(bars: list[DayBar], i: int, volume: int = 1_000_000) -> list[DayBar]:
+    """Twice the usual 500,000 on session i: a volume spike (spec 08, stocks.ind_volume)."""
+    out = list(bars)
+    out[i] = replace(out[i], volume=volume)
+    return out
+
+
 def momentum_stock() -> list[DayBar]:
     """A year rising from 3 to 6, a 64 percent run in 25 sessions (to Friday 2025-01-17), a
     7-session pullback inside the zone, an engulfing bounce, a climb, then a fall."""
@@ -59,7 +67,7 @@ def momentum_stock() -> list[DayBar]:
         for _ in range(count):
             rows.append((p, p * step))
             p *= step
-    return bars_of(rows)
+    return with_volume(bars_of(rows), 282)  # the bounce trades on a volume spike
 
 
 def deep_pullback_stock() -> list[DayBar]:
@@ -71,7 +79,7 @@ def deep_pullback_stock() -> list[DayBar]:
         for _ in range(count):
             rows.append((p, p * step))
             p *= step
-    return bars_of(rows)
+    return with_volume(bars_of(rows), 281)
 
 
 def no_fire(n: int) -> sm.Fired:
@@ -189,7 +197,7 @@ def test_the_funnel_buys_after_the_pullback_and_sells_on_the_vote() -> None:
     # the stock is held (the replay below opens one position).
     assert next(i for i in range(270, 299) if sm.is_buy(bars, fired, days[i], FAST)) == 282
     votes = {v.key for v in sm.buy_votes(bars, fired, 282, FAST)}
-    assert votes == {"stocks.ind_candle", "stocks.ind_pivot", "stocks.ind_rsi", "stocks.ind_stoch"}
+    assert votes == {"stocks.ind_candle", "stocks.ind_pivot", "stocks.ind_rsi", "stocks.ind_volume"}
     candle = fired["stocks.ind_candle"]
     assert candle.buy[282] and not candle.buy[281]  # the bounce closes above the previous high
 
@@ -211,7 +219,9 @@ def test_default_oscillators_rarely_vote_in_a_shallow_pullback() -> None:
     fired = sm.indicators(bars, RULES)
     assert not fired["stocks.ind_rsi"].buy[270:290].any()
     assert not fired["stocks.ind_stoch"].buy[270:290].any()
-    assert replay("SYN", bars, RULES)[0] == []
+    # The buy still comes, from the candle, the pivot, and the volume spike.
+    (t,) = replay("SYN", bars, RULES, OPEN)[0]
+    assert set(t.votes) == {"stocks.ind_candle", "stocks.ind_pivot", "stocks.ind_volume"}
 
 
 def test_votes_count_distinct_indicators_in_the_window_after_entry() -> None:
@@ -227,6 +237,15 @@ def test_votes_count_distinct_indicators_in_the_window_after_entry() -> None:
     assert sm.vote_passes(
         found, "stocks.buy_vote", derive(RULES, {"stocks.buy_vote": {"min_votes": 2}})
     )
+    # The volume spike is one of the votes; with require_volume it must be there and does
+    # not count toward min_votes.
+    with_spike = [*found, sm.Vote("stocks.ind_volume", 6)]
+    assert sm.vote_passes(with_spike, "stocks.buy_vote", RULES)
+    required = derive(RULES, {"stocks.buy_vote": {"require_volume": True}})
+    assert not sm.vote_passes(with_spike, "stocks.buy_vote", required)
+    two = derive(RULES, {"stocks.buy_vote": {"min_votes": 2, "require_volume": True}})
+    assert sm.vote_passes(with_spike, "stocks.buy_vote", two)
+    assert not sm.vote_passes(found, "stocks.buy_vote", two)
     sells = sm.votes(bars, fired, 9, "sell", 3, RULES, after=6)
     assert {v.key for v in sells} == {"stocks.ind_macd", "stocks.ind_pivot"}  # RSI is at entry
 
@@ -247,18 +266,66 @@ def test_change_in_direction_candle() -> None:
     assert (f.values["previous_high"][1], f.values["close"][1]) == (10.40, 10.55)
 
 
+def test_stochastics_follow_lanes_rule() -> None:
+    """%K crossing %D counts only inside the zone: below 20 to buy, above 80 to sell."""
+    k = np.array([10.0, 15.0, 25.0, 18.0, 85.0, 82.0])
+    d = np.array([12.0, 14.0, 19.0, 21.0, 83.0, 84.0])
+    buy, sell = sm.lane(k, d, 20.0, 80.0)
+    # Session 1: 15 over 14, both under 20, a buy. Session 3: %K crosses under %D, but not
+    # above 80. Session 4: 85 crosses over 83, but not under 20. Session 5: 82 crosses under
+    # 84 with both above 80, a sell.
+    assert buy.tolist() == [False, True, False, False, False, False]
+    assert sell.tolist() == [False, False, False, False, False, True]
+
+
+def test_pivot_point_is_the_floor_traders_pivot() -> None:
+    """The pivot is (high + low + close) / 3 of the session before; a buy when the close
+    crosses above it, a sell when it crosses below."""
+    bars = [
+        DayBar(date(2026, 10, 26), D("11"), D("9"), D("10"), 500_000, D("10")),  # pivot 10 next
+        DayBar(date(2026, 10, 27), D("10.2"), D("9.6"), D("9.9"), 500_000, D("10")),  # under 10
+        DayBar(date(2026, 10, 28), D("10.6"), D("9.9"), D("10.5"), 500_000, D("9.9")),  # over 9.9
+        DayBar(date(2026, 10, 29), D("10.4"), D("9.5"), D("9.6"), 500_000, D("10.5")),  # under
+    ]
+    f = sm.pivot(bars, {})
+    assert [round(x, 4) for x in f.values["pivot"][1:]] == [10.0, 9.9, 10.3333]
+    assert f.buy.tolist() == [False, False, True, False]
+    assert f.sell.tolist() == [False, False, False, True]
+
+
+def test_moving_average_crossover() -> None:
+    """The 10-session average crossing above the 20-session average is a buy."""
+    bars = closes([10.0] * 20 + [11.0, 9.0, 8.0])
+    f = sm.moving_averages(bars, {"short_sessions": 10, "long_sessions": 20})
+    # Session 20: the 10-day average is 10.1 and the 20-day 10.05, from 10 and 10.
+    assert f.buy.tolist()[18:21] == [False, False, True]
+    assert f.sell.tolist()[21:] == [False, True]  # 9.9 against 10.0 by session 22
+
+
+def test_volume_spike_confirms_the_days_direction() -> None:
+    """At least 1.5 times the average of the 20 sessions before; up close buys, down close
+    sells."""
+    base = closes([10.0] * 21 + [10.5, 10.4, 10.2])
+    vols = [500_000] * 21 + [750_000, 740_000, 900_000]
+    bars = [replace(b, volume=v) for b, v in zip(base, vols, strict=True)]
+    f = sm.volume(bars, {"average_sessions": 20, "multiple": 1.5})
+    assert f.values["average_volume"][21] == 500_000
+    assert f.buy.tolist()[20:] == [False, True, False, False]  # 740,000 is short of 1.5x
+    assert f.sell.tolist()[20:] == [False, False, False, True]
+
+
 def test_a_watched_stock_can_be_bought_below_the_pullback_zone() -> None:
     """Owners 2026-10-29: no pullback zone check on the buy. After its last qualifying date
-    the stock falls 22 percent below the high, then bounces; the bounce buys at 17 percent
-    below the high, where it does not qualify."""
+    the stock falls 22 percent below the high, then bounces; the first bounce session buys
+    at 20 percent below the high, where it does not qualify."""
     bars = deep_pullback_stock()
     fired = sm.indicators(bars, FAST)
     state = sm.WatchState()
     days = {i: sm.step("SYN", bars, i, FAST, state, OPEN) for i in range(249, len(bars))}
-    assert days[282].result is None and days[282].watching
-    assert next(i for i in range(275, len(bars)) if sm.is_buy(bars, fired, days[i], FAST)) == 282
+    assert days[281].result is None and days[281].watching
+    assert next(i for i in range(275, len(bars)) if sm.is_buy(bars, fired, days[i], FAST)) == 281
     (t,) = replay("SYN", bars, FAST, OPEN)[0]
-    assert (t.buy_session, t.entry) == (bars[282].session_date, D("8.1744"))
+    assert (t.buy_session, t.entry) == (bars[281].session_date, D("7.9363"))
 
 
 def test_trailing_stop_worked_example() -> None:

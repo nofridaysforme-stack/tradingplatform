@@ -21,6 +21,7 @@ export function StockBuys({ buys, showTicker = true, events = false }: { buys: S
         const open = b.state === "open";
         const result = open ? (b.lastClose === null ? null : (b.lastClose - b.entry) / b.entry) : b.resultPct;
         const count = Object.values(b.votes).filter((v) => v.fired).length;
+        const total = Object.keys(b.votes).length; // the indicators in force when it was bought
         return (
           <li key={b.id} className="border-b border-rule-soft px-5 py-3.5">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -54,10 +55,10 @@ export function StockBuys({ buys, showTicker = true, events = false }: { buys: S
               <Cell label="Highest close" value={money(b.highestClose)} />
               <Cell label={`Projection (${b.projectionPct}%)`} value={money(b.projection)} hint={b.projectionSession ? `Reached ${b.projectionSession}` : `In ${b.horizonSessions} sessions`} />
               <Cell label={open ? "Last close" : "Result"} value={open ? money(b.lastClose) : signedPercent(result)} strong={!open} />
-              <Cell label={open ? "So far" : "Votes"} value={open ? signedPercent(result) : `${count} of 5`} />
+              <Cell label={open ? "So far" : "Votes"} value={open ? signedPercent(result) : `${count} of ${total}`} />
             </dl>
             <p className="m-0 mt-2 text-[13px] text-ink-2">
-              {count} of 5 voted to buy: {votedText(b.votes)}.
+              {count} of {total} voted to buy: {votedText(b.votes)}.
               {b.state === "sold" && b.exitVotes && <> Sold on: {votedText(b.exitVotes)}.</>}
             </p>
             {events && b.events.length > 0 && (

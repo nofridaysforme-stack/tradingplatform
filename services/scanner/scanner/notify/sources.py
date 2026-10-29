@@ -235,6 +235,7 @@ def dispatch_stock_events(
                         float(e["stop_initial"]), stop_pct, float(e["projection"]),
                         float(e["projection_pct"]), int(e["horizon_sessions"]),
                         _voted(e["votes"], INDICATOR_NAMES), bool(e["has_provisional"]),
+                        len(e["votes"] or {}),
                     ),
                     base_url,
                 )  # fmt: skip

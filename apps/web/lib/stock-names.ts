@@ -1,6 +1,14 @@
 // Names for the stock system's indicators and events (spec 08). Shared by pages and tests.
 
-export const INDICATORS = ["stocks.ind_candle", "stocks.ind_macd", "stocks.ind_pivot", "stocks.ind_rsi", "stocks.ind_stoch"] as const;
+export const INDICATORS = [
+  "stocks.ind_candle",
+  "stocks.ind_macd",
+  "stocks.ind_pivot",
+  "stocks.ind_rsi",
+  "stocks.ind_stoch",
+  "stocks.ind_ma",
+  "stocks.ind_volume",
+] as const;
 
 export const INDICATOR_NAMES: Record<string, string> = {
   "stocks.ind_candle": "Change in direction candle",
@@ -8,15 +16,19 @@ export const INDICATOR_NAMES: Record<string, string> = {
   "stocks.ind_pivot": "Pivot point crossover",
   "stocks.ind_rsi": "RSI",
   "stocks.ind_stoch": "Stochastics",
+  "stocks.ind_ma": "Moving average crossover",
+  "stocks.ind_volume": "Volume spike",
 };
 
 /** What each indicator's buy and sell mean, in the words of the rule (defaults). */
 export const INDICATOR_RULES: Record<string, { buy: string; sell: string }> = {
   "stocks.ind_candle": { buy: "Close above the previous session's high", sell: "Close below the previous session's low" },
   "stocks.ind_macd": { buy: "MACD line crosses above its signal line", sell: "MACD line crosses below its signal line" },
-  "stocks.ind_pivot": { buy: "Pivot line hooks above its 3-day average", sell: "Pivot line hooks below its 3-day average" },
+  "stocks.ind_pivot": { buy: "Close crosses above the day's pivot", sell: "Close crosses below the day's pivot" },
   "stocks.ind_rsi": { buy: "RSI crosses above the buy level", sell: "RSI crosses below the sell level" },
-  "stocks.ind_stoch": { buy: "Stochastics %K crosses above the buy level", sell: "%K crosses below the sell level" },
+  "stocks.ind_stoch": { buy: "%K crosses above %D, both below the buy level", sell: "%K crosses below %D, both above the sell level" },
+  "stocks.ind_ma": { buy: "Short average crosses above the long average", sell: "Short average crosses below the long average" },
+  "stocks.ind_volume": { buy: "Volume spike on an up close", sell: "Volume spike on a down close" },
 };
 
 export const VALUE_NAMES: Record<string, string> = {
@@ -28,6 +40,10 @@ export const VALUE_NAMES: Record<string, string> = {
   pivot: "Pivot",
   average: "3-day average",
   rsi: "RSI",
+  short: "Short average",
+  long: "Long average",
+  volume: "Volume",
+  average_volume: "Average volume",
   k: "%K",
   d: "%D",
 };

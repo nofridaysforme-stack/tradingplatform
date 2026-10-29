@@ -30,7 +30,10 @@ INDICATORS = (
     "stocks.ind_pivot",
     "stocks.ind_rsi",
     "stocks.ind_stoch",
+    "stocks.ind_ma",
+    "stocks.ind_volume",
 )
+VOLUME = "stocks.ind_volume"
 Side = Literal["buy", "sell"]
 Floats = npt.NDArray[np.float64]
 Flags = npt.NDArray[np.bool_]
@@ -107,11 +110,12 @@ def macd(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
 
 
 def pivot(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
+    """The floor trader pivot: each session's pivot is (high + low + close) / 3 of the session
+    before. A buy when the close crosses above its pivot, a sell when it crosses below."""
     _, h, low, c = _arrays(bars)
-    line = (h + low + c) / 3
-    n = int(params["average_sessions"])
-    avg = talib.SMA(line, timeperiod=n) if len(line) >= n else np.full(len(line), np.nan)
-    return Fired(cross_above(line, avg), cross_below(line, avg), {"pivot": line, "average": avg})
+    level = np.full(len(c), np.nan, dtype=np.float64)
+    level[1:] = ((h + low + c) / 3)[:-1]
+    return Fired(cross_above(c, level), cross_below(c, level), {"close": c, "pivot": level})
 
 
 def rsi(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
@@ -134,10 +138,47 @@ def stoch(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
         slowk_period=int(params["k_slowing"]),
         slowd_period=int(params["d_period"]),
     )
-    n = len(c)
-    buy = cross_above(k, _level(n, float(params["buy_level"])))
-    sell = cross_below(k, _level(n, float(params["sell_level"])))
+    buy, sell = lane(k, d, float(params["buy_level"]), float(params["sell_level"]))
     return Fired(buy, sell, {"k": k, "d": d})
+
+
+def lane(k: Floats, d: Floats, buy_level: float, sell_level: float) -> tuple[Flags, Flags]:
+    """George Lane's rule: a buy when %K crosses above %D while both are below buy_level, a
+    sell when %K crosses below %D while both are above sell_level."""
+    with np.errstate(invalid="ignore"):
+        oversold = (k < buy_level) & (d < buy_level)
+        overbought = (k > sell_level) & (d > sell_level)
+    return cross_above(k, d) & oversold, cross_below(k, d) & overbought
+
+
+def moving_averages(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
+    """Simple moving averages of the close: a buy when the short one crosses above the long
+    one, a sell when it crosses below."""
+    _, _, _, c = _arrays(bars)
+    short_n, long_n = int(params["short_sessions"]), int(params["long_sessions"])
+    nan = np.full(len(c), np.nan, dtype=np.float64)
+    short = talib.SMA(c, timeperiod=short_n) if len(c) >= short_n else nan
+    long = talib.SMA(c, timeperiod=long_n) if len(c) >= long_n else nan
+    return Fired(cross_above(short, long), cross_below(short, long), {"short": short, "long": long})
+
+
+def volume(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
+    """A volume spike: the session's volume is at least `multiple` times the average of the
+    `average_sessions` sessions before it. It confirms the day's direction: a buy on a close
+    above the previous close, a sell on a close below it."""
+    _, _, _, c = _arrays(bars)
+    v = np.array([float(b.volume) for b in bars], dtype=np.float64)
+    n = int(params["average_sessions"])
+    avg = np.full(len(v), np.nan, dtype=np.float64)
+    if len(v) > n:
+        avg[n:] = talib.SMA(v, timeperiod=n)[n - 1 : -1]
+    previous = np.full(len(c), np.nan, dtype=np.float64)
+    previous[1:] = c[:-1]
+    with np.errstate(invalid="ignore"):
+        spike = v >= avg * float(params["multiple"])
+        buy = spike & (c > previous)
+        sell = spike & (c < previous)
+    return Fired(buy, sell, {"volume": v, "average_volume": avg})
 
 
 COMPUTE: dict[str, Callable[[Sequence[DayBar], dict[str, Any]], Fired]] = {
@@ -146,6 +187,8 @@ COMPUTE: dict[str, Callable[[Sequence[DayBar], dict[str, Any]], Fired]] = {
     "stocks.ind_pivot": pivot,
     "stocks.ind_rsi": rsi,
     "stocks.ind_stoch": stoch,
+    "stocks.ind_ma": moving_averages,
+    "stocks.ind_volume": volume,
 }
 
 
@@ -187,7 +230,16 @@ def votes(
 
 
 def vote_passes(found: Sequence[Vote], rule_key: str, rules: RuleSet) -> bool:
-    return rules.enabled(rule_key) and len(found) >= int(rules.params(rule_key)["min_votes"])
+    """At least min_votes different indicators. With require_volume, a volume spike must be
+    among them and min_votes counts the other indicators (volume confirms, spec 08)."""
+    if not rules.enabled(rule_key):
+        return False
+    p = rules.params(rule_key)
+    if p.get("require_volume"):
+        if not any(v.key == VOLUME for v in found):
+            return False
+        found = [v for v in found if v.key != VOLUME]
+    return len(found) >= int(p["min_votes"])
 
 
 def window_of(rule_key: str, rules: RuleSet) -> int:
