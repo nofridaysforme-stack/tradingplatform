@@ -25,12 +25,14 @@ test("while forex is paused its pages are hidden and the portal opens on stocks"
   const nav = page.getByRole("navigation", { name: "Main" }).locator("visible=true");
   await expect(nav.getByRole("link", { name: "Stocks" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Holdings" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Health", exact: true })).toBeVisible();
   for (const name of ["Signals", "Levels", "History"]) await expect(nav.getByRole("link", { name, exact: true })).toHaveCount(0);
   if (!isMobile) await expect(nav.getByRole("link", { name: "Econ events" })).toHaveCount(0);
 
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Broker" })).toHaveCount(0);
-  await page.goto("/health");
+  await nav.getByRole("link", { name: "Health", exact: true }).click();
+  await expect(page).toHaveURL(/\/health$/);
   await expect(page.getByText(/Forex paused/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Last completed bar per pair" })).toHaveCount(0);
   await expectNoAxeViolations(page);
