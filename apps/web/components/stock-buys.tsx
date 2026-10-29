@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge, ProvisionalBadge } from "@/components/ui";
 import { money, signedPercent } from "@/lib/format";
-import { EVENT_NAMES, INDICATOR_NAMES, INDICATORS, patternName } from "@/lib/stock-names";
+import { EVENT_NAMES, indicatorName, INDICATORS, patternName } from "@/lib/stock-names";
 import { EXIT_NAMES, type StockBuy } from "@/lib/stocks";
 import type { Evidence } from "@/lib/db/schema";
 
@@ -9,7 +9,7 @@ import type { Evidence } from "@/lib/db/schema";
 export function votedText(e: Evidence | null): string {
   if (!e) return "";
   return INDICATORS.filter((k) => e[k]?.fired)
-    .map((k) => `${INDICATOR_NAMES[k]}${e[k]!.patterns?.length ? ` (${e[k]!.patterns!.map(patternName).join(", ")})` : ""}`)
+    .map((k) => `${indicatorName(k, e[k]!.patterns)}${e[k]!.patterns?.length ? ` (${e[k]!.patterns!.map(patternName).join(", ")})` : ""}`)
     .join(", ");
 }
 

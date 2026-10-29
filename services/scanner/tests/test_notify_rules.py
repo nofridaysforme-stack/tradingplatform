@@ -87,13 +87,13 @@ def test_update_and_other_messages() -> None:
 def test_stock_messages_match_spec_11() -> None:
     buy = stock_buy_message(
         StockBuy("s1", "ABCD", "Oct 8", 24.10, 22.895, 5, 32.535, 35, 20,
-                 ["bullish candle (engulfing)", "MACD crossed up", "pivot hooked up",
+                 ["change in direction candle", "MACD crossed up", "pivot hooked up",
                   "Stochastics crossed"], False),
         BASE,
     )  # fmt: skip
     assert buy.title == "Buy signal: ABCD at 24.10"
     assert buy.body == (
-        "4 of 5 indicators: bullish candle (engulfing), MACD crossed up, pivot hooked up, "
+        "4 of 5 indicators: change in direction candle, MACD crossed up, pivot hooked up, "
         "Stochastics crossed.\nStop 22.90 (5%). Projection 32.54 (35% in 20 sessions). "
         "Close of Oct 8."
     )

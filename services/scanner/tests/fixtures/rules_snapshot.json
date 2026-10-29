@@ -386,7 +386,7 @@
   },
   "stocks.buy_vote": {
    "counts_toward_minimum": false,
-   "description": "A watched stock is bought when at least min_votes different buy indicators fired within the last window_sessions sessions and the close is inside the pullback zone.",
+   "description": "A watched stock is bought when at least min_votes different buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high.",
    "enabled": true,
    "key": "stocks.buy_vote",
    "kind": "gate",
@@ -409,10 +409,10 @@
      "type": "sessions"
     }
    },
-   "source": "Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days",
+   "source": "Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days; 2026-10-29: no pullback zone check",
    "status": "approved",
    "strategy": "stocks",
-   "version": 1
+   "version": 2
   },
   "stocks.five_line": {
    "counts_toward_minimum": false,
@@ -490,76 +490,17 @@
   },
   "stocks.ind_candle": {
    "counts_toward_minimum": true,
-   "description": "Buy: a bullish pattern completes on a session whose close is inside the pullback zone. Sell: a bearish pattern completes. TA-Lib patterns on daily bars.",
+   "description": "Buy: the change in direction candle, a close higher than the previous session's high. Sell: a close lower than the previous session's low (provisional mirror). Counts at any price.",
    "enabled": true,
    "key": "stocks.ind_candle",
    "kind": "indicator",
-   "name": "Price and candle",
-   "params": {
-    "bearish": [
-     "engulfing",
-     "dark_cloud_cover",
-     "hanging_man",
-     "shooting_star",
-     "evening_star",
-     "harami"
-    ],
-    "bullish": [
-     "hammer",
-     "inverted_hammer",
-     "engulfing",
-     "piercing",
-     "morning_star",
-     "harami",
-     "dragonfly_doji"
-    ]
-   },
-   "params_schema": {
-    "bearish": {
-     "default": [
-      "engulfing",
-      "dark_cloud_cover",
-      "hanging_man",
-      "shooting_star",
-      "evening_star",
-      "harami"
-     ],
-     "options": [
-      "engulfing",
-      "dark_cloud_cover",
-      "hanging_man",
-      "shooting_star",
-      "evening_star",
-      "harami"
-     ],
-     "type": "list"
-    },
-    "bullish": {
-     "default": [
-      "hammer",
-      "inverted_hammer",
-      "engulfing",
-      "piercing",
-      "morning_star",
-      "harami",
-      "dragonfly_doji"
-     ],
-     "options": [
-      "hammer",
-      "inverted_hammer",
-      "engulfing",
-      "piercing",
-      "morning_star",
-      "harami",
-      "dragonfly_doji"
-     ],
-     "type": "list"
-    }
-   },
-   "source": "Owners 2026-10-08: price is the number one indicator, with bullish candles on support",
+   "name": "Change in direction candle",
+   "params": {},
+   "params_schema": {},
+   "source": "Owners 2026-10-29: the change in direction candle is the close higher than the previous high; sell mirror is a spec 08 interpretation",
    "status": "provisional",
    "strategy": "stocks",
-   "version": 1
+   "version": 2
   },
   "stocks.ind_macd": {
    "counts_toward_minimum": true,
@@ -1110,7 +1051,7 @@
    "name": "Watch list",
    "params": {
     "require_trend_confirmed": false,
-    "watch_sessions": 40
+    "watch_sessions": 60
    },
    "params_schema": {
     "require_trend_confirmed": {
@@ -1118,16 +1059,16 @@
      "type": "boolean"
     },
     "watch_sessions": {
-     "default": 40,
+     "default": 60,
      "max": 260,
      "min": 1,
      "type": "sessions"
     }
    },
-   "source": "Owners 2026-10-20: the qualifying date stays open 40 sessions, even below the 10% zone",
+   "source": "Owners 2026-10-20 and 2026-10-29: a qualifying date stays open 60 sessions (3 months), even below the 10% zone",
    "status": "approved",
    "strategy": "stocks",
-   "version": 2
+   "version": 3
   },
   "three_eight.candlestick": {
    "counts_toward_minimum": true,

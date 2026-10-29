@@ -75,7 +75,7 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
         <h2 id="watch-h" className="m-0 px-5 pt-4 text-base font-semibold">
           Watch list
         </h2>
-        <p className="m-0 px-5 pt-1 text-[13px] text-mute">Strong stocks waiting for a pullback inside 10% of their 52-week high. Votes are the buy indicators that fired in the last 3 sessions.</p>
+        <p className="m-0 px-5 pt-1 text-[13px] text-mute">Stocks with a qualifying date in the last 60 sessions, waiting for a buy. Votes are the buy indicators that fired in the last 3 sessions.</p>
         {watch.length === 0 ? (
           <p className="m-0 px-5 py-3 text-sm text-ink-2">No stocks on the watch list{data.session ? ` after the ${data.session} session` : ""}.</p>
         ) : (

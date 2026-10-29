@@ -76,12 +76,12 @@ test("the stocks page shows open buys, the watch list, and closed buys", async (
 
   const watch = page.getByRole("table", { name: /Watch list/ });
   await expect(watch.getByRole("row", { name: /E2EB.*29\.80.*6\.9%.*2026-09-25.*2 of 5/ })).toBeVisible();
-  await expect(watch).toContainText("Price and candle, MACD crossover");
+  await expect(watch).toContainText("Change in direction candle, MACD crossover");
 
   const closed = page.getByRole("region", { name: "Closed buys" }).getByRole("listitem");
   await expect(closed).toContainText("Sell signal 2026-09-29");
   await expect(closed).toContainText("Result+17.3%");
-  await expect(closed).toContainText("Sold on: Price and candle, MACD crossover, Pivot point crossover.");
+  await expect(closed).toContainText("Sold on: Change in direction candle, MACD crossover, Pivot point crossover.");
 });
 
 test("stock detail shows momentum, the indicators, and the stock's buys", async ({ page }) => {
@@ -95,7 +95,7 @@ test("stock detail shows momentum, the indicators, and the stock's buys", async 
   await expect(funnel).toContainText("Waiting for a buy: 3 of 5 indicators within 3 sessions");
   const ind = page.getByRole("region", { name: "Indicators" });
   await expect(ind).toContainText(`After the ${SESSION} session: 2 of 5 for a buy, 0 of 5 for a sell`);
-  await expect(ind.getByRole("row", { name: /Price and candle.*Fired 2026-09-30.*No/ })).toBeVisible();
+  await expect(ind.getByRole("row", { name: /Change in direction candle.*Fired 2026-09-30.*No/ })).toBeVisible();
   await expect(ind.getByRole("row", { name: /^RSI.*No.*No.*RSI 48\.20/ })).toBeVisible();
   await expect(ind.getByRole("row", { name: /^RSI/ }).getByText("Provisional")).toBeVisible();
 

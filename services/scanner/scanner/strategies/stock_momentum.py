@@ -20,7 +20,7 @@ import numpy.typing as npt
 import talib
 
 from scanner.rules.registry import RuleSet
-from scanner.strategies.stock_screener import DayBar, ScreenResult, in_zone, screen
+from scanner.strategies.stock_screener import DayBar, ScreenResult, screen
 from scanner.time import us_stock_holidays
 
 K = "stocks."
@@ -35,23 +35,6 @@ Side = Literal["buy", "sell"]
 Floats = npt.NDArray[np.float64]
 Flags = npt.NDArray[np.bool_]
 
-# TA-Lib functions by the names used in stocks.ind_candle. TA-Lib returns a positive value for
-# a bullish completion and a negative one for a bearish completion.
-PATTERNS: dict[str, Callable[..., Any]] = {
-    "hammer": talib.CDLHAMMER,
-    "inverted_hammer": talib.CDLINVERTEDHAMMER,
-    "engulfing": talib.CDLENGULFING,
-    "piercing": talib.CDLPIERCING,
-    "morning_star": talib.CDLMORNINGSTAR,
-    "harami": talib.CDLHARAMI,
-    "dragonfly_doji": talib.CDLDRAGONFLYDOJI,
-    "dark_cloud_cover": talib.CDLDARKCLOUDCOVER,
-    "hanging_man": talib.CDLHANGINGMAN,
-    "shooting_star": talib.CDLSHOOTINGSTAR,
-    "evening_star": talib.CDLEVENINGSTAR,
-}
-
-
 # Indicators
 
 
@@ -63,8 +46,6 @@ class Fired:
     buy: Flags
     sell: Flags
     values: dict[str, Floats]
-    buy_names: list[list[str]] = field(default_factory=list)  # candle patterns only
-    sell_names: list[list[str]] = field(default_factory=list)
 
 
 def _arrays(bars: Sequence[DayBar]) -> tuple[Floats, Floats, Floats, Floats]:
@@ -97,23 +78,19 @@ def _level(n: int, value: float) -> Floats:
 
 
 def candle(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
-    """stocks.ind_candle. The pullback-zone condition for a buy is applied in buy_votes."""
-    o, h, low, c = _arrays(bars)
-    n = len(c)
-    buy_names: list[list[str]] = [[] for _ in range(n)]
-    sell_names: list[list[str]] = [[] for _ in range(n)]
-    if n and not np.isnan(o).any():
-        for name in params["bullish"]:
-            out = PATTERNS[name](o, h, low, c)
-            for i in np.nonzero(out > 0)[0]:
-                buy_names[i].append(name)
-        for name in params["bearish"]:
-            out = PATTERNS[name](o, h, low, c)
-            for i in np.nonzero(out < 0)[0]:
-                sell_names[i].append(name)
-    buy = np.array([bool(x) for x in buy_names], dtype=np.bool_)
-    sell = np.array([bool(x) for x in sell_names], dtype=np.bool_)
-    return Fired(buy, sell, {}, buy_names, sell_names)
+    """stocks.ind_candle, the change in direction candle (owners 2026-10-29): a buy when the
+    close is higher than the previous session's high; a sell when the close is lower than the
+    previous session's low (the mirror, provisional)."""
+    _, h, low, c = _arrays(bars)
+    previous_high = np.full(len(c), np.nan, dtype=np.float64)
+    previous_low = np.full(len(c), np.nan, dtype=np.float64)
+    previous_high[1:] = h[:-1]
+    previous_low[1:] = low[:-1]
+    with np.errstate(invalid="ignore"):
+        buy = c > previous_high
+        sell = c < previous_low
+    values = {"close": c, "previous_high": previous_high, "previous_low": previous_low}
+    return Fired(buy, sell, values)
 
 
 def macd(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
@@ -184,7 +161,6 @@ def indicators(bars: Sequence[DayBar], rules: RuleSet) -> dict[str, Fired]:
 class Vote:
     key: str
     index: int  # the latest session in the window where it fired
-    names: tuple[str, ...] = ()  # candle patterns
 
 
 def votes(
@@ -197,8 +173,7 @@ def votes(
     after: int = -1,
 ) -> list[Vote]:
     """The indicators that fired on the given side within the window ending at session i, only
-    on sessions after `after` (an entry). A bullish candle counts only inside the pullback
-    zone (spec 08: bullish candles on support)."""
+    on sessions after `after` (an entry)."""
     out: list[Vote] = []
     first = max(after + 1, i - window + 1, 0)
     for key, f in fired.items():
@@ -206,10 +181,7 @@ def votes(
         for j in range(i, first - 1, -1):
             if not flags[j]:
                 continue
-            if key == "stocks.ind_candle" and side == "buy" and not in_zone(bars[: j + 1], rules):
-                continue
-            names = f.buy_names if side == "buy" else f.sell_names
-            out.append(Vote(key, j, tuple(names[j]) if names else ()))
+            out.append(Vote(key, j))
             break
     return out
 
@@ -390,9 +362,9 @@ def buy_votes(
 
 
 def is_buy(bars: Sequence[DayBar], fired: dict[str, Fired], day: Day, rules: RuleSet) -> bool:
-    """Stage 4: a watched stock that qualifies on the session (so its close is inside the
-    zone), with enough buy votes in the window."""
-    if not day.watching or day.result is None or not in_zone(bars[: day.index + 1], rules):
+    """Stage 4: a watched stock with enough buy votes in the window, at any distance from its
+    high (owners 2026-10-29: a qualified stock is already in its pullback)."""
+    if not day.watching:
         return False
     return vote_passes(buy_votes(bars, fired, day.index, rules), K + "buy_vote", rules)
 
@@ -527,8 +499,6 @@ def evidence(
         entry: dict[str, Any] = {"enabled": f is not None, "fired": key in found}
         if key in found:
             entry["session"] = bars[found[key].index].session_date.isoformat()
-            if found[key].names:
-                entry["patterns"] = list(found[key].names)
         if f is not None:
             entry["values"] = {name: _num(arr[i]) for name, arr in f.values.items()}
         entry["provisional"] = rules.has(key) and rules.provisional(key)

@@ -109,6 +109,19 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
     last_exits = db.last_stock_exits(conn)
     watch_sessions = int(rules.params("stocks.watch")["watch_sessions"])
 
+    def watch_day(ticker: str) -> sm.Day:
+        """Stages 1 to 3 replayed over the watch window, ending today."""
+        bars = by_ticker[ticker]
+        today = len(bars) - 1
+        exit_session = last_exits.get(ticker)
+        state = sm.WatchState(
+            blocked_through=sm.last_index_on_or_before(bars, exit_session) if exit_session else -1
+        )
+        day = sm.Day(today, None, False, False, False)
+        for i in range(max(0, today - watch_sessions), today + 1):
+            day = sm.step(ticker, bars, i, rules, state, is_open)
+        return day
+
     rows: list[dict[str, Any]] = []
     joined: list[str] = []
     buys: list[dict[str, Any]] = []
@@ -119,14 +132,7 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
         if ticker in open_signals:
             day = sm.Day(today, r, sm.passes_momentum(bars, rules, is_open), False, False)
         else:
-            exit_session = last_exits.get(ticker)
-            state = sm.WatchState(
-                blocked_through=sm.last_index_on_or_before(bars, exit_session)
-                if exit_session
-                else -1
-            )
-            for i in range(max(0, today - watch_sessions), today + 1):
-                day = sm.step(ticker, bars, i, rules, state, is_open)
+            day = watch_day(ticker)
         row = r.as_row(version_set)
         values = sm.today_values(bars, fired, rules, is_open)
         values["momentum"]["qualifying"] = day.qualifying.isoformat() if day.qualifying else None
@@ -136,6 +142,18 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
             joined.append(ticker)
         if sm.is_buy(bars, fired, day, rules):
             buys.append(_buy_row(ticker, bars, fired, today, rules))
+    # A watched stock stays watched, and can be bought, on sessions when it does not qualify
+    # (spec 08 Stage 3). Those are the stocks with a qualifying date inside the watch window.
+    window_start = session - timedelta(days=watch_sessions * 7 // 5 + 14)
+    for ticker in sorted(db.momentum_tickers_since(conn, window_start, session)):
+        bars = by_ticker.get(ticker, [])
+        if ticker in results or ticker in open_signals or not bars:
+            continue
+        if bars[-1].session_date != session:
+            continue
+        day = watch_day(ticker)
+        if sm.is_buy(bars, fired_for(ticker), day, rules):
+            buys.append(_buy_row(ticker, bars, fired_for(ticker), len(bars) - 1, rules))
     with conn.transaction():
         db.upsert_screen_results(conn, rows)
 

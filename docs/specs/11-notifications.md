@@ -67,7 +67,7 @@ Body:    Table of ticker, close, distance below the 52-week high, APR 10-day, li
 Stock buy:
 ```
 Title: Buy signal: ABCD at 24.10
-Body:  4 of 5 indicators: bullish engulfing, MACD crossed up, pivot hooked up, Stochastics crossed 20.
+Body:  4 of 5 indicators: change in direction candle, MACD crossed up, pivot hooked up, Stochastics crossed 20.
        Stop 22.90 (5%). Projection 32.54 (35% in 20 sessions). Close of Oct 8.
 ```
 

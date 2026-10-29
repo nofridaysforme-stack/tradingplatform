@@ -16,7 +16,7 @@ from scanner.data.base import Candle, DailyBar, TickerRef
 from scanner.instruments import Instrument
 
 # The newest migration in db/migrations. A test keeps this in step with the folder.
-EXPECTED_SCHEMA_VERSION = "20261020000001"
+EXPECTED_SCHEMA_VERSION = "20261029000001"
 
 Conn = psycopg.Connection[Any]
 
@@ -425,6 +425,16 @@ STOCK_SIGNAL_COLS = (
     "horizon_sessions", "state", "trailing_active", "highest_close", "stop_now",
     "projection_session", "last_session",
 )  # fmt: skip
+
+
+def momentum_tickers_since(conn: Conn, since: date, before: date) -> set[str]:
+    """Tickers that passed the momentum test on a session in [since, before)."""
+    rows = conn.execute(
+        "SELECT DISTINCT ticker FROM stock_screen_results "
+        "WHERE momentum AND session_date >= %s AND session_date < %s",
+        (since, before),
+    ).fetchall()
+    return {r[0] for r in rows}
 
 
 def open_stock_signals(conn: Conn) -> list[dict[str, Any]]:
