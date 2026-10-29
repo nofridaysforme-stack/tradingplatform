@@ -9,7 +9,7 @@ Revised 2026-10-08. The earlier version ended at "trend confirmed" with a 30 per
 ```
 universe -> liquidity filter -> Stage 1 Qualify (Rules 1, 2, 3)
          -> Stage 2 10-week momentum on the week's close (5 of 10 weeks at 455%)
-         -> Stage 3 Watch list (up to 40 sessions, waits for a pullback inside the 10% zone)
+         -> Stage 3 Watch list (up to 60 sessions, about 3 months, waits for the buy vote)
          -> Stage 4 Buy (3 of 5 indicators within 3 sessions)
          -> Stage 5 Hold (35% projection shown, not an exit)
          -> Stage 6 Sell (fixed stop, trailing stop, or 3 of 5 sell indicators)
@@ -91,11 +91,11 @@ Other details:
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.watch` | Approved | A stock that passes Stage 2 on a qualifying date joins the watch list that session. It stays watched for `watch_sessions` sessions after its last qualifying date (the owners: "stay open for at least 40 days, two months"), also on sessions when it closes below the pullback zone ("do not worry about dropping below 10%"). A later qualifying date restarts the count. It leaves the list when the time runs out or when it is bought. | `watch_sessions=40`, `require_trend_confirmed=false` |
+| `stocks.watch` | Approved | A stock that passes Stage 2 on a qualifying date joins the watch list that session. It stays watched for `watch_sessions` sessions after its last qualifying date (the owners on 2026-10-20: "stay open for at least 40 days"; raised to 60 sessions, about 3 months, on 2026-10-29), also on sessions when it closes below the pullback zone ("do not worry about dropping below 10%"). A later qualifying date restarts the count. It leaves the list when the time runs out or when it is bought. | `watch_sessions=60`, `require_trend_confirmed=false` |
 
 Why the stock stays on the list: a stock that passes the 10-week test rarely keeps that pace through a pullback. The test is passed on the qualifying date; the buy comes during the pullback that follows.
 
-A buy still needs the stock to qualify on the buy session, so its close is back inside the pullback zone (Stage 4). On a session when a watched stock closes below the zone, the screen stores no result for it, so the portal's watch list leaves it out that session; it is still watched and shows again, without a new digest entry, once it closes inside the zone.
+A watched stock can be bought at any distance from its high (Stage 4, owners 2026-10-29). On a session when a watched stock does not qualify (for example it closes below the pullback zone), the screen stores no result for it, so the portal's watch list leaves it out that session; it is still watched, can still be bought, and shows again, without a new digest entry, once it qualifies.
 
 ## Stage 4: Buy
 
@@ -103,7 +103,7 @@ Five indicators, each a separate rule. Each one **fires** on a session when its 
 
 | Key | Name | Status | Buy fires when | Sell fires when | Defaults |
 |---|---|---|---|---|---|
-| `stocks.ind_candle` | Price and candle | Approved concept, provisional patterns | A bullish candle pattern completes on the session while the close is inside the pullback zone ("bullish candles on support") | A bearish candle pattern completes on the session | `bullish=[hammer, inverted_hammer, engulfing, piercing, morning_star, harami, dragonfly_doji]`, `bearish=[engulfing, dark_cloud_cover, hanging_man, shooting_star, evening_star, harami]` |
+| `stocks.ind_candle` | Change in direction candle | Approved buy, provisional sell | The close is higher than the previous session's high | The close is lower than the previous session's low | none |
 | `stocks.ind_macd` | MACD crossover | Approved | The MACD line crosses above its signal line | The MACD line crosses below its signal line | `fast=12`, `slow=26`, `signal=9` |
 | `stocks.ind_pivot` | Pivot point crossover | Approved | The daily pivot line hooks above its 3-day average | The pivot line hooks below its 3-day average | `average_sessions=3` |
 | `stocks.ind_rsi` | RSI | Approved buy level, provisional sell level | RSI crosses above `buy_level` | RSI crosses below `sell_level` | `period=14`, `buy_level=30`, `sell_level=70` |
@@ -111,11 +111,11 @@ Five indicators, each a separate rule. Each one **fires** on a session when its 
 
 **Pivot line.** Each session's pivot point is (high + low + close) / 3. Day by day it forms a line; its average is the mean of the last `average_sessions` pivots. "Hooks above" is the pivot line crossing above that average.
 
-**Candle patterns** use TA-Lib on daily bars (CDLHAMMER, CDLINVERTEDHAMMER, CDLENGULFING, CDLPIERCING, CDLMORNINGSTAR, CDLHARAMI, CDLDRAGONFLYDOJI for bullish; CDLENGULFING, CDLDARKCLOUDCOVER, CDLHANGINGMAN, CDLSHOOTINGSTAR, CDLEVENINGSTAR, CDLHARAMI for bearish). Engulfing and harami count by their sign. Without the Fibonacci, "support" is the pullback zone itself (open item A33).
+**Change in direction candle** (owners 2026-10-29): "the close higher than the previous high of that day". Example: yesterday's high was 10.40 and today closes at 10.55, so the candle fires a buy vote; a close of exactly 10.40 does not. It counts at any price. It replaces the TA-Lib candle patterns used before 2026-10-29. The sell side is the mirror, a close lower than the previous session's low (open item A35).
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.buy_vote` | Approved | A watched stock gets a **buy** when at least `min_votes` different buy indicators fired within the last `window_sessions` sessions, counting today, and today's close is inside the pullback zone. | `min_votes=3`, `window_sessions=3` |
+| `stocks.buy_vote` | Approved | A watched stock gets a **buy** when at least `min_votes` different buy indicators fired within the last `window_sessions` sessions, counting today, at any distance from its 52-week high (owners 2026-10-29: a qualified stock is already in its pullback). | `min_votes=3`, `window_sessions=3` |
 
 Each indicator counts once in the window however often it fired. At most one open buy per stock; a stock that is bought leaves the watch list until the buy closes.
 

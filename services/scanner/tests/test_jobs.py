@@ -216,6 +216,38 @@ def test_stock_funnel_day_by_day(conn: Conn) -> None:
     assert held == ("sold", bars[295].session_date, True, bars[295].session_date)
 
 
+def test_a_watched_stock_is_bought_below_the_pullback_zone(conn: Conn) -> None:
+    """The live job buys a watched stock on a session when it does not qualify (owners
+    2026-10-29), from its qualifying date stored by an earlier run."""
+    from tests.test_stock_momentum import deep_pullback_stock  # noqa: PLC0415
+
+    bars = deep_pullback_stock()
+    conn.execute("INSERT INTO stock_tickers (ticker, exchange) VALUES ('DIP', 'XNAS')")
+    db.upsert_stock_bars(conn, [
+        DailyBar(ticker="DIP", session_date=b.session_date, o=b.o or b.c, h=b.h, l=b.l, c=b.c,
+                 volume=b.volume) for b in bars
+    ])  # fmt: skip
+    for key, params in [("stocks.ind_stoch", '{"k_period": 5, "k_slowing": 1}'),
+                        ("stocks.ind_rsi", '{"period": 5}')]:  # fmt: skip
+        conn.execute(
+            "UPDATE rule_versions v SET params = v.params || %s::jsonb FROM rule_definitions d "
+            "WHERE d.key = v.key AND v.version = d.current_version AND d.key = %s",
+            (params, key),
+        )
+    rules = Registry.load(conn).ruleset
+    days = {i: stock_eod.screen_session(conn, rules, bars[i].session_date) for i in range(265, 283)}
+    assert [i for i, d in days.items() if d["buys"]] == [282]
+    stored = conn.execute(
+        "SELECT count(*) FROM stock_screen_results WHERE ticker = 'DIP' AND session_date = %s",
+        (bars[282].session_date,),
+    ).fetchone()
+    assert stored == (0,)  # not qualified that session, so no screen result
+    sig = conn.execute(
+        "SELECT buy_session, entry FROM stock_signals WHERE ticker = 'DIP'"
+    ).fetchone()
+    assert sig == (bars[282].session_date, D("8.174400"))
+
+
 def test_retention_runs(conn: Conn) -> None:
     conn.execute(
         "INSERT INTO job_runs (job, started_at, detail) "

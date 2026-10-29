@@ -88,7 +88,7 @@ export default async function StockPage({ params }: PageProps<"/stocks/[ticker]"
                 passed={r.stage === "watching"}
                 detail={
                   r.stage === "watching"
-                    ? `Waiting for a buy: 3 of 5 indicators within 3 sessions, on a close inside 10% of the 52-week high.${
+                    ? `Waiting for a buy: 3 of 5 indicators within 3 sessions.${
                         m?.qualifying ? ` Qualifying date ${m.qualifying}${t.watchSessions !== null ? `, watched for up to ${t.watchSessions} sessions from it` : ""}.` : ""
                       }`
                     : s.buys.some((b) => b.state === "open")

@@ -62,6 +62,18 @@ def momentum_stock() -> list[DayBar]:
     return bars_of(rows)
 
 
+def deep_pullback_stock() -> list[DayBar]:
+    """momentum_stock up to its last qualifying date (index 274), then a 22 percent fall in
+    6 sessions and a 4-session bounce that stays over 10 percent below the high."""
+    rows = [(float(b.o or b.c), float(b.c)) for b in momentum_stock()[:275]]
+    p = rows[-1][1]
+    for step, count in [(0.96, 6), (1.03, 4)]:
+        for _ in range(count):
+            rows.append((p, p * step))
+            p *= step
+    return bars_of(rows)
+
+
 def no_fire(n: int) -> sm.Fired:
     return sm.Fired(np.zeros(n, dtype=np.bool_), np.zeros(n, dtype=np.bool_), {})
 
@@ -139,12 +151,13 @@ def test_a_closed_friday_makes_thursday_the_weeks_close() -> None:
     assert k is not None and bars[k].session_date == date(2026, 4, 2)
 
 
-def test_a_qualifying_date_keeps_the_stock_watched_for_40_sessions() -> None:
+def test_a_qualifying_date_keeps_the_stock_watched_for_60_sessions() -> None:
     """After its last pass (Friday 2025-01-17, index 274) the stock stays on the watch list
-    for 40 sessions, through a drop below the pullback zone (owners 2026-10-20)."""
+    for 60 sessions, about 3 months, through a drop below the pullback zone (owners
+    2026-10-20 and 2026-10-29)."""
     bars = momentum_stock()[:275]
     top = bars[-1]
-    for k in range(45):
+    for k in range(65):
         d = bars[-1].session_date + timedelta(days=3 if bars[-1].session_date.weekday() == 4 else 1)
         c = top.c * D("0.8") if 10 <= k < 15 else top.c  # 20 percent below for 5 sessions
         bars.append(DayBar(d, top.h if c == top.c else c, c, c, top.volume, c))
@@ -155,7 +168,7 @@ def test_a_qualifying_date_keeps_the_stock_watched_for_40_sessions() -> None:
     assert dropped == list(range(285, 290))
     assert all(days[i].watching for i in dropped)
     assert [i for i, d in days.items() if d.joined] == [269]  # never rejoins after the drop
-    assert days[274 + 39].watching and not days[274 + 40].watching
+    assert days[274 + 59].watching and not days[274 + 60].watching
 
 
 def test_the_funnel_buys_after_the_pullback_and_sells_on_the_vote() -> None:
@@ -177,8 +190,8 @@ def test_the_funnel_buys_after_the_pullback_and_sells_on_the_vote() -> None:
     assert next(i for i in range(270, 299) if sm.is_buy(bars, fired, days[i], FAST)) == 282
     votes = {v.key for v in sm.buy_votes(bars, fired, 282, FAST)}
     assert votes == {"stocks.ind_candle", "stocks.ind_pivot", "stocks.ind_rsi", "stocks.ind_stoch"}
-    candle = next(v for v in sm.buy_votes(bars, fired, 282, FAST) if v.key == "stocks.ind_candle")
-    assert "engulfing" in candle.names
+    candle = fired["stocks.ind_candle"]
+    assert candle.buy[282] and not candle.buy[281]  # the bounce closes above the previous high
 
     trades, joins = replay("SYN", bars, FAST, OPEN)
     assert joins == 1
@@ -218,11 +231,34 @@ def test_votes_count_distinct_indicators_in_the_window_after_entry() -> None:
     assert {v.key for v in sells} == {"stocks.ind_macd", "stocks.ind_pivot"}  # RSI is at entry
 
 
-def test_a_bullish_candle_counts_only_inside_the_pullback_zone() -> None:
-    bars = momentum_stock()
-    fired = {"stocks.ind_candle": fires(len(bars), buy=[282, 302])}
-    assert [v.index for v in sm.votes(bars, fired, 282, "buy", 3, RULES)] == [282]
-    assert sm.votes(bars, fired, 302, "buy", 3, RULES) == []  # over 10 percent below the high
+def test_change_in_direction_candle() -> None:
+    """Owners 2026-10-29: the change in direction candle is a close higher than the previous
+    session's high. The sell mirror is a close lower than the previous session's low."""
+    bars = [
+        DayBar(date(2026, 10, 26), D("10.40"), D("10.00"), D("10.20"), 500_000, D("10.10")),
+        DayBar(date(2026, 10, 27), D("10.60"), D("10.30"), D("10.55"), 500_000, D("10.30")),
+        DayBar(date(2026, 10, 28), D("10.70"), D("10.35"), D("10.60"), 500_000, D("10.50")),
+        DayBar(date(2026, 10, 29), D("10.50"), D("10.10"), D("10.20"), 500_000, D("10.50")),
+    ]
+    f = sm.candle(bars, {})
+    # 10.55 is above 10.40; 10.60 is not above 10.60; 10.20 is below the previous low of 10.35.
+    assert f.buy.tolist() == [False, True, False, False]
+    assert f.sell.tolist() == [False, False, False, True]
+    assert (f.values["previous_high"][1], f.values["close"][1]) == (10.40, 10.55)
+
+
+def test_a_watched_stock_can_be_bought_below_the_pullback_zone() -> None:
+    """Owners 2026-10-29: no pullback zone check on the buy. After its last qualifying date
+    the stock falls 22 percent below the high, then bounces; the bounce buys at 17 percent
+    below the high, where it does not qualify."""
+    bars = deep_pullback_stock()
+    fired = sm.indicators(bars, FAST)
+    state = sm.WatchState()
+    days = {i: sm.step("SYN", bars, i, FAST, state, OPEN) for i in range(249, len(bars))}
+    assert days[282].result is None and days[282].watching
+    assert next(i for i in range(275, len(bars)) if sm.is_buy(bars, fired, days[i], FAST)) == 282
+    (t,) = replay("SYN", bars, FAST, OPEN)[0]
+    assert (t.buy_session, t.entry) == (bars[282].session_date, D("8.1744"))
 
 
 def test_trailing_stop_worked_example() -> None:
@@ -295,7 +331,9 @@ def test_evidence_records_every_indicator() -> None:
     fired = sm.indicators(bars, FAST)
     ev = sm.evidence(bars, fired, 282, "buy", 3, FAST)
     assert set(ev) == set(sm.INDICATORS)
-    assert ev["stocks.ind_candle"]["fired"] and "engulfing" in ev["stocks.ind_candle"]["patterns"]
+    assert ev["stocks.ind_candle"]["fired"]
+    candle = ev["stocks.ind_candle"]["values"]
+    assert candle["close"] == 9.2721 and candle["close"] > candle["previous_high"]
     assert ev["stocks.ind_candle"]["session"] == bars[282].session_date.isoformat()
     assert not ev["stocks.ind_macd"]["fired"] and ev["stocks.ind_macd"]["values"]["macd"] > 0
     assert ev["stocks.ind_rsi"]["provisional"] and not ev["stocks.ind_macd"]["provisional"]
