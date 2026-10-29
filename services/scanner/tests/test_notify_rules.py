@@ -94,8 +94,8 @@ def test_stock_messages_match_spec_11() -> None:
     assert buy.title == "Buy signal: ABCD at 24.10"
     assert buy.body == (
         "4 of 7 indicators: change in direction candle, MACD crossed up, "
-        "close crossed above the pivot, Stochastics crossed.\nStop 22.90 (5%). Projection 32.54 (35% in 20 sessions). "
-        "Close of Oct 8."
+        "close crossed above the pivot, Stochastics crossed.\n"
+        "Stop 22.90 (5%). Projection 32.54 (35% in 20 sessions). Close of Oct 8."
     )
     sell = stock_exit_message(
         ticker="ABCD", kind="trailing_stopped", price=29.83, entry=24.10, sessions=14,
