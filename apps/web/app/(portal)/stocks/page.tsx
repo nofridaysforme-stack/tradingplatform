@@ -4,7 +4,7 @@ import { StockBuys } from "@/components/stock-buys";
 import { Badge, Button } from "@/components/ui";
 import { money, percent } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-import { INDICATOR_NAMES } from "@/lib/stock-names";
+import { INDICATOR_NAMES, INDICATORS } from "@/lib/stock-names";
 import {
   parseResultsQuery,
   results,
@@ -65,7 +65,7 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
           Open buys
         </h2>
         {open.length === 0 ? (
-          <p className="m-0 px-5 py-3 text-sm text-ink-2">No open buys. A buy needs 3 of 5 indicators on a stock from the watch list.</p>
+          <p className="m-0 px-5 py-3 text-sm text-ink-2">No open buys. A buy needs a volume spike and 3 of the other indicators on a stock from the watch list.</p>
         ) : (
           <StockBuys buys={open} />
         )}
@@ -107,7 +107,9 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
                     <td className="px-2 py-2 text-right">{percent(w.apr10)}</td>
                     <td className="px-2 py-2 text-right">{w.qualifying ?? "Not recorded"}</td>
                     <td className="px-2 py-2 pr-5">
-                      <span className="font-semibold">{w.votes} of 5</span>
+                      <span className="font-semibold">
+                        {w.votes} of {INDICATORS.length}
+                      </span>
                       {w.fired.length > 0 && <span className="block text-xs text-mute">{w.fired.map((k) => INDICATOR_NAMES[k] ?? k).join(", ")}</span>}
                     </td>
                   </tr>

@@ -386,13 +386,14 @@
   },
   "stocks.buy_vote": {
    "counts_toward_minimum": false,
-   "description": "A watched stock is bought when at least min_votes different buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high.",
+   "description": "A watched stock is bought when a volume spike (if require_volume) and at least min_votes different other buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high.",
    "enabled": true,
    "key": "stocks.buy_vote",
    "kind": "gate",
    "name": "Buy vote",
    "params": {
     "min_votes": 3,
+    "require_volume": true,
     "window_sessions": 3
    },
    "params_schema": {
@@ -402,6 +403,10 @@
      "min": 1,
      "type": "integer"
     },
+    "require_volume": {
+     "default": true,
+     "type": "boolean"
+    },
     "window_sessions": {
      "default": 3,
      "max": 20,
@@ -409,10 +414,10 @@
      "type": "sessions"
     }
    },
-   "source": "Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days; 2026-10-29: no pullback zone check",
-   "status": "approved",
+   "source": "Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days; 2026-10-29: no pullback zone check, volume confirms",
+   "status": "provisional",
    "strategy": "stocks",
-   "version": 2
+   "version": 3
   },
   "stocks.five_line": {
    "counts_toward_minimum": false,
@@ -502,6 +507,36 @@
    "strategy": "stocks",
    "version": 2
   },
+  "stocks.ind_ma": {
+   "counts_toward_minimum": true,
+   "description": "Simple moving averages of the close. Buy: the short_sessions average crosses above the long_sessions average. Sell: it crosses below.",
+   "enabled": true,
+   "key": "stocks.ind_ma",
+   "kind": "indicator",
+   "name": "Moving average crossover",
+   "params": {
+    "long_sessions": 20,
+    "short_sessions": 10
+   },
+   "params_schema": {
+    "long_sessions": {
+     "default": 20,
+     "max": 400,
+     "min": 3,
+     "type": "sessions"
+    },
+    "short_sessions": {
+     "default": 10,
+     "max": 200,
+     "min": 2,
+     "type": "sessions"
+    }
+   },
+   "source": "Owners 2026-10-29: moving average crossover; the 10 and 20 session lengths are a spec 08 suggestion",
+   "status": "provisional",
+   "strategy": "stocks",
+   "version": 1
+  },
   "stocks.ind_macd": {
    "counts_toward_minimum": true,
    "description": "Buy: the MACD line crosses above its signal line. Sell: it crosses below.",
@@ -541,26 +576,17 @@
   },
   "stocks.ind_pivot": {
    "counts_toward_minimum": true,
-   "description": "Each session's pivot is (high + low + close) / 3. Buy: the pivot line hooks above its average of the last average_sessions pivots. Sell: it hooks below.",
+   "description": "The floor trader pivot: (high + low + close) / 3 of the session before. Buy: the close crosses above the pivot. Sell: the close crosses below it.",
    "enabled": true,
    "key": "stocks.ind_pivot",
    "kind": "indicator",
    "name": "Pivot point crossover",
-   "params": {
-    "average_sessions": 3
-   },
-   "params_schema": {
-    "average_sessions": {
-     "default": 3,
-     "max": 50,
-     "min": 2,
-     "type": "sessions"
-    }
-   },
-   "source": "Owners 2026-10-08: the pivot point as a line, with a 3 day average crossover",
+   "params": {},
+   "params_schema": {},
+   "source": "Owners 2026-10-29: the standard floor trader pivot",
    "status": "approved",
    "strategy": "stocks",
-   "version": 1
+   "version": 2
   },
   "stocks.ind_rsi": {
    "counts_toward_minimum": true,
@@ -601,7 +627,7 @@
   },
   "stocks.ind_stoch": {
    "counts_toward_minimum": true,
-   "description": "Slow %K. Buy: %K crosses above buy_level. Sell: %K crosses below sell_level.",
+   "description": "George Lane's slow stochastic. Buy: %K crosses above %D while both are below buy_level. Sell: %K crosses below %D while both are above sell_level.",
    "enabled": true,
    "key": "stocks.ind_stoch",
    "kind": "indicator",
@@ -645,7 +671,37 @@
      "type": "integer"
     }
    },
-   "source": "Owners 2026-10-08: Stochastics crossing over the 20; sell level is a spec 08 interpretation",
+   "source": "Owners 2026-10-29: the standard rules (George Lane)",
+   "status": "approved",
+   "strategy": "stocks",
+   "version": 2
+  },
+  "stocks.ind_volume": {
+   "counts_toward_minimum": true,
+   "description": "Volume at least multiple times the average of the average_sessions sessions before. Buy: on a close above the previous close. Sell: on a close below it.",
+   "enabled": true,
+   "key": "stocks.ind_volume",
+   "kind": "indicator",
+   "name": "Volume spike",
+   "params": {
+    "average_sessions": 20,
+    "multiple": 1.5
+   },
+   "params_schema": {
+    "average_sessions": {
+     "default": 20,
+     "max": 200,
+     "min": 2,
+     "type": "sessions"
+    },
+    "multiple": {
+     "default": 1.5,
+     "max": 10,
+     "min": 1,
+     "type": "ratio"
+    }
+   },
+   "source": "Owners 2026-10-29: volume spike; 1.5 times the 20-session average is a spec 08 suggestion",
    "status": "provisional",
    "strategy": "stocks",
    "version": 1

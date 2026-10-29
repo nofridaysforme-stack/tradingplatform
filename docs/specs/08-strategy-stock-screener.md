@@ -10,9 +10,9 @@ Revised 2026-10-08. The earlier version ended at "trend confirmed" with a 30 per
 universe -> liquidity filter -> Stage 1 Qualify (Rules 1, 2, 3)
          -> Stage 2 10-week momentum on the week's close (5 of 10 weeks at 455%)
          -> Stage 3 Watch list (up to 60 sessions, about 3 months, waits for the buy vote)
-         -> Stage 4 Buy (3 of 5 indicators within 3 sessions)
+         -> Stage 4 Buy (a volume spike and 3 of the other 6 indicators within 3 sessions)
          -> Stage 5 Hold (35% projection shown, not an exit)
-         -> Stage 6 Sell (fixed stop, trailing stop, or 3 of 5 sell indicators)
+         -> Stage 6 Sell (fixed stop, trailing stop, or 3 of 7 sell indicators)
 owner holdings -> the same stops and sell vote, on the owner's purchase price
 ```
 
@@ -99,23 +99,31 @@ A watched stock can be bought at any distance from its high (Stage 4, owners 202
 
 ## Stage 4: Buy
 
-Five indicators, each a separate rule. Each one **fires** on a session when its condition becomes true on that session's close. A cross means the value was on one side of the line at the previous close and on the other side at this close.
+Seven indicators, each a separate rule. Since 2026-10-29 each one follows its standard (textbook) rule, at the owners' request; the change in direction candle is the owners' own definition. Each one **fires** on a session when its condition becomes true on that session's close. A cross means the value was on one side of the line at the previous close and on the other side at this close.
 
 | Key | Name | Status | Buy fires when | Sell fires when | Defaults |
 |---|---|---|---|---|---|
 | `stocks.ind_candle` | Change in direction candle | Approved buy, provisional sell | The close is higher than the previous session's high | The close is lower than the previous session's low | none |
 | `stocks.ind_macd` | MACD crossover | Approved | The MACD line crosses above its signal line | The MACD line crosses below its signal line | `fast=12`, `slow=26`, `signal=9` |
-| `stocks.ind_pivot` | Pivot point crossover | Approved | The daily pivot line hooks above its 3-day average | The pivot line hooks below its 3-day average | `average_sessions=3` |
+| `stocks.ind_pivot` | Pivot point crossover | Approved | The close crosses above the session's floor trader pivot | The close crosses below the pivot | none |
 | `stocks.ind_rsi` | RSI | Approved buy level, provisional sell level | RSI crosses above `buy_level` | RSI crosses below `sell_level` | `period=14`, `buy_level=30`, `sell_level=70` |
-| `stocks.ind_stoch` | Stochastics | Approved buy level, provisional sell level | Slow %K crosses above `buy_level` | Slow %K crosses below `sell_level` | `k_period=14`, `k_slowing=3`, `d_period=3`, `buy_level=20`, `sell_level=80` |
+| `stocks.ind_stoch` | Stochastics | Approved | Slow %K crosses above %D while both are below `buy_level` (George Lane) | Slow %K crosses below %D while both are above `sell_level` | `k_period=14`, `k_slowing=3`, `d_period=3`, `buy_level=20`, `sell_level=80` |
+| `stocks.ind_ma` | Moving average crossover | Provisional lengths | The `short_sessions` simple average of the close crosses above the `long_sessions` average | It crosses below | `short_sessions=10`, `long_sessions=20` |
+| `stocks.ind_volume` | Volume spike | Provisional settings | Volume is at least `multiple` times the average of the `average_sessions` sessions before, on a close above the previous close | The same spike on a close below the previous close | `average_sessions=20`, `multiple=1.5` |
 
-**Pivot line.** Each session's pivot point is (high + low + close) / 3. Day by day it forms a line; its average is the mean of the last `average_sessions` pivots. "Hooks above" is the pivot line crossing above that average.
+**Pivot point.** The floor trader pivot: a session's pivot is (high + low + close) / 3 of the session before. Example: yesterday's high 11, low 9, close 10 give today's pivot of 10; a close of 10.5 today, after a close at or below yesterday's pivot, crosses above it. Before 2026-10-29 the pivot line crossing its 3-day average was used.
+
+**MACD** (Gerald Appel) and **RSI** (Welles Wilder) were already their standard rules: the MACD line crossing its signal line, and RSI crossing back above 30 (buy) or below 70 (sell).
+
+**Volume spike.** Volume confirms a move rather than predicting one, so it votes with the day's direction and the buy vote requires it (`require_volume`). The length of the average and the multiple have no single standard; 20 sessions and 1.5 times are the suggested defaults (open item A36).
+
+**Moving average crossover.** The lengths have no single standard (50 and 200 sessions is the long-term "golden cross"); 10 and 20 sessions suit trades of a few weeks (open item A36).
 
 **Change in direction candle** (owners 2026-10-29): "the close higher than the previous high of that day". Example: yesterday's high was 10.40 and today closes at 10.55, so the candle fires a buy vote; a close of exactly 10.40 does not. It counts at any price. It replaces the TA-Lib candle patterns used before 2026-10-29. The sell side is the mirror, a close lower than the previous session's low (open item A35).
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.buy_vote` | Approved | A watched stock gets a **buy** when at least `min_votes` different buy indicators fired within the last `window_sessions` sessions, counting today, at any distance from its 52-week high (owners 2026-10-29: a qualified stock is already in its pullback). | `min_votes=3`, `window_sessions=3` |
+| `stocks.buy_vote` | Approved count, provisional volume requirement | A watched stock gets a **buy** when, within the last `window_sessions` sessions counting today, a volume spike fired (with `require_volume`) and at least `min_votes` different other buy indicators fired, at any distance from its 52-week high (owners 2026-10-29: a qualified stock is already in its pullback). | `min_votes=3`, `window_sessions=3`, `require_volume=true` |
 
 Each indicator counts once in the window however often it fired. At most one open buy per stock; a stock that is bought leaves the watch list until the buy closes.
 
