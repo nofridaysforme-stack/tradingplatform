@@ -386,14 +386,14 @@
   },
   "stocks.buy_vote": {
    "counts_toward_minimum": false,
-   "description": "A watched stock is bought when a volume spike (if require_volume) and at least min_votes different other buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high.",
+   "description": "A watched stock is bought when at least min_votes different buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high. With require_volume, a volume spike must be among them and min_votes counts the others.",
    "enabled": true,
    "key": "stocks.buy_vote",
    "kind": "gate",
    "name": "Buy vote",
    "params": {
     "min_votes": 3,
-    "require_volume": true,
+    "require_volume": false,
     "window_sessions": 3
    },
    "params_schema": {
@@ -404,7 +404,7 @@
      "type": "integer"
     },
     "require_volume": {
-     "default": true,
+     "default": false,
      "type": "boolean"
     },
     "window_sessions": {
@@ -414,8 +414,8 @@
      "type": "sessions"
     }
    },
-   "source": "Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days; 2026-10-29: no pullback zone check, volume confirms",
-   "status": "provisional",
+   "source": "Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days; 2026-10-29: no pullback zone check, 3 of 7 with volume",
+   "status": "approved",
    "strategy": "stocks",
    "version": 3
   },

@@ -219,7 +219,9 @@ def test_default_oscillators_rarely_vote_in_a_shallow_pullback() -> None:
     fired = sm.indicators(bars, RULES)
     assert not fired["stocks.ind_rsi"].buy[270:290].any()
     assert not fired["stocks.ind_stoch"].buy[270:290].any()
-    assert replay("SYN", bars, RULES)[0] == []
+    # The buy still comes, from the candle, the pivot, and the volume spike.
+    (t,) = replay("SYN", bars, RULES, OPEN)[0]
+    assert set(t.votes) == {"stocks.ind_candle", "stocks.ind_pivot", "stocks.ind_volume"}
 
 
 def test_votes_count_distinct_indicators_in_the_window_after_entry() -> None:
@@ -232,18 +234,18 @@ def test_votes_count_distinct_indicators_in_the_window_after_entry() -> None:
     found = sm.votes(bars, fired, 6, "buy", 3, RULES)
     assert {(v.key, v.index) for v in found} == {("stocks.ind_macd", 5), ("stocks.ind_pivot", 6)}
     assert not sm.vote_passes(found, "stocks.buy_vote", RULES)
-    two = derive(RULES, {"stocks.buy_vote": {"min_votes": 2, "require_volume": False}})
-    assert sm.vote_passes(found, "stocks.buy_vote", two)
-    assert not sm.vote_passes(
+    assert sm.vote_passes(
         found, "stocks.buy_vote", derive(RULES, {"stocks.buy_vote": {"min_votes": 2}})
     )
+    # The volume spike is one of the votes; with require_volume it must be there and does
+    # not count toward min_votes.
     with_spike = [*found, sm.Vote("stocks.ind_volume", 6)]
-    assert sm.vote_passes(
-        with_spike, "stocks.buy_vote", derive(RULES, {"stocks.buy_vote": {"min_votes": 2}})
-    )
-    assert not sm.vote_passes(
-        with_spike, "stocks.buy_vote", RULES
-    )  # volume does not count in the 3
+    assert sm.vote_passes(with_spike, "stocks.buy_vote", RULES)
+    required = derive(RULES, {"stocks.buy_vote": {"require_volume": True}})
+    assert not sm.vote_passes(with_spike, "stocks.buy_vote", required)
+    two = derive(RULES, {"stocks.buy_vote": {"min_votes": 2, "require_volume": True}})
+    assert sm.vote_passes(with_spike, "stocks.buy_vote", two)
+    assert not sm.vote_passes(found, "stocks.buy_vote", two)
     sells = sm.votes(bars, fired, 9, "sell", 3, RULES, after=6)
     assert {v.key for v in sells} == {"stocks.ind_macd", "stocks.ind_pivot"}  # RSI is at entry
 
@@ -314,16 +316,16 @@ def test_volume_spike_confirms_the_days_direction() -> None:
 
 def test_a_watched_stock_can_be_bought_below_the_pullback_zone() -> None:
     """Owners 2026-10-29: no pullback zone check on the buy. After its last qualifying date
-    the stock falls 22 percent below the high, then bounces; the bounce buys at 17 percent
-    below the high, where it does not qualify."""
+    the stock falls 22 percent below the high, then bounces; the first bounce session buys
+    at 20 percent below the high, where it does not qualify."""
     bars = deep_pullback_stock()
     fired = sm.indicators(bars, FAST)
     state = sm.WatchState()
     days = {i: sm.step("SYN", bars, i, FAST, state, OPEN) for i in range(249, len(bars))}
-    assert days[282].result is None and days[282].watching
-    assert next(i for i in range(275, len(bars)) if sm.is_buy(bars, fired, days[i], FAST)) == 282
+    assert days[281].result is None and days[281].watching
+    assert next(i for i in range(275, len(bars)) if sm.is_buy(bars, fired, days[i], FAST)) == 281
     (t,) = replay("SYN", bars, FAST, OPEN)[0]
-    assert (t.buy_session, t.entry) == (bars[282].session_date, D("8.1744"))
+    assert (t.buy_session, t.entry) == (bars[281].session_date, D("7.9363"))
 
 
 def test_trailing_stop_worked_example() -> None:

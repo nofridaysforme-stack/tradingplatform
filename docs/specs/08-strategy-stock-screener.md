@@ -10,7 +10,7 @@ Revised 2026-10-08. The earlier version ended at "trend confirmed" with a 30 per
 universe -> liquidity filter -> Stage 1 Qualify (Rules 1, 2, 3)
          -> Stage 2 10-week momentum on the week's close (5 of 10 weeks at 455%)
          -> Stage 3 Watch list (up to 60 sessions, about 3 months, waits for the buy vote)
-         -> Stage 4 Buy (a volume spike and 3 of the other 6 indicators within 3 sessions)
+         -> Stage 4 Buy (3 of 7 indicators within 3 sessions)
          -> Stage 5 Hold (35% projection shown, not an exit)
          -> Stage 6 Sell (fixed stop, trailing stop, or 3 of 7 sell indicators)
 owner holdings -> the same stops and sell vote, on the owner's purchase price
@@ -115,7 +115,7 @@ Seven indicators, each a separate rule. Since 2026-10-29 each one follows its st
 
 **MACD** (Gerald Appel) and **RSI** (Welles Wilder) were already their standard rules: the MACD line crossing its signal line, and RSI crossing back above 30 (buy) or below 70 (sell).
 
-**Volume spike.** Volume confirms a move rather than predicting one, so it votes with the day's direction and the buy vote requires it (`require_volume`). The length of the average and the multiple have no single standard; 20 sessions and 1.5 times are the suggested defaults (open item A36).
+**Volume spike.** Volume confirms a move rather than predicting one, so it votes with the day's direction. It is one of the seven votes, not a requirement: the bounce this system buys often comes on ordinary volume, and the 20-session average still holds the heavy volume of the run that qualified the stock, so requiring a spike would skip many of the intended entries. `require_volume` makes it mandatory if a backtest shows that helps. The length of the average and the multiple have no single standard; 20 sessions and 1.5 times are the suggested defaults (open item A36).
 
 **Moving average crossover.** The lengths have no single standard (50 and 200 sessions is the long-term "golden cross"); 10 and 20 sessions suit trades of a few weeks (open item A36).
 
@@ -123,7 +123,7 @@ Seven indicators, each a separate rule. Since 2026-10-29 each one follows its st
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.buy_vote` | Approved count, provisional volume requirement | A watched stock gets a **buy** when, within the last `window_sessions` sessions counting today, a volume spike fired (with `require_volume`) and at least `min_votes` different other buy indicators fired, at any distance from its 52-week high (owners 2026-10-29: a qualified stock is already in its pullback). | `min_votes=3`, `window_sessions=3`, `require_volume=true` |
+| `stocks.buy_vote` | Approved | A watched stock gets a **buy** when at least `min_votes` different buy indicators fired within the last `window_sessions` sessions, counting today, at any distance from its 52-week high (owners 2026-10-29: a qualified stock is already in its pullback). With `require_volume`, a volume spike must be among them and `min_votes` counts the others. | `min_votes=3`, `window_sessions=3`, `require_volume=false` |
 
 Each indicator counts once in the window however often it fired. At most one open buy per stock; a stock that is bought leaves the watch list until the buy closes.
 

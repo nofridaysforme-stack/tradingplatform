@@ -236,16 +236,16 @@ def test_a_watched_stock_is_bought_below_the_pullback_zone(conn: Conn) -> None:
         )
     rules = Registry.load(conn).ruleset
     days = {i: stock_eod.screen_session(conn, rules, bars[i].session_date) for i in range(265, 283)}
-    assert [i for i, d in days.items() if d["buys"]] == [282]
+    assert [i for i, d in days.items() if d["buys"]] == [281]
     stored = conn.execute(
         "SELECT count(*) FROM stock_screen_results WHERE ticker = 'DIP' AND session_date = %s",
-        (bars[282].session_date,),
+        (bars[281].session_date,),
     ).fetchone()
     assert stored == (0,)  # not qualified that session, so no screen result
     sig = conn.execute(
         "SELECT buy_session, entry FROM stock_signals WHERE ticker = 'DIP'"
     ).fetchone()
-    assert sig == (bars[282].session_date, D("8.174400"))
+    assert sig == (bars[281].session_date, D("7.936300"))
 
 
 def test_retention_runs(conn: Conn) -> None:

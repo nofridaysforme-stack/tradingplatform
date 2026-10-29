@@ -92,7 +92,7 @@ test("stock detail shows momentum, the indicators, and the stock's buys", async 
   const ladder = funnel.getByRole("table");
   await expect(ladder.getByRole("row", { name: /^1 2026-09-18 26\.50 5 588\.7% Yes$/ })).toBeVisible();
   await expect(ladder.getByRole("row", { name: /^10 2026-07-17 16\.20 50 426\.9% No$/ })).toBeVisible();
-  await expect(funnel).toContainText("Waiting for a buy: a volume spike and 3 of the other indicators within 3 sessions");
+  await expect(funnel).toContainText("Waiting for a buy: 3 indicators within 3 sessions");
   const ind = page.getByRole("region", { name: "Indicators" });
   await expect(ind).toContainText(`After the ${SESSION} session: 2 of 5 for a buy, 0 of 5 for a sell`);
   await expect(ind.getByRole("row", { name: /Change in direction candle.*Fired 2026-09-30.*No/ })).toBeVisible();

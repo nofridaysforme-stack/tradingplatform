@@ -65,7 +65,7 @@ export default async function StocksPage({ searchParams }: PageProps<"/stocks">)
           Open buys
         </h2>
         {open.length === 0 ? (
-          <p className="m-0 px-5 py-3 text-sm text-ink-2">No open buys. A buy needs a volume spike and 3 of the other indicators on a stock from the watch list.</p>
+          <p className="m-0 px-5 py-3 text-sm text-ink-2">No open buys. A buy needs 3 indicators on a stock from the watch list, within 3 sessions.</p>
         ) : (
           <StockBuys buys={open} />
         )}

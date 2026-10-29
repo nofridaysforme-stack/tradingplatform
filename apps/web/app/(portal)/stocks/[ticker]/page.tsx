@@ -88,7 +88,7 @@ export default async function StockPage({ params }: PageProps<"/stocks/[ticker]"
                 passed={r.stage === "watching"}
                 detail={
                   r.stage === "watching"
-                    ? `Waiting for a buy: a volume spike and 3 of the other indicators within 3 sessions.${
+                    ? `Waiting for a buy: 3 indicators within 3 sessions.${
                         m?.qualifying ? ` Qualifying date ${m.qualifying}${t.watchSessions !== null ? `, watched for up to ${t.watchSessions} sessions from it` : ""}.` : ""
                       }`
                     : s.buys.some((b) => b.state === "open")
@@ -326,7 +326,7 @@ function Indicators({ evidence, session }: { evidence: DayEvidence; session: str
       </h2>
       <p className="m-0 mb-3 text-[13px] text-mute">
         After the {session} session: {votes("buy")} of {Object.keys(evidence.buy).length} for a buy, {votes("sell")} of {Object.keys(evidence.sell).length} for a sell, each
-        within the last 3 sessions. A buy needs a volume spike and 3 others; a sell needs 3.
+        within the last 3 sessions. A buy or a sell needs 3.
       </p>
       <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Indicators, scrolls sideways">
         <table className="w-full min-w-[520px] border-collapse text-sm">

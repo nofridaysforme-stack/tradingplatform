@@ -6,7 +6,7 @@
 -- Pivot point: the floor trader pivot of the session before; the close crossing it.
 -- Moving average crossover (new): the 10-session average crossing the 20-session average.
 -- Volume spike (new): volume at least 1.5 times its 20-session average, on an up or down close.
--- Buy vote: a volume spike must confirm the buy; 3 of the other 6 indicators.
+-- Buy vote: 3 of the 7 indicators. require_volume (off) can make a volume spike mandatory.
 -- Each changed rule gets a new version on top of its current one.
 
 INSERT INTO rule_versions (key, version, status, enabled, counts_toward_minimum,
@@ -31,11 +31,11 @@ WHERE v.key = 'stocks.ind_pivot';
 
 INSERT INTO rule_versions (key, version, status, enabled, counts_toward_minimum,
                            description, params_schema, params, change_note)
-SELECT v.key, v.version + 1, 'provisional', v.enabled, v.counts_toward_minimum,
-       'A watched stock is bought when a volume spike (if require_volume) and at least min_votes different other buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high.',
-       v.params_schema || '{"require_volume": {"type": "boolean", "default": true}}',
-       v.params || '{"require_volume": true}',
-       'Owners 2026-10-29: volume confirms the buy'
+SELECT v.key, v.version + 1, v.status, v.enabled, v.counts_toward_minimum,
+       'A watched stock is bought when at least min_votes different buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high. With require_volume, a volume spike must be among them and min_votes counts the others.',
+       v.params_schema || '{"require_volume": {"type": "boolean", "default": false}}',
+       v.params || '{"require_volume": false}',
+       'Owners 2026-10-29: the volume spike is one of the votes; requiring it is a setting, off'
 FROM rule_versions v
 JOIN rule_definitions d ON d.key = v.key AND d.current_version = v.version
 WHERE v.key = 'stocks.buy_vote';
@@ -49,7 +49,7 @@ UPDATE rule_definitions SET
   source = 'Owners 2026-10-29: the standard floor trader pivot'
 WHERE key = 'stocks.ind_pivot';
 UPDATE rule_definitions SET
-  source = 'Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days; 2026-10-29: no pullback zone check, volume confirms'
+  source = 'Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days; 2026-10-29: no pullback zone check, 3 of 7 with volume'
 WHERE key = 'stocks.buy_vote';
 
 INSERT INTO rule_definitions (key, strategy, kind, name, source, current_version) VALUES
