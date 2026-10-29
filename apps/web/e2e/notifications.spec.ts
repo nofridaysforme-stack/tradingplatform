@@ -274,12 +274,17 @@ test("Telegram connects through the bot link and the webhook, then disconnects",
   await expect(
     page.getByRole("button", { name: "Connect Telegram" }),
   ).toBeVisible();
-  expect(await channels()).not.toContain("telegram");
-  const left = await withSql(
-    (sql) =>
-      sql`select count(*)::int as n from telegram_links t join users u on u.id = t.user_id where u.email = ${E2E_EMAIL}`,
-  );
-  expect(left[0]?.n).toBe(0);
+  // Read until the disconnect is visible in the database; a single read right after the
+  // button changes has raced the server action once in CI.
+  await expect.poll(channels).not.toContain("telegram");
+  const left = async () =>
+    (
+      await withSql(
+        (sql) =>
+          sql`select count(*)::int as n from telegram_links t join users u on u.id = t.user_id where u.email = ${E2E_EMAIL}`,
+      )
+    )[0]?.n;
+  await expect.poll(left).toBe(0);
 });
 
 test("on iPhone Safari before install, the install guide replaces the button", async ({ page, browserName }) => {
