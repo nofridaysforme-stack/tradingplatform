@@ -9,8 +9,8 @@ describe("navItems", () => {
     expect(hrefs(true, true)).toEqual(["/dashboard", "/levels", "/stocks", "/history", "/settings"]);
   });
 
-  it("hides the forex pages while forex is paused, and gives Holdings a mobile tab", () => {
+  it("hides the forex pages while forex is paused, and gives Holdings and Health mobile tabs", () => {
     expect(hrefs(false, false)).toEqual(["/stocks", "/holdings", "/health", "/settings"]);
-    expect(hrefs(false, true)).toEqual(["/stocks", "/holdings", "/settings"]);
+    expect(hrefs(false, true)).toEqual(["/stocks", "/holdings", "/health", "/settings"]);
   });
 });

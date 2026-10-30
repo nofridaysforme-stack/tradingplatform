@@ -5,19 +5,22 @@ import { usePathname } from "next/navigation";
 import { RingMark } from "@/components/ring";
 import { cn } from "@/lib/utils";
 
-// Design handoff, Navigation: five tabs on mobile, the full list on desktop. Forex pages
-// (marked forex) are left out while forex is paused (decision 2026-10-08).
+// Design handoff, Navigation: at most five tabs on mobile, the full list on desktop. Forex
+// pages (marked forex) are left out while forex is paused (decision 2026-10-08). Optional mobile
+// tabs take the room the forex tabs leave; with forex on, Health is the dot on Signals.
 interface Item {
   href: string;
   label: string;
   forex?: true;
+  optional?: true;
 }
 const MOBILE: Item[] = [
   { href: "/dashboard", label: "Signals", forex: true },
   { href: "/levels", label: "Levels", forex: true },
   { href: "/stocks", label: "Stocks" },
   { href: "/history", label: "History", forex: true },
-  { href: "/holdings", label: "Holdings" },
+  { href: "/holdings", label: "Holdings", optional: true },
+  { href: "/health", label: "Health", optional: true },
   { href: "/settings", label: "Settings" },
 ];
 const DESKTOP: Item[] = [
@@ -32,11 +35,14 @@ const DESKTOP: Item[] = [
 ];
 const MOBILE_TABS = 5;
 
-/** The items to show: forex pages only while forex is on. On mobile, Holdings takes a tab
- *  only when the forex tabs are gone. */
+/** The items to show: forex pages only while forex is on. On mobile, the optional tabs
+ *  (Holdings, then Health) fill the room left within five tabs, in that order. */
 export function navItems(forex: boolean, mobile: boolean): Item[] {
   const items = (mobile ? MOBILE : DESKTOP).filter((i) => forex || !i.forex);
-  return mobile ? items.filter((i) => i.href !== "/holdings" || items.length <= MOBILE_TABS) : items;
+  if (!mobile) return items;
+  let room = MOBILE_TABS - items.filter((i) => !i.optional).length;
+  const shown = new Set(items.filter((i) => !i.optional || room-- > 0));
+  return items.filter((i) => shown.has(i));
 }
 
 const COLS: Record<number, string> = { 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" };
