@@ -121,6 +121,27 @@ def test_rate_limiter_allows_five_calls_per_rolling_minute() -> None:
     assert clock.now == 60  # calls 2 to 5 were at t=0, so they all expired at t=60
 
 
+def test_the_client_sets_the_limit_from_the_setting() -> None:
+    """MASSIVE_CALLS_PER_MINUTE (spec 04): 300 a minute on the paid plans, 5 on the free one."""
+    clock = FakeClock()
+    limiter = RateLimiter(calls=5, window=60, clock=clock, sleep=clock.sleep)
+    MassiveClient("key", HOST, limiter=limiter, calls_per_minute=300)
+    assert limiter.calls == 300
+    for _ in range(300):
+        limiter.acquire()
+    assert clock.slept == []  # 300 calls inside one minute
+    limiter.set_calls(0)
+    assert limiter.calls == 1  # never zero, which would wait forever
+
+
+def test_settings_default_to_the_paid_plan_pace() -> None:
+    from scanner.config import Settings  # noqa: PLC0415
+
+    assert Settings(database_url="postgresql://x").massive_calls_per_minute == 300
+    slow = Settings(database_url="postgresql://x", massive_calls_per_minute=5)
+    assert slow.massive_calls_per_minute == 5
+
+
 @respx.mock
 def test_every_page_goes_through_the_shared_limiter() -> None:
     clock = FakeClock()

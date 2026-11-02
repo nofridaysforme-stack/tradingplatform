@@ -1,12 +1,13 @@
 """One-off backfills (spec 04).
 
     python -m scanner.jobs.backfill forex [--instrument EUR/USD]
-    python -m scanner.jobs.backfill stocks [--sessions 300]
+    python -m scanner.jobs.backfill stocks [--sessions 1260]
 
 Forex: M15 for 120 trading days, D for 400 days, W for 104 weeks, M for 36 months, then
 levels for the most recent trading days. Stocks: first the ticker universe, then stored bars
-outside it are deleted, then grouped daily bars for the last 300 sessions at 5 calls per
-minute (about an hour), skipping sessions already stored and keeping only universe stocks
+outside it are deleted, then grouped daily bars for the last 1260 sessions (about five
+years, which the paid Massive plans include), one call per session at
+MASSIVE_CALLS_PER_MINUTE, skipping sessions already stored and keeping only universe stocks
 and held stocks. Progress is written to job_runs.
 """
 
@@ -44,7 +45,7 @@ M15_TRADING_DAYS = 120
 D_DAYS = 400
 W_WEEKS = 104
 M_MONTHS = 36
-STOCK_SESSIONS = 300
+STOCK_SESSIONS = 1260  # about five years
 LEVEL_DAYS = 5
 
 
@@ -171,7 +172,11 @@ def main(argv: list[str] | None = None) -> None:
         else:
             if settings.massive_api_key is None:
                 raise SystemExit("MASSIVE_API_KEY is not set")
-            provider = MassiveClient(settings.massive_api_key.get_secret_value(), MASSIVE_HOST)
+            provider = MassiveClient(
+                settings.massive_api_key.get_secret_value(),
+                MASSIVE_HOST,
+                calls_per_minute=settings.massive_calls_per_minute,
+            )
             backfill_stocks(
                 conn,
                 provider,

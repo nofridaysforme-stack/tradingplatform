@@ -77,6 +77,7 @@ Use Railway's reference variable for the database (`${{Postgres.DATABASE_URL}}`;
 | `OANDA_ACCOUNT_ID` | | yes | OANDA account settings |
 | `OANDA_ENV` | | yes | `practice` |
 | `MASSIVE_API_KEY` | | yes | Massive dashboard |
+| `MASSIVE_CALLS_PER_MINUTE` | | | Leave unset on a paid Massive plan (300); `5` on the free Basic plan |
 | `VAPID_PUBLIC_KEY` | yes | yes | See below |
 | `VAPID_PRIVATE_KEY` | | yes | See below |
 | `VAPID_SUBJECT` | | yes | `mailto:` plus the ops address |

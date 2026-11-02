@@ -88,7 +88,7 @@ def from_pips(pips: Decimal, pip_size: Decimal) -> Decimal:
 |---|---|
 | Host | `https://api.massive.com` (the legacy host `https://api.polygon.io` serves the same API) |
 | Auth | `apiKey` query parameter or `Authorization: Bearer` header |
-| Plan | Free Basic: 5 calls per minute, end-of-day data, 2 years of history. Upgrade only if timing or limits become a problem. |
+| Plan | Paid (owners 2026-11-03): same-day data, so the 18:30 screen runs that evening; no call limit; years of history. The free Basic plan (5 calls per minute, end-of-day data, 2 years) still works with `MASSIVE_CALLS_PER_MINUTE=5`, screening each session the next morning. |
 | Full-market daily bars | `GET /v2/aggs/grouped/locale/us/market/stocks/{YYYY-MM-DD}?adjusted=true` |
 | Single-ticker history | `GET /v2/aggs/ticker/{ticker}/range/1/day/{from}/{to}?adjusted=true` |
 | Ticker reference | `GET /v3/reference/tickers?market=stocks&type=CS&active=true&limit=1000` (paginate with `next_url`) |
@@ -96,11 +96,11 @@ def from_pips(pips: Decimal, pip_size: Decimal) -> Decimal:
 
 ### Rate limiting
 
-The Massive client enforces 5 calls per rolling 60 seconds with a token bucket. All Massive calls go through one shared limiter.
+All Massive calls go through one shared limiter that allows `MASSIVE_CALLS_PER_MINUTE` calls in any rolling 60 seconds (default 300, a polite pace for the paid plans; 5 on the free plan).
 
 ### Initial backfill
 
-Fetch grouped daily bars for the last 300 trading sessions (enough for 252-session highs and lows plus the 50-session close). At 5 calls per minute this takes about an hour, once. Run it as a one-time job with progress logged to `job_runs`.
+Fetch grouped daily bars for the last 1260 trading sessions (about five years: 252-session highs and lows need one year; the rest serves the backtest, the chart's zoom, and its monthly view). It is one call per session, so at the default pace it takes a few minutes; it skips sessions already stored, so it can be rerun to extend the history. Progress is logged to `job_runs`. Five years of the universe is about 4 million rows (1 to 2 GB): the database volume needs room for it. The nightly screen still reads about 15 months for every stock; the chart reads up to five years for the stocks it draws.
 
 Only the bars of the stock universe (active common stocks on the `stocks.universe` exchanges) and of stocks an owner still holds are stored. The grouped file also carries ETFs, warrants, and funds, about half its rows, which nothing reads. The backfill refreshes the ticker list first, deletes stored bars outside it, then loads. Before the ticker list exists, everything is stored.
 

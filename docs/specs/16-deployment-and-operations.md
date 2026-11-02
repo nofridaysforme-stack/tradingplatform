@@ -27,6 +27,7 @@ Accounts (OANDA, Massive, Railway, Resend, Telegram bot) are opened in the clien
 | OANDA_ACCOUNT_ID | | yes | |
 | OANDA_ENV | | yes | `practice` or `live` |
 | MASSIVE_API_KEY | | yes | |
+| MASSIVE_CALLS_PER_MINUTE | | | Default 300 (paid plans); 5 on the free Basic plan |
 | VAPID_PUBLIC_KEY | yes | yes | |
 | VAPID_PRIVATE_KEY | | yes | |
 | VAPID_SUBJECT | | yes | `mailto:ops@example.com` |

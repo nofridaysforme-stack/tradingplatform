@@ -23,6 +23,7 @@ from scanner.time import NEW_YORK
 
 log = logging.getLogger(__name__)
 
+# The free Basic plan's limit; the jobs set the limiter from MASSIVE_CALLS_PER_MINUTE.
 CALLS_PER_WINDOW = 5
 WINDOW_SECONDS = 60.0
 
@@ -44,6 +45,11 @@ class RateLimiter:
         self._sleep = sleep
         self._stamps: deque[float] = deque()
         self._lock = threading.Lock()
+
+    def set_calls(self, calls: int) -> None:
+        """Change the number of calls allowed per window (MASSIVE_CALLS_PER_MINUTE)."""
+        with self._lock:
+            self.calls = max(1, calls)
 
     def acquire(self) -> None:
         with self._lock:
@@ -89,12 +95,15 @@ class MassiveClient:
         http: httpx.Client | None = None,
         limiter: RateLimiter | None = None,
         circuit: AuthCircuit | None = None,
+        calls_per_minute: int | None = None,
     ) -> None:
         self._http = http or httpx.Client(timeout=httpx.Timeout(60.0))
         self._host = host.rstrip("/")
         # Header auth keeps the key out of URLs and logs.
         self._headers = {"Authorization": f"Bearer {api_key}"}
         self._limiter = limiter or SHARED_LIMITER
+        if calls_per_minute is not None:
+            self._limiter.set_calls(calls_per_minute)
         self.circuit = circuit or AuthCircuit("massive")
 
     def _get_url(self, url: str, params: dict[str, str] | None = None) -> dict[str, Any]:
