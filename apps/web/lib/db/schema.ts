@@ -377,6 +377,9 @@ export interface ChartSeries {
   macd: (number | null)[] | null;
   macd_signal: (number | null)[] | null;
   macd_histogram: (number | null)[] | null;
+  /** The client's pivot point MA and its signal line (screens from 2026-11-03). */
+  pivot_ma?: (number | null)[] | null;
+  pivot_signal?: (number | null)[] | null;
   levels: { high_52w: number; zone_low: number; rsi: [number, number]; stoch: [number, number] };
   settings: { rsi: number; stoch: [number, number, number]; macd: [number, number, number] };
   votes: Record<string, { buy: string[]; sell: string[] }>;
@@ -386,7 +389,7 @@ export interface ChartSeries {
 }
 export type ChartPeriod = Pick<
   ChartSeries,
-  "sessions" | "ma" | "volume_average" | "rsi" | "stoch_k" | "stoch_d" | "macd" | "macd_signal" | "macd_histogram"
+  "sessions" | "ma" | "volume_average" | "rsi" | "stoch_k" | "stoch_d" | "macd" | "macd_signal" | "macd_histogram" | "pivot_ma" | "pivot_signal"
 > & { bars: { time: string; open: number; high: number; low: number; close: number; volume: number }[] };
 
 export const stockChartSeries = pgTable("stock_chart_series", {

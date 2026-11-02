@@ -576,17 +576,33 @@
   },
   "stocks.ind_pivot": {
    "counts_toward_minimum": true,
-   "description": "The floor trader pivot: (high + low + close) / 3 of the session before. Buy: the close crosses above the pivot. Sell: the close crosses below it.",
+   "description": "Each session's pivot is (high + low + close) / 3. The pivot MA is its ma_sessions simple average; the signal line is the signal_sessions average of the pivot MA. Buy: the pivot MA crosses above the signal line. Sell: it crosses below.",
    "enabled": true,
    "key": "stocks.ind_pivot",
    "kind": "indicator",
-   "name": "Pivot point crossover",
-   "params": {},
-   "params_schema": {},
-   "source": "Owners 2026-10-29: the standard floor trader pivot",
+   "name": "Pivot point MA crossover",
+   "params": {
+    "ma_sessions": 10,
+    "signal_sessions": 3
+   },
+   "params_schema": {
+    "ma_sessions": {
+     "default": 10,
+     "max": 100,
+     "min": 2,
+     "type": "sessions"
+    },
+    "signal_sessions": {
+     "default": 3,
+     "max": 50,
+     "min": 1,
+     "type": "sessions"
+    }
+   },
+   "source": "Owners 2026-11-02: the client's pivot point moving average double crossover",
    "status": "approved",
    "strategy": "stocks",
-   "version": 2
+   "version": 3
   },
   "stocks.ind_rsi": {
    "counts_toward_minimum": true,

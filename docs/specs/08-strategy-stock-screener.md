@@ -105,13 +105,13 @@ Seven indicators, each a separate rule. Since 2026-10-29 each one follows its st
 |---|---|---|---|---|---|
 | `stocks.ind_candle` | Change in direction candle | Approved buy, provisional sell | The close is higher than the previous session's high | The close is lower than the previous session's low | none |
 | `stocks.ind_macd` | MACD crossover | Approved | The MACD line crosses above its signal line | The MACD line crosses below its signal line | `fast=12`, `slow=26`, `signal=9` |
-| `stocks.ind_pivot` | Pivot point crossover | Approved | The close crosses above the session's floor trader pivot | The close crosses below the pivot | none |
+| `stocks.ind_pivot` | Pivot point crossover | Approved | The pivot MA (the `ma_sessions` average of each session's pivot) crosses above its signal line (the `signal_sessions` average of the pivot MA) | The pivot MA crosses below its signal line | `ma_sessions=10`, `signal_sessions=3` |
 | `stocks.ind_rsi` | RSI | Approved buy level, provisional sell level | RSI crosses above `buy_level` | RSI crosses below `sell_level` | `period=14`, `buy_level=30`, `sell_level=70` |
 | `stocks.ind_stoch` | Stochastics | Approved | Slow %K crosses above %D while both are below `buy_level` (George Lane) | Slow %K crosses below %D while both are above `sell_level` | `k_period=14`, `k_slowing=3`, `d_period=3`, `buy_level=20`, `sell_level=80` |
 | `stocks.ind_ma` | Moving average crossover | Provisional lengths | The `short_sessions` simple average of the close crosses above the `long_sessions` average | It crosses below | `short_sessions=10`, `long_sessions=20` |
 | `stocks.ind_volume` | Volume spike | Provisional settings | Volume is at least `multiple` times the average of the `average_sessions` sessions before, on a close above the previous close | The same spike on a close below the previous close | `average_sessions=20`, `multiple=1.5` |
 
-**Pivot point.** The floor trader pivot: a session's pivot is (high + low + close) / 3 of the session before. Example: yesterday's high 11, low 9, close 10 give today's pivot of 10; a close of 10.5 today, after a close at or below yesterday's pivot, crosses above it. Before 2026-10-29 the pivot line crossing its 3-day average was used.
+**Pivot point.** The client's pivot point moving average double crossover (owners 2026-11-02, from their TradingView script): each session's pivot is (high + low + close) / 3; the pivot MA is its 10-session simple average; the signal line is the 3-session average of the pivot MA. The vote fires when the pivot MA crosses its signal line. Because of the 10-session smoothing it turns later than the price. It replaced the floor trader pivot (2026-10-29 to 2026-11-02), which had replaced the pivot line over its 3-day average.
 
 **MACD** (Gerald Appel) and **RSI** (Welles Wilder) were already their standard rules: the MACD line crossing its signal line, and RSI crossing back above 30 (buy) or below 70 (sell).
 

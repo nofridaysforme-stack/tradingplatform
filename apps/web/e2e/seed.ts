@@ -178,6 +178,8 @@ export async function seedStocks(sql: postgres.Sql) {
     macd,
     macd_signal: signal,
     macd_histogram: macd.map((m, i) => Math.round((m - signal[i]!) * 1000) / 1000),
+    pivot_ma: days.map((_, i) => (i < 9 ? null : 17.5 + i * 0.2)),
+    pivot_signal: days.map((_, i) => (i < 11 ? null : 17.3 + i * 0.2)),
     levels: { high_52w: 32, zone_low: 28.8, rsi: [30, 70], stoch: [20, 80] },
     settings: { rsi: 14, stoch: [14, 3, 3], macd: [12, 26, 9] },
     votes: { "stocks.ind_macd": { buy: [days[40]], sell: [] }, "stocks.ind_rsi": { buy: [], sell: [days[20]] } },

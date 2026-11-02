@@ -123,11 +123,11 @@ def test_stock_backtest_report(tmp_path: Path) -> None:
     trades, joins = run_stocks({"SYN": momentum_stock(), "FLAT": flat}, FAST)
     s = summarize(trades, joins)
     assert (s["watch_entries"], s["buys"], s["closed"], s["sold"]) == (1, 1, 1, 1)
-    assert s["win_rate"] == 1.0 and s["average_pct"] == 16.57
+    assert s["win_rate"] == 1.0 and s["average_pct"] == 13.66
     assert s["voted:stocks.ind_candle"] == 1 and s["voted:stocks.ind_macd"] == 0
     write_stocks(tmp_path, trades, joins, ["stocks.ind_rsi.period=5"], ["stocks.ind_macd"])
     report = (tmp_path / "stock_report.html").read_text()
     assert "excludes companies that later delisted" in report
     assert "Varied for this run: stocks.ind_rsi.period=5, stocks.ind_macd off." in report
     rows = list(csv.DictReader((tmp_path / "stock_trades.csv").open()))
-    assert rows[0]["reason"] == "sold" and "stocks.ind_pivot" in rows[0]["votes"]
+    assert rows[0]["reason"] == "sold" and "stocks.ind_rsi" in rows[0]["votes"]

@@ -110,12 +110,19 @@ def macd(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
 
 
 def pivot(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:
-    """The floor trader pivot: each session's pivot is (high + low + close) / 3 of the session
-    before. A buy when the close crosses above its pivot, a sell when it crosses below."""
+    """The client's pivot point moving average double crossover (owners 2026-11-02): each
+    session's pivot is (high + low + close) / 3; the pivot MA is its ma_sessions simple
+    average, and the signal line is the signal_sessions average of the pivot MA. A buy when
+    the pivot MA crosses above the signal line, a sell when it crosses below."""
     _, h, low, c = _arrays(bars)
-    level = np.full(len(c), np.nan, dtype=np.float64)
-    level[1:] = ((h + low + c) / 3)[:-1]
-    return Fired(cross_above(c, level), cross_below(c, level), {"close": c, "pivot": level})
+    points = (h + low + c) / 3
+    ma_n, signal_n = int(params["ma_sessions"]), int(params["signal_sessions"])
+    pivot_ma = talib.SMA(points, timeperiod=ma_n) if len(c) >= ma_n else np.full(len(c), np.nan)
+    signal = np.full(len(c), np.nan, dtype=np.float64)
+    if np.count_nonzero(~np.isnan(pivot_ma)) >= signal_n:
+        signal = talib.SMA(pivot_ma, timeperiod=signal_n)
+    values = {"pivot_ma": pivot_ma, "signal": signal}
+    return Fired(cross_above(pivot_ma, signal), cross_below(pivot_ma, signal), values)
 
 
 def rsi(bars: Sequence[DayBar], params: dict[str, Any]) -> Fired:

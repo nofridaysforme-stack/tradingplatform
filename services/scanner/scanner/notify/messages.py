@@ -179,7 +179,7 @@ def watch_message(rows: list[WatchRow], session: str, base_url: str) -> Message:
 INDICATOR_NAMES = {
     "stocks.ind_candle": "change in direction candle",
     "stocks.ind_macd": "MACD crossed up",
-    "stocks.ind_pivot": "close crossed above the pivot",
+    "stocks.ind_pivot": "pivot MA crossed up",
     "stocks.ind_rsi": "RSI crossed",
     "stocks.ind_stoch": "Stochastics crossed",
     "stocks.ind_ma": "moving averages crossed up",
@@ -188,7 +188,7 @@ INDICATOR_NAMES = {
 SELL_NAMES = {
     "stocks.ind_candle": "close below the previous low",
     "stocks.ind_macd": "MACD crossed down",
-    "stocks.ind_pivot": "close crossed below the pivot",
+    "stocks.ind_pivot": "pivot MA crossed down",
     "stocks.ind_rsi": "RSI crossed",
     "stocks.ind_stoch": "Stochastics crossed",
     "stocks.ind_ma": "moving averages crossed down",

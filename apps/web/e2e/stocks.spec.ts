@@ -69,6 +69,11 @@ test("the stock chart shows the scanner's indicators in panes, with a toggle", a
   await expect(chart.getByText("Price", { exact: true })).toBeVisible();
   await expect(chart.getByText("MA 10 28.80")).toBeVisible(); // the last of 17 + i x 0.2
   await expect(chart.getByText("MA 50 26.80")).toBeVisible();
+  // The client's pivot point MA and its signal line (last of 17.5 and 17.3 + i x 0.2).
+  await expect(chart.getByText("Pivot MA 29.30")).toBeVisible();
+  await expect(chart.getByText("Signal 29.10")).toBeVisible();
+  await chart.getByRole("button", { name: "Reset zoom" }).click();
+  await expect(chart.getByText(/pinch, scroll, or drag to zoom and move/)).toBeVisible();
   await expect(chart.getByText("MACD(12,26,9)")).toBeVisible();
   await expect(chart.getByText(/^Average 539K$/)).toBeVisible();
   const toggle = chart.getByRole("button", { name: /RSI and Stochastics/ });

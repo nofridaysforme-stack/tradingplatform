@@ -24,7 +24,7 @@ export const INDICATOR_NAMES: Record<string, string> = {
 export const INDICATOR_RULES: Record<string, { buy: string; sell: string }> = {
   "stocks.ind_candle": { buy: "Close above the previous session's high", sell: "Close below the previous session's low" },
   "stocks.ind_macd": { buy: "MACD line crosses above its signal line", sell: "MACD line crosses below its signal line" },
-  "stocks.ind_pivot": { buy: "Close crosses above the day's pivot", sell: "Close crosses below the day's pivot" },
+  "stocks.ind_pivot": { buy: "Pivot MA crosses above its signal line", sell: "Pivot MA crosses below its signal line" },
   "stocks.ind_rsi": { buy: "RSI crosses above the buy level", sell: "RSI crosses below the sell level" },
   "stocks.ind_stoch": { buy: "%K crosses above %D, both below the buy level", sell: "%K crosses below %D, both above the sell level" },
   "stocks.ind_ma": { buy: "Short average crosses above the long average", sell: "Short average crosses below the long average" },
@@ -40,6 +40,7 @@ export const VALUE_NAMES: Record<string, string> = {
   pivot: "Pivot",
   average: "3-day average",
   rsi: "RSI",
+  pivot_ma: "Pivot MA",
   short: "Short average",
   long: "Long average",
   volume: "Volume",

@@ -197,7 +197,8 @@ def test_the_funnel_buys_after_the_pullback_and_sells_on_the_vote() -> None:
     # the stock is held (the replay below opens one position).
     assert next(i for i in range(270, 299) if sm.is_buy(bars, fired, days[i], FAST)) == 282
     votes = {v.key for v in sm.buy_votes(bars, fired, 282, FAST)}
-    assert votes == {"stocks.ind_candle", "stocks.ind_pivot", "stocks.ind_rsi", "stocks.ind_volume"}
+    # The client's pivot MA crossover turns up later (286): it smooths over 10 sessions.
+    assert votes == {"stocks.ind_candle", "stocks.ind_rsi", "stocks.ind_volume"}
     candle = fired["stocks.ind_candle"]
     assert candle.buy[282] and not candle.buy[281]  # the bounce closes above the previous high
 
@@ -205,10 +206,10 @@ def test_the_funnel_buys_after_the_pullback_and_sells_on_the_vote() -> None:
     assert joins == 1
     (t,) = trades
     assert (t.buy_session, t.entry, t.reason, t.sessions) == (
-        bars[282].session_date, D("9.2721"), "sold", 13,
+        bars[282].session_date, D("9.2721"), "sold", 14,
     )  # fmt: skip
-    assert t.exit_price == D("10.8087")
-    assert round(float(t.result_pct or 0), 4) == 0.1657
+    assert t.exit_price == D("10.5385")
+    assert round(float(t.result_pct or 0), 4) == 0.1366
     assert t.has_provisional  # RSI and the candle list are provisional
 
 
@@ -219,9 +220,8 @@ def test_default_oscillators_rarely_vote_in_a_shallow_pullback() -> None:
     fired = sm.indicators(bars, RULES)
     assert not fired["stocks.ind_rsi"].buy[270:290].any()
     assert not fired["stocks.ind_stoch"].buy[270:290].any()
-    # The buy still comes, from the candle, the pivot, and the volume spike.
-    (t,) = replay("SYN", bars, RULES, OPEN)[0]
-    assert set(t.votes) == {"stocks.ind_candle", "stocks.ind_pivot", "stocks.ind_volume"}
+    # Only the candle and the volume spike vote on the bounce, 2 of the 3 a buy needs.
+    assert replay("SYN", bars, RULES, OPEN)[0] == []
 
 
 def test_votes_count_distinct_indicators_in_the_window_after_entry() -> None:
@@ -278,19 +278,24 @@ def test_stochastics_follow_lanes_rule() -> None:
     assert sell.tolist() == [False, False, False, False, False, True]
 
 
-def test_pivot_point_is_the_floor_traders_pivot() -> None:
-    """The pivot is (high + low + close) / 3 of the session before; a buy when the close
-    crosses above it, a sell when it crosses below."""
-    bars = [
-        DayBar(date(2026, 10, 26), D("11"), D("9"), D("10"), 500_000, D("10")),  # pivot 10 next
-        DayBar(date(2026, 10, 27), D("10.2"), D("9.6"), D("9.9"), 500_000, D("10")),  # under 10
-        DayBar(date(2026, 10, 28), D("10.6"), D("9.9"), D("10.5"), 500_000, D("9.9")),  # over 9.9
-        DayBar(date(2026, 10, 29), D("10.4"), D("9.5"), D("9.6"), 500_000, D("10.5")),  # under
-    ]
-    f = sm.pivot(bars, {})
-    assert [round(x, 4) for x in f.values["pivot"][1:]] == [10.0, 9.9, 10.3333]
-    assert f.buy.tolist() == [False, False, True, False]
-    assert f.sell.tolist() == [False, False, False, True]
+def test_pivot_point_ma_double_crossover() -> None:
+    """The client's script (owners 2026-11-02): pivot = (high + low + close) / 3; the pivot MA
+    is its 10-session average and the signal line the 3-session average of the pivot MA. A buy
+    when the pivot MA crosses above the signal line; a sell when it crosses below."""
+    # Pivots fall from 20 to 11, then rise; high = low = close, so each pivot is the close.
+    values = (
+        [20.0 - i for i in range(10)]
+        + [11.0 + 2 * i for i in range(10)]
+        + [29.0 - 3 * i for i in range(6)]
+    )
+    bars = closes(values)
+    f = sm.pivot(bars, {"ma_sessions": 10, "signal_sessions": 3})
+    ma, signal = f.values["pivot_ma"], f.values["signal"]
+    assert np.isnan(ma[8]) and [round(float(x), 2) for x in ma[9:12]] == [15.5, 14.6, 14.0]
+    assert np.isnan(signal[10]) and round(float(signal[11]), 2) == 14.7  # (15.5 + 14.6 + 14.0) / 3
+    assert [i for i in range(len(bars)) if f.buy[i]] == [14]
+    assert [i for i in range(len(bars)) if f.sell[i]] == [24]
+    assert ma[13] <= signal[13] and ma[14] > signal[14]  # the cross, as the script defines it
 
 
 def test_moving_average_crossover() -> None:
@@ -316,16 +321,16 @@ def test_volume_spike_confirms_the_days_direction() -> None:
 
 def test_a_watched_stock_can_be_bought_below_the_pullback_zone() -> None:
     """Owners 2026-10-29: no pullback zone check on the buy. After its last qualifying date
-    the stock falls 22 percent below the high, then bounces; the first bounce session buys
-    at 20 percent below the high, where it does not qualify."""
+    the stock falls 22 percent below the high, then bounces; the second bounce session
+    buys at 17 percent below the high, where it does not qualify."""
     bars = deep_pullback_stock()
     fired = sm.indicators(bars, FAST)
     state = sm.WatchState()
     days = {i: sm.step("SYN", bars, i, FAST, state, OPEN) for i in range(249, len(bars))}
-    assert days[281].result is None and days[281].watching
-    assert next(i for i in range(275, len(bars)) if sm.is_buy(bars, fired, days[i], FAST)) == 281
+    assert days[282].result is None and days[282].watching
+    assert next(i for i in range(275, len(bars)) if sm.is_buy(bars, fired, days[i], FAST)) == 282
     (t,) = replay("SYN", bars, FAST, OPEN)[0]
-    assert (t.buy_session, t.entry) == (bars[281].session_date, D("7.9363"))
+    assert (t.buy_session, t.entry) == (bars[282].session_date, D("8.1744"))
 
 
 def test_trailing_stop_worked_example() -> None:
@@ -405,7 +410,8 @@ def test_evidence_records_every_indicator() -> None:
     assert not ev["stocks.ind_macd"]["fired"] and ev["stocks.ind_macd"]["values"]["macd"] > 0
     assert ev["stocks.ind_rsi"]["provisional"] and not ev["stocks.ind_macd"]["provisional"]
     today = sm.today_values(bars[:283], sm.indicators(bars[:283], FAST), FAST, OPEN)
-    assert today["buy"]["stocks.ind_pivot"]["fired"]
+    assert today["buy"]["stocks.ind_rsi"]["fired"] and not today["buy"]["stocks.ind_pivot"]["fired"]
+    assert today["buy"]["stocks.ind_pivot"]["values"]["pivot_ma"] is not None
     mom = today["momentum"]
     # A Wednesday: the ladder shown is the one from the last week close, Friday 2025-01-24.
     assert (mom["week_close"], mom["today"], mom["threshold"]) == ("2025-01-24", False, 4.55)
