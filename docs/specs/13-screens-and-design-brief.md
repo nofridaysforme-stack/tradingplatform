@@ -93,6 +93,8 @@ The chart stacks the indicators in panes under the candles, each pane titled wit
 
 Colors follow the client's example (owners 2026-11-02): green up and red down candles and volume bars, a green and red MACD histogram, and blue, gold, and purple lines, each named in its pane's title. Buys and exits are green and red arrows that also carry their words, so no signal depends on color alone.
 
+Daily, Weekly, and Monthly buttons switch the bar length (owners 2026-11-02). Weekly and monthly bars are the daily bars combined, dated by their last session, with the same indicators and settings counted in weeks or months; the scanner writes them with the daily lines. They are for reading the bigger picture: buys and sells are decided on daily bars, so the vote dots show on daily bars only, while buy and exit arrows sit on the bar that holds their session. A pane whose line has no values yet (monthly bars need years of history) is left out. Intraday views (1 day, 5 days, 5 minutes) are not offered: the scanner stores one bar per session.
+
 Phones open with price, volume, and MACD; "Show RSI and Stochastics" adds the other two. Wide screens open with all five. A small dot on an indicator's pane marks each session where it voted to buy (below the line) or sell (above). The lines are the scanner's own values (`stock_chart_series`, written each screen for screened, watched, bought, and held stocks), so the chart never shows a cross the votes did not count; other stocks show candles and volume until their next screen.
 
 ### 7. Holdings

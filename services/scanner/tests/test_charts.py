@@ -42,3 +42,40 @@ def test_short_histories_are_charted_in_full() -> None:
     bars = momentum_stock()[:60]
     s = chart_series(bars, sm.indicators(bars, FAST), FAST)
     assert len(s["sessions"]) == 60 and s["sessions"][0] == date(2024, 1, 1).isoformat()
+
+
+def test_weekly_and_monthly_bars_combine_the_daily_bars() -> None:
+    from decimal import Decimal  # noqa: PLC0415
+
+    from scanner.charts import _periods  # noqa: PLC0415
+    from scanner.strategies.stock_screener import DayBar  # noqa: PLC0415
+
+    def bar(d: date, o: str, h: str, low: str, c: str, v: int) -> DayBar:
+        return DayBar(d, Decimal(h), Decimal(low), Decimal(c), v, Decimal(o))
+
+    days = [
+        bar(date(2026, 10, 29), "10", "11", "9.5", "10.5", 100),  # Thursday
+        bar(date(2026, 10, 30), "10.5", "12", "10", "11.5", 200),  # Friday
+        bar(date(2026, 11, 2), "11.5", "11.8", "10.8", "11", 300),  # Monday, a new week and month
+    ]
+    week = _periods(days, "weekly")
+    assert [(b.session_date, b.o, b.h, b.l, b.c, b.volume) for b in week] == [
+        (date(2026, 10, 30), Decimal("10"), Decimal("12"), Decimal("9.5"), Decimal("11.5"), 300),
+        (date(2026, 11, 2), Decimal("11.5"), Decimal("11.8"), Decimal("10.8"), Decimal("11"), 300),
+    ]
+    assert [b.session_date for b in _periods(days, "monthly")] == [
+        date(2026, 10, 30),
+        date(2026, 11, 2),
+    ]
+
+
+def test_chart_series_carries_weekly_and_monthly_views() -> None:
+    bars = momentum_stock()
+    s = chart_series(bars, sm.indicators(bars, FAST), FAST)
+    weekly, monthly = s["weekly"], s["monthly"]
+    assert len(weekly["bars"]) == len(weekly["sessions"]) == len(weekly["rsi"]) == 61
+    assert weekly["bars"][-1]["time"] == bars[-1].session_date.isoformat()
+    assert sum(b["volume"] for b in weekly["bars"][-2:]) == sum(b.volume for b in bars[-8:])
+    assert len(monthly["bars"]) == 14  # January 2024 to February 2025
+    assert monthly["macd"][-1] is None  # 14 months are too few for MACD's 26 and 9
+    assert "votes" not in weekly  # the votes are on daily bars only

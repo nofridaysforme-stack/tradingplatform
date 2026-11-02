@@ -380,7 +380,14 @@ export interface ChartSeries {
   levels: { high_52w: number; zone_low: number; rsi: [number, number]; stoch: [number, number] };
   settings: { rsi: number; stoch: [number, number, number]; macd: [number, number, number] };
   votes: Record<string, { buy: string[]; sell: string[] }>;
+  /** The same lines on weekly and monthly bars, counted in weeks or months (display only). */
+  weekly?: ChartPeriod;
+  monthly?: ChartPeriod;
 }
+export type ChartPeriod = Pick<
+  ChartSeries,
+  "sessions" | "ma" | "volume_average" | "rsi" | "stoch_k" | "stoch_d" | "macd" | "macd_signal" | "macd_histogram"
+> & { bars: { time: string; open: number; high: number; low: number; close: number; volume: number }[] };
 
 export const stockChartSeries = pgTable("stock_chart_series", {
   ticker: text("ticker").primaryKey(),

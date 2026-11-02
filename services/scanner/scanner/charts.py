@@ -5,6 +5,7 @@ candles. They come from the same indicator code as the buy and sell votes
 """
 
 from collections.abc import Sequence
+from dataclasses import replace
 from typing import Any
 
 import numpy as np
@@ -33,12 +34,27 @@ def _dates(bars: Sequence[DayBar], flags: sm.Flags, n: int) -> list[str]:
     return [bars[start + i].session_date.isoformat() for i, f in enumerate(flags[-n:]) if f]
 
 
-def chart_series(
-    bars: Sequence[DayBar], fired: dict[str, sm.Fired], rules: RuleSet
+def _periods(bars: Sequence[DayBar], period: str) -> list[DayBar]:
+    """Daily bars combined into weekly or monthly bars, each dated by its last session. The
+    latest period may still be running."""
+    out: list[DayBar] = []
+    last_key: tuple[int, int] | None = None
+    for b in bars:
+        d = b.session_date
+        key = (d.isocalendar()[0], d.isocalendar()[1]) if period == "weekly" else (d.year, d.month)
+        if key != last_key:
+            out.append(b if b.o is not None else replace(b, o=b.c))
+            last_key = key
+            continue
+        p = out[-1]
+        out[-1] = DayBar(d, max(p.h, b.h), min(p.l, b.l), b.c, p.volume + b.volume, p.o)
+    return out
+
+
+def _lines(
+    bars: Sequence[DayBar], fired: dict[str, sm.Fired], rules: RuleSet, n: int
 ) -> dict[str, Any]:
-    """The lines, levels, and votes for the last CHART_SESSIONS bars. A switched-off indicator
-    has no lines (null)."""
-    n = min(CHART_SESSIONS, len(bars))
+    """The indicator lines over the last n bars."""
     closes = np.array([float(b.c) for b in bars], dtype=np.float64)
 
     def values(key: str, name: str) -> list[float | None] | None:
@@ -65,11 +81,6 @@ def chart_series(
         if macd is not None and signal is not None
         else None
     )
-    high, _ = high_low_52w(bars, rules)
-    ratio = float(rules.params("stocks.rule1_near_high")["ratio"])
-    rsi_p = rules.params("stocks.ind_rsi")
-    stoch_p = rules.params("stocks.ind_stoch")
-    macd_p = rules.params("stocks.ind_macd")
     return {
         "sessions": [b.session_date.isoformat() for b in bars[-n:]],
         "ma": ma,
@@ -80,6 +91,42 @@ def chart_series(
         "macd": macd,
         "macd_signal": signal,
         "macd_histogram": histogram,
+    }
+
+
+def _period_view(bars: Sequence[DayBar], period: str, rules: RuleSet) -> dict[str, Any]:
+    """Weekly or monthly candles with the same indicators and settings, counted in weeks or
+    months. For reading the bigger picture only: the votes are on daily bars (spec 08)."""
+    agg = _periods(bars, period)
+    n = min(CHART_SESSIONS, len(agg))
+    view = _lines(agg, sm.indicators(agg, rules), rules, n)
+    view["bars"] = [
+        {
+            "time": b.session_date.isoformat(),
+            "open": float(b.o if b.o is not None else b.c),
+            "high": float(b.h),
+            "low": float(b.l),
+            "close": float(b.c),
+            "volume": b.volume,
+        }
+        for b in agg[-n:]
+    ]
+    return view
+
+
+def chart_series(
+    bars: Sequence[DayBar], fired: dict[str, sm.Fired], rules: RuleSet
+) -> dict[str, Any]:
+    """The lines, levels, and votes for the last CHART_SESSIONS bars, and the same lines on
+    weekly and monthly bars. A switched-off indicator has no lines (null)."""
+    n = min(CHART_SESSIONS, len(bars))
+    high, _ = high_low_52w(bars, rules)
+    ratio = float(rules.params("stocks.rule1_near_high")["ratio"])
+    rsi_p = rules.params("stocks.ind_rsi")
+    stoch_p = rules.params("stocks.ind_stoch")
+    macd_p = rules.params("stocks.ind_macd")
+    return {
+        **_lines(bars, fired, rules, n),
         "levels": {
             "high_52w": float(high),
             "zone_low": round(float(high) * ratio, 6),
@@ -99,4 +146,6 @@ def chart_series(
             key: {"buy": _dates(bars, f.buy, n), "sell": _dates(bars, f.sell, n)}
             for key, f in fired.items()
         },
+        "weekly": _period_view(bars, "weekly", rules),
+        "monthly": _period_view(bars, "monthly", rules),
     }
