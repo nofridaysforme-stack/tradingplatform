@@ -144,6 +144,13 @@ function weekdays(end: string, count: number): string[] {
   return out;
 }
 
+/** A weekly or monthly view: candles with a slow rise, and only an RSI line. */
+function period(ends: string[], step: number) {
+  const bars = ends.map((time, i) => ({ time, open: 18 + i * step, high: 19 + i * step, low: 17.5 + i * step, close: 18.8 + i * step, volume: 2_500_000 }));
+  const none = ends.map(() => null);
+  return { bars, sessions: ends, ma: {}, volume_average: none, rsi: ends.map((_, i) => 50 + i), stoch_k: none, stoch_d: none, macd: null, macd_signal: null, macd_histogram: null };
+}
+
 /** Three made-up tickers with bars and two sessions of screen results. */
 export async function seedStocks(sql: postgres.Sql) {
   await clearStocks(sql);
@@ -174,6 +181,9 @@ export async function seedStocks(sql: postgres.Sql) {
     levels: { high_52w: 32, zone_low: 28.8, rsi: [30, 70], stoch: [20, 80] },
     settings: { rsi: 14, stoch: [14, 3, 3], macd: [12, 26, 9] },
     votes: { "stocks.ind_macd": { buy: [days[40]], sell: [] }, "stocks.ind_rsi": { buy: [], sell: [days[20]] } },
+    // Twelve weekly bars (every fifth session) and three monthly ones, as the scanner adds them.
+    weekly: period(days.filter((_, i) => i % 5 === 4), 1),
+    monthly: period([days[19]!, days[39]!, days[59]!], 3),
   };
   await sql`insert into stock_chart_series ${sql({ ticker: "E2EB", session_date: SESSION, series: sql.json(series) })}`;
   const versions = sql.json({ "stocks.rule1_near_high": 1, "stocks.rule2_double": 1, "stocks.rule3_apr": 1, "stocks.watch": 2 });

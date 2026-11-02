@@ -65,7 +65,7 @@ test("stock detail shows the five line chart, checks, and status history", async
 
 test("the stock chart shows the scanner's indicators in panes, with a toggle", async ({ page, isMobile }) => {
   await page.goto("/stocks/E2EB");
-  const chart = page.getByRole("region", { name: "Daily chart" });
+  const chart = page.getByRole("region", { name: "Price chart" });
   await expect(chart.getByText("Price", { exact: true })).toBeVisible();
   await expect(chart.getByText("MA 10 28.80")).toBeVisible(); // the last of 17 + i x 0.2
   await expect(chart.getByText("MA 50 26.80")).toBeVisible();
@@ -79,6 +79,17 @@ test("the stock chart shows the scanner's indicators in panes, with a toggle", a
   await expect(toggle).toHaveAttribute("aria-pressed", isMobile ? "true" : "false");
   await expect(chart.getByText("Stochastics(14,3,3) · 20 and 80")).toHaveCount(isMobile ? 1 : 0);
   await expect(chart.getByText(/a dot marks a session where that indicator voted/)).toBeVisible();
+
+  // Weekly and monthly bars, with their own lines from the scanner.
+  const frames = chart.getByRole("group", { name: "Bar length" });
+  await expect(frames.getByRole("button", { name: "Daily" })).toHaveAttribute("aria-pressed", "true");
+  await frames.getByRole("button", { name: "Weekly" }).click();
+  await expect(frames.getByRole("button", { name: "Weekly" })).toHaveAttribute("aria-pressed", "true");
+  await expect(chart.getByText(/^Weekly bars for the last 12 weeks; the averages and indicators count weeks/)).toBeVisible();
+  await expect(chart.getByText(/^Latest 2\.50M$/)).toBeVisible(); // a week's volume, not a day's
+  await frames.getByRole("button", { name: "Monthly" }).click();
+  await expect(chart.getByText(/^Monthly bars for the last 3 months/)).toBeVisible();
+  await expect(chart.getByText(/^Close 24\.80$/)).toBeVisible(); // 18.8 + 2 x 3
 });
 
 test("the stocks page shows open buys, the watch list, and closed buys", async ({ page }) => {
