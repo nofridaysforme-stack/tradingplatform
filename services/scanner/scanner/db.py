@@ -16,7 +16,7 @@ from scanner.data.base import Candle, DailyBar, TickerRef
 from scanner.instruments import Instrument
 
 # The newest migration in db/migrations. A test keeps this in step with the folder.
-EXPECTED_SCHEMA_VERSION = "20261030000001"
+EXPECTED_SCHEMA_VERSION = "20261102000001"
 
 Conn = psycopg.Connection[Any]
 
@@ -395,6 +395,19 @@ def upsert_screen_results(conn: Conn, rows: list[dict[str, Any]]) -> int:
             f"INSERT INTO stock_screen_results ({', '.join(cols)}) VALUES ({placeholders}) "
             f"ON CONFLICT (session_date, ticker) DO UPDATE SET {updates}",
             [[Jsonb(r[c]) if c in JSON_COLS else r[c] for c in cols] for r in rows],
+        )
+    return len(rows)
+
+
+def upsert_chart_series(conn: Conn, rows: list[tuple[str, date, dict[str, Any]]]) -> int:
+    """(ticker, session, series): the latest chart lines per stock, replacing older ones."""
+    with conn.cursor() as cur:
+        cur.executemany(
+            "INSERT INTO stock_chart_series (ticker, session_date, series) VALUES (%s, %s, %s) "
+            "ON CONFLICT (ticker) DO UPDATE SET session_date = EXCLUDED.session_date, "
+            "series = EXCLUDED.series, updated_at = now() "
+            "WHERE stock_chart_series.session_date <= EXCLUDED.session_date",
+            [(t, d, Jsonb(s)) for t, d, s in rows],
         )
     return len(rows)
 

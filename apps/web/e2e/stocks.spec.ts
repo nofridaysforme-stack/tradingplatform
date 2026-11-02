@@ -59,7 +59,26 @@ test("stock detail shows the five line chart, checks, and status history", async
   const history = page.getByRole("region", { name: "Trend history" }).getByRole("listitem");
   await expect(history).toHaveText([/Trend confirmed\s*From 2026-09-30/, /Qualified\s*From 2026-09-29/]);
   await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.getByText("Indicator lines appear after this stock's next screen.")).toBeVisible();
   expect((await page.goto("/stocks/NOPE"))?.status()).toBe(404);
+});
+
+test("the stock chart shows the scanner's indicators in panes, with a toggle", async ({ page, isMobile }) => {
+  await page.goto("/stocks/E2EB");
+  const chart = page.getByRole("region", { name: "Daily chart" });
+  await expect(chart.getByText("Price", { exact: true })).toBeVisible();
+  await expect(chart.getByText("MA 10 28.80")).toBeVisible(); // the last of 17 + i x 0.2
+  await expect(chart.getByText("MA 50 26.80")).toBeVisible();
+  await expect(chart.getByText("MACD(12,26,9)")).toBeVisible();
+  await expect(chart.getByText(/^Average 539K$/)).toBeVisible();
+  const toggle = chart.getByRole("button", { name: /RSI and Stochastics/ });
+  // Phones open with price, volume, and MACD; wide screens with every pane.
+  await expect(toggle).toHaveAttribute("aria-pressed", isMobile ? "false" : "true");
+  await expect(chart.getByText("RSI(14) · 30 and 70")).toHaveCount(isMobile ? 0 : 1);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", isMobile ? "true" : "false");
+  await expect(chart.getByText("Stochastics(14,3,3) · 20 and 80")).toHaveCount(isMobile ? 1 : 0);
+  await expect(chart.getByText(/a dot marks a session where that indicator voted/)).toBeVisible();
 });
 
 test("the stocks page shows open buys, the watch list, and closed buys", async ({ page }) => {

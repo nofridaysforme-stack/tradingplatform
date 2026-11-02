@@ -157,6 +157,25 @@ export async function seedStocks(sql: postgres.Sql) {
     }),
   );
   await sql`insert into stock_daily_bars ${sql(bars)}`;
+  // Chart lines for E2EB, as the scanner writes them (services/scanner/scanner/charts.py).
+  const wave = (base: number, amp: number) => days.map((_, i) => Math.round((base + amp * Math.sin(i / 5)) * 100) / 100);
+  const macd = wave(0.2, 0.3);
+  const signal = wave(0.15, 0.2);
+  const series = {
+    sessions: days,
+    ma: { "10": days.map((_, i) => 17 + i * 0.2), "20": days.map((_, i) => 16 + i * 0.2), "50": days.map((_, i) => (i < 49 ? null : 15 + i * 0.2)) },
+    volume_average: days.map((_, i) => 480_000 + i * 1000),
+    rsi: wave(55, 15),
+    stoch_k: wave(50, 35),
+    stoch_d: wave(50, 30),
+    macd,
+    macd_signal: signal,
+    macd_histogram: macd.map((m, i) => Math.round((m - signal[i]!) * 1000) / 1000),
+    levels: { high_52w: 32, zone_low: 28.8, rsi: [30, 70], stoch: [20, 80] },
+    settings: { rsi: 14, stoch: [14, 3, 3], macd: [12, 26, 9] },
+    votes: { "stocks.ind_macd": { buy: [days[40]], sell: [] }, "stocks.ind_rsi": { buy: [], sell: [days[20]] } },
+  };
+  await sql`insert into stock_chart_series ${sql({ ticker: "E2EB", session_date: SESSION, series: sql.json(series) })}`;
   const versions = sql.json({ "stocks.rule1_near_high": 1, "stocks.rule2_double": 1, "stocks.rule3_apr": 1, "stocks.watch": 2 });
   const row = (session_date: string, ticker: string, status: string, close: number, high: number, low: number, closes: [number, number, number, number], consistent: boolean) => {
     const acc = closes.map((x) => (close - x) / x);
@@ -226,6 +245,7 @@ export async function clearStocks(sql: postgres.Sql) {
   await sql`delete from stock_signals where ticker in ${sql([...STOCKS])}`;
   await sql`delete from stock_screen_results where ticker in ${sql([...STOCKS])}`;
   await sql`delete from stock_daily_bars where ticker in ${sql([...STOCKS])}`;
+  await sql`delete from stock_chart_series where ticker in ${sql([...STOCKS])}`;
   await sql`delete from stock_tickers where ticker in ${sql([...STOCKS])}`;
   await sql`delete from econ_events where title like 'E2E %'`;
 }

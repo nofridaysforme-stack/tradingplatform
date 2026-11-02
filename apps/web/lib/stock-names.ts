@@ -48,6 +48,13 @@ export const VALUE_NAMES: Record<string, string> = {
   d: "%D",
 };
 
+/** How a buy ended (spec 08 Stage 6). */
+export const EXIT_NAMES: Record<string, string> = {
+  stopped: "Stop",
+  trailing_stopped: "Trailing stop",
+  sold: "Sell signal",
+};
+
 export const EVENT_NAMES: Record<string, string> = {
   bought: "Bought",
   trailing_started: "Trailing stop started",

@@ -79,7 +79,19 @@ Per pair (pair switcher at top): daily, weekly, monthly floor pivots; PDH and PD
 - Session picker for past sessions.
 
 ### 6. Stock detail
-Daily chart (6 months) with buys and exits marked, the five-line bar, each funnel stage with its values (pass or not), the five indicators for the last sessions (fired or not, with values), history of stage changes and buys, "Add to holdings".
+Daily chart (6 months) with buys and exits marked, the five-line bar, each funnel stage with its values (pass or not), the seven indicators for the last sessions (fired or not, with values), history of stage changes and buys, "Add to holdings".
+
+The chart stacks the indicators in panes under the candles, each pane titled with its current values (owners 2026-11-02, from a client example):
+
+| Pane | Shows |
+|---|---|
+| Price | Candles; the 10, 20, and 50-session averages; the 52-week high and the 10% zone as labeled lines; the last close as a dashed line; dots at the period's high and low (values in the title); "Buy" and exit arrows with their words; the open buy's stop |
+| Volume | Daily volume with its 20-session average |
+| MACD | MACD and signal lines with the histogram |
+| RSI | RSI with its 30 and 70 lines |
+| Stochastics | %K and %D with the 20 and 80 lines |
+
+Phones open with price, volume, and MACD; "Show RSI and Stochastics" adds the other two. Wide screens open with all five. A small dot on an indicator's pane marks each session where it voted to buy (below the line) or sell (above). The lines are the scanner's own values (`stock_chart_series`, written each screen for screened, watched, bought, and held stocks), so the chart never shows a cross the votes did not count; other stocks show candles and volume until their next screen.
 
 ### 7. Holdings
 Per owner: ticker, purchase price, date, projection percent, projected price, total earnings, daily target, weekly target, last close, progress toward the projection, sessions elapsed, the stop that applies now (fixed or trailing), and any sell alert. Add, edit, close a holding.
