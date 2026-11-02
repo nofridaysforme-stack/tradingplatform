@@ -15,6 +15,7 @@ import {
 } from "lightweight-charts";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ChartSeries } from "@/lib/db/schema";
+import { PivotBand } from "@/components/pivot-band";
 import { EXIT_NAMES } from "@/lib/stock-names";
 
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -43,7 +44,12 @@ const FRAMES: [Frame, string][] = [
   ["monthly", "Monthly"],
 ];
 /** The lines one bar length draws: the daily series, or its weekly or monthly view. */
-type Lines = Pick<ChartSeries, "sessions" | "ma" | "volume_average" | "rsi" | "stoch_k" | "stoch_d" | "macd" | "macd_signal" | "macd_histogram">;
+type Lines = Pick<
+  ChartSeries,
+  "sessions" | "ma" | "volume_average" | "rsi" | "stoch_k" | "stoch_d" | "macd" | "macd_signal" | "macd_histogram" | "pivot_ma" | "pivot_signal"
+>;
+// The chart opens on about six months of bars and zooms out over everything stored.
+const OPEN_BARS: Record<Frame, number> = { daily: 130, weekly: 104, monthly: 60 };
 
 type PaneKey = "price" | "volume" | "macd" | "rsi" | "stoch";
 // Pixel heights; RSI and Stochastics are behind the toggle (owners 2026-11-02).
@@ -86,6 +92,7 @@ function line(sessions: string[], values: (number | null)[] | null | undefined) 
  */
 export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string; bars: ChartBar[]; chart: ChartSeries | null; buys?: ChartBuy[] }) {
   const box = useRef<HTMLDivElement>(null);
+  const resetZoom = useRef<() => void>(() => {});
   // Wide screens open with every pane; phones with price, volume, and MACD. The toggle wins.
   const wide = useSyncExternalStore(subscribeWide, isWide, () => false);
   const [choice, setChoice] = useState<boolean | null>(null);
@@ -122,8 +129,10 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
       rightPriceScale: { borderColor: color.rule },
       // Room after the last bar for the high and low labels.
       timeScale: { borderColor: color.rule, rightOffset: 8 },
-      handleScroll: false,
-      handleScale: false,
+      // Zoom with a pinch, the mouse wheel, or a drag on the time axis; drag sideways to move
+      // back in time. Vertical swipes still scroll the page on a phone.
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: { time: true, price: false }, axisDoubleClickReset: true },
     });
     const pane = (key: PaneKey) => panes.indexOf(key);
 
@@ -144,7 +153,8 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
     });
     candles.setData(shown.map((b) => ({ time: b.time as Time, open: b.open, high: b.high, low: b.low, close: b.close })));
     const sessions = lines?.sessions ?? [];
-    const maColors = [color.c1, color.c2, color.c3];
+    // Blue and red belong to the client's pivot lines; the averages take gold, purple, and gray.
+    const maColors = [color.c2, color.c3, color.mute];
     Object.entries(lines?.ma ?? {})
       .sort(([a], [b]) => Number(a) - Number(b))
       .forEach(([, values], i) => {
@@ -154,10 +164,22 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
       candles.createPriceLine({ price: chart.levels.high_52w, color: color.mute, lineStyle: LineStyle.Dotted, lineWidth: 1, title: "52-week high", axisLabelVisible: true });
       candles.createPriceLine({ price: chart.levels.zone_low, color: color.mute, lineStyle: LineStyle.Dotted, lineWidth: 1, title: "10% zone", axisLabelVisible: true });
     }
+    // The client's pivot point MA (blue) and its signal line (red), with the fill between them.
+    if (lines?.pivot_ma && lines.pivot_signal) {
+      const pm = c.addSeries(LineSeries, { color: color.c1, lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+      pm.setData(line(sessions, lines.pivot_ma));
+      c.addSeries(LineSeries, { color: color.down, lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }).setData(
+        line(sessions, lines.pivot_signal),
+      );
+      const ma = lines.pivot_ma;
+      const sig = lines.pivot_signal;
+      const band = sessions.flatMap((t, i) => (ma[i] != null && sig[i] != null ? [{ time: t as Time, a: ma[i]!, b: sig[i]! }] : []));
+      pm.attachPrimitive(new PivotBand(band, color.up, color.down));
+    }
     for (const b of buys.filter((x) => x.state === "open")) {
       candles.createPriceLine({ price: b.stopNow, color: color.down, lineStyle: LineStyle.Dashed, lineWidth: 1, title: `Stop ${b.stopNow.toFixed(2)}`, axisLabelVisible: true });
     }
-    createSeriesMarkers(candles, priceMarkers(shown, buys, color));
+    createSeriesMarkers(candles, priceMarkers(shown, buys, color, daily ? chart?.votes["stocks.ind_pivot"] : undefined));
 
     // Volume, with its average.
     const vp = pane("volume");
@@ -199,11 +221,16 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
 
     // Pane sizes are shares of the chart's height; the container is the sum of the heights.
     c.panes().forEach((p, i) => p.setStretchFactor(HEIGHTS[panes[i]!]));
-    c.timeScale().fitContent();
+    const opening = () => {
+      const n = shown.length;
+      c.timeScale().setVisibleLogicalRange({ from: Math.max(0, n - OPEN_BARS[frame]) - 0.5, to: n - 1 + 8 });
+    };
+    opening();
+    resetZoom.current = opening;
     return () => c.remove();
     // panes is derived from chart and all; listing those keeps the effect stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown, lines, chart, buys, all, daily]);
+  }, [shown, lines, chart, buys, all, daily, frame]);
 
   if (bars.length === 0) return <p className="m-0 text-sm text-ink-2">No daily bars are stored for {ticker} yet.</p>;
   let top = 0;
@@ -224,16 +251,16 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
           ))}
         </div>
       ) : null}
-      {has.rsi || has.stoch ? (
-        <button
-          type="button"
-          aria-pressed={all}
-          onClick={() => setChoice(!all)}
-          className="mb-2 inline-flex min-h-11 items-center text-sm text-link"
-        >
-          {all ? "Hide RSI and Stochastics" : "Show RSI and Stochastics"}
+      <div className="mb-2 flex flex-wrap gap-x-5">
+        {has.rsi || has.stoch ? (
+          <button type="button" aria-pressed={all} onClick={() => setChoice(!all)} className="inline-flex min-h-11 items-center text-sm text-link">
+            {all ? "Hide RSI and Stochastics" : "Show RSI and Stochastics"}
+          </button>
+        ) : null}
+        <button type="button" onClick={() => resetZoom.current()} className="inline-flex min-h-11 items-center text-sm text-link">
+          Reset zoom
         </button>
-      ) : null}
+      </div>
       <div className="relative w-full" style={{ height }}>
         <div ref={box} className="absolute inset-0" />
         {panes.map((p) => {
@@ -254,7 +281,7 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
       </div>
       <figcaption className="mt-2 text-[13px] text-mute">
         {daily
-          ? `Daily bars for the last ${shown.length} sessions.`
+          ? `Daily bars for the last ${shown.length} sessions; pinch, scroll, or drag to zoom and move.`
           : `${frame === "weekly" ? "Weekly" : "Monthly"} bars for the last ${shown.length} ${frame === "weekly" ? "weeks" : "months"}; the averages and indicators count ${frame === "weekly" ? "weeks" : "months"} instead of days. Buys and sells are decided on daily bars.`}
         {!lines
           ? " Indicator lines appear after this stock's next screen."
@@ -278,9 +305,15 @@ function legendsFor(panes: PaneKey[], bars: ChartBar[], lines: Lines | null, cha
       { name: "Close", value: fmt(lastBar?.close), color: "var(--ink)" },
       { name: "High", value: fmt(bars.length ? Math.max(...bars.map((b) => b.high)) : null), color: "var(--mute)" },
       { name: "Low", value: fmt(bars.length ? Math.min(...bars.map((b) => b.low)) : null), color: "var(--mute)" },
+      ...(last(lines?.pivot_ma) !== null
+        ? [
+            { name: "Pivot MA", value: fmt(last(lines?.pivot_ma)), color: c[0]! },
+            { name: "Signal", value: fmt(last(lines?.pivot_signal)), color: "var(--chart-down)" },
+          ]
+        : []),
       ...Object.entries(lines?.ma ?? {})
         .sort(([a], [b]) => Number(a) - Number(b))
-        .map(([n, v], i) => ({ name: `MA ${n}`, value: fmt(last(v)), color: c[i % 3]! })),
+        .map(([n, v], i) => ({ name: `MA ${n}`, value: fmt(last(v)), color: [c[1]!, c[2]!, "var(--mute)"][i % 3]! })),
     ],
   };
   out.volume = {
@@ -316,8 +349,14 @@ function legendsFor(panes: PaneKey[], bars: ChartBar[], lines: Lines | null, cha
   return out;
 }
 
-/** Buy and exit arrows with their words, and dots at the period's high and low. */
-function priceMarkers(bars: ChartBar[], buys: ChartBuy[], color: { up: string; down: string; mute: string }): SeriesMarker<Time>[] {
+/** Buy and exit arrows with their words, small arrows where the pivot MA crossed its signal
+ *  line (no words: those are one vote, not a buy), and dots at the period's high and low. */
+function priceMarkers(
+  bars: ChartBar[],
+  buys: ChartBuy[],
+  color: { up: string; down: string; mute: string },
+  pivot?: { buy: string[]; sell: string[] },
+): SeriesMarker<Time>[] {
   // The bar that holds a session: the day itself, or the week or month it ends (bars are
   // dated by their last session).
   const holder = (day: string) => {
@@ -333,6 +372,8 @@ function priceMarkers(bars: ChartBar[], buys: ChartBuy[], color: { up: string; d
       out.push({ time: exited as Time, position: "aboveBar", shape: "arrowDown", color: color.down, text: EXIT_NAMES[b.state] ?? "Sell" });
     }
   }
+  for (const t of pivot?.buy ?? []) out.push({ time: t as Time, position: "belowBar", shape: "arrowUp", size: 0.6, color: color.up });
+  for (const t of pivot?.sell ?? []) out.push({ time: t as Time, position: "aboveBar", shape: "arrowDown", size: 0.6, color: color.down });
   if (bars.length > 1) {
     const hi = bars.reduce((a, b) => (b.high > a.high ? b : a));
     const lo = bars.reduce((a, b) => (b.low < a.low ? b : a));

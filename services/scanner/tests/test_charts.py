@@ -11,7 +11,7 @@ def test_chart_series_follow_the_indicators() -> None:
     bars = momentum_stock()
     fired = sm.indicators(bars, FAST)
     s = chart_series(bars, fired, FAST)
-    n = CHART_SESSIONS
+    n = min(CHART_SESSIONS, len(bars))  # all the history, up to about five years
     assert len(s["sessions"]) == n and s["sessions"][-1] == bars[-1].session_date.isoformat()
     assert sorted(s["ma"], key=int) == ["10", "20", "50"]
     for line in (s["ma"]["10"], s["rsi"], s["stoch_k"], s["macd"], s["volume_average"]):
@@ -19,6 +19,9 @@ def test_chart_series_follow_the_indicators() -> None:
     # The lines are the indicators' own values, and the histogram is MACD less its signal.
     assert s["rsi"][-1] == round(float(fired["stocks.ind_rsi"].values["rsi"][-1]), 6)
     assert s["macd_histogram"][-1] == round(s["macd"][-1] - s["macd_signal"][-1], 6)
+    pivot = fired["stocks.ind_pivot"].values
+    assert s["pivot_ma"][-1] == round(float(pivot["pivot_ma"][-1]), 6)
+    assert s["pivot_signal"][-1] == round(float(pivot["signal"][-1]), 6)
     assert s["levels"]["rsi"] == [30.0, 70.0] and s["levels"]["stoch"] == [20.0, 80.0]
     assert s["levels"]["zone_low"] == round(s["levels"]["high_52w"] * 0.9, 6)
     assert s["settings"] == {"rsi": 5, "stoch": [5, 1, 3], "macd": [12, 26, 9]}

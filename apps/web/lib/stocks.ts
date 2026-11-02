@@ -187,7 +187,7 @@ export interface StockDetail {
   thresholds: { ratio: number | null; multiple: number | null; minApr: number | null; watchSessions: number | null };
 }
 
-const CHART_SESSIONS = 130; // about six months
+const CHART_SESSIONS = 1300; // up to about five years; the chart opens on the last six months
 
 export async function stockDetail(ticker: string): Promise<StockDetail | null> {
   const [info] = await db.select().from(stockTickers).where(eq(stockTickers.ticker, ticker)).limit(1);

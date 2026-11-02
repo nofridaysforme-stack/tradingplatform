@@ -195,31 +195,31 @@ def test_stock_funnel_day_by_day(conn: Conn) -> None:
         (user[0], bars[283].session_date, sig[0]),
     )
     # The holding joins on the next run: rerun the exit session.
-    exit_day = stock_eod.screen_session(conn, rules, bars[295].session_date)
+    exit_day = stock_eod.screen_session(conn, rules, bars[296].session_date)
     assert [a["alert"] for a in exit_day["holdings"]] == ["sold"]
     events = conn.execute(
         "SELECT kind, session FROM stock_signal_events WHERE signal_id = %s ORDER BY id", (sig[0],)
     ).fetchall()
     assert [e[0] for e in events] == ["bought", "trailing_started", "sold"]
-    assert days[295]["stock_events"] and not days[294]["stock_events"]
+    assert days[296]["stock_events"] and not days[295]["stock_events"]
     chart = conn.execute(
         "SELECT session_date, jsonb_array_length(series -> 'sessions') FROM stock_chart_series "
         "WHERE ticker = 'SYN'"
     ).fetchone()
-    # The lines are the newest screen's (296); rerunning session 295 left them in place.
-    assert chart == (bars[296].session_date, 130)
+    # The lines run over all 297 loaded sessions, to the newest screen (296).
+    assert chart == (bars[296].session_date, 297)
     closed = conn.execute(
         "SELECT exit_session, exit_price, round(result_pct, 4), exit_votes ? 'stocks.ind_pivot', "
         "trailing_active FROM stock_signals WHERE id = %s",
         (sig[0],),
     ).fetchone()
-    assert closed == (bars[295].session_date, D("10.808700"), D("0.1657"), True, True)
+    assert closed == (bars[296].session_date, D("10.538500"), D("0.1366"), True, True)
     held = conn.execute(
         "SELECT sell_reason, sell_session, trailing_active, tracked_session FROM holdings "
         "WHERE signal_id = %s",
         (sig[0],),
     ).fetchone()
-    assert held == ("sold", bars[295].session_date, True, bars[295].session_date)
+    assert held == ("sold", bars[296].session_date, True, bars[296].session_date)
 
 
 def test_a_watched_stock_is_bought_below_the_pullback_zone(conn: Conn) -> None:
@@ -242,16 +242,16 @@ def test_a_watched_stock_is_bought_below_the_pullback_zone(conn: Conn) -> None:
         )
     rules = Registry.load(conn).ruleset
     days = {i: stock_eod.screen_session(conn, rules, bars[i].session_date) for i in range(265, 283)}
-    assert [i for i, d in days.items() if d["buys"]] == [281]
+    assert [i for i, d in days.items() if d["buys"]] == [282]
     stored = conn.execute(
         "SELECT count(*) FROM stock_screen_results WHERE ticker = 'DIP' AND session_date = %s",
-        (bars[281].session_date,),
+        (bars[282].session_date,),
     ).fetchone()
     assert stored == (0,)  # not qualified that session, so no screen result
     sig = conn.execute(
         "SELECT buy_session, entry FROM stock_signals WHERE ticker = 'DIP'"
     ).fetchone()
-    assert sig == (bars[281].session_date, D("7.936300"))
+    assert sig == (bars[282].session_date, D("8.174400"))
 
 
 def test_retention_runs(conn: Conn) -> None:

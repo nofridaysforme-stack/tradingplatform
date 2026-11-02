@@ -15,8 +15,9 @@ from scanner.rules.registry import RuleSet
 from scanner.strategies import stock_momentum as sm
 from scanner.strategies.stock_screener import DayBar, high_low_52w
 
-# Sessions kept for the chart: about six months, the span the stock page shows.
-CHART_SESSIONS = 130
+# Sessions kept for the chart: up to about five years, so the page can zoom out over all the
+# history the screen loads (jobs/stock_eod.py HISTORY_DAYS). It opens on the last six months.
+CHART_SESSIONS = 1300
 # The 50-session average is drawn for the longer trend; it is not part of any vote.
 TREND_SESSIONS = 50
 
@@ -91,6 +92,8 @@ def _lines(
         "macd": macd,
         "macd_signal": signal,
         "macd_histogram": histogram,
+        "pivot_ma": values("stocks.ind_pivot", "pivot_ma"),
+        "pivot_signal": values("stocks.ind_pivot", "signal"),
     }
 
 
