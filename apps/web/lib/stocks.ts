@@ -5,11 +5,13 @@ import { db } from "@/lib/db";
 import { INDICATORS } from "@/lib/stock-names";
 import {
   ruleVersions,
+  stockChartSeries,
   stockDailyBars,
   stockScreenResults,
   stockSignalEvents,
   stockSignals,
   stockTickers,
+  type ChartSeries,
   type DayEvidence,
   type Evidence,
   type ScreenStatus,
@@ -176,7 +178,9 @@ export interface StockDetail {
   name: string | null;
   exchange: string | null;
   latest: (ResultRow & { session: string; closes: Record<0 | 5 | 10 | 20 | 50, number | null> }) | null;
-  bars: { time: string; open: number; high: number; low: number; close: number }[];
+  bars: { time: string; open: number; high: number; low: number; close: number; volume: number }[];
+  /** The scanner's indicator lines, when they run to the last stored bar. */
+  chart: ChartSeries | null;
   history: { session: string; status: ScreenStatus }[];
   stages: { session: string; stage: Stage }[];
   buys: StockBuy[];
@@ -187,7 +191,7 @@ const CHART_SESSIONS = 130; // about six months
 
 export async function stockDetail(ticker: string): Promise<StockDetail | null> {
   const [info] = await db.select().from(stockTickers).where(eq(stockTickers.ticker, ticker)).limit(1);
-  const [bars, history] = await Promise.all([
+  const [bars, history, [chart]] = await Promise.all([
     db
       .select()
       .from(stockDailyBars)
@@ -200,8 +204,10 @@ export async function stockDetail(ticker: string): Promise<StockDetail | null> {
       .where(eq(stockScreenResults.ticker, ticker))
       .orderBy(desc(stockScreenResults.sessionDate))
       .limit(120),
+    db.select().from(stockChartSeries).where(eq(stockChartSeries.ticker, ticker)).limit(1),
   ]);
   if (!info && bars.length === 0 && history.length === 0) return null;
+  const latestBar = bars[0]?.sessionDate; // bars are newest first until reversed below
   const last = history[0];
   const thresholds = last ? await thresholdsAt(last.versionSet) : { ratio: null, multiple: null, minApr: null, watchSessions: null };
   // Status history: the sessions where the status changed, newest first.
@@ -230,7 +236,8 @@ export async function stockDetail(ticker: string): Promise<StockDetail | null> {
       : null,
     bars: bars
       .reverse()
-      .map((b) => ({ time: b.sessionDate, open: Number(b.o), high: Number(b.h), low: Number(b.l), close: Number(b.c) })),
+      .map((b) => ({ time: b.sessionDate, open: Number(b.o), high: Number(b.h), low: Number(b.l), close: Number(b.c), volume: b.volume })),
+    chart: chart && chart.sessionDate === latestBar ? chart.series : null,
     history: changes.reverse(),
     thresholds,
   };
@@ -274,11 +281,7 @@ export async function sessionsSince(ticker: string, purchaseDate: string): Promi
 
 // Buys and exits, written by the stock_eod job (spec 08).
 
-export const EXIT_NAMES: Record<Exclude<StockSignalState, "open">, string> = {
-  stopped: "Stop",
-  trailing_stopped: "Trailing stop",
-  sold: "Sell signal",
-};
+export { EXIT_NAMES } from "@/lib/stock-names";
 
 export interface StockBuy {
   id: string;

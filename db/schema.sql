@@ -624,6 +624,18 @@ CREATE TABLE public.signals (
 
 
 --
+-- Name: stock_chart_series; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_chart_series (
+    ticker text NOT NULL,
+    session_date date NOT NULL,
+    series jsonb NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: stock_daily_bars; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1098,6 +1110,14 @@ ALTER TABLE ONLY public.signals
 
 
 --
+-- Name: stock_chart_series stock_chart_series_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_chart_series
+    ADD CONSTRAINT stock_chart_series_pkey PRIMARY KEY (ticker);
+
+
+--
 -- Name: stock_daily_bars stock_daily_bars_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1532,4 +1552,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261008000002'),
     ('20261020000001'),
     ('20261029000001'),
-    ('20261030000001');
+    ('20261030000001'),
+    ('20261102000001');

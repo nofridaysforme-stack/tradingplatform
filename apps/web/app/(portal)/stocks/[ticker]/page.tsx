@@ -46,7 +46,7 @@ export default async function StockPage({ params }: PageProps<"/stocks/[ticker]"
         <h2 id="chart-h" className="m-0 mb-3 text-base font-semibold">
           Daily chart
         </h2>
-        <StockChart ticker={s.ticker} bars={s.bars} />
+        <StockChart ticker={s.ticker} bars={s.bars} chart={s.chart} buys={s.buys} />
       </section>
 
       {r ? (

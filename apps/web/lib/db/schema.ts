@@ -366,6 +366,28 @@ export const stockDailyBars = pgTable(
   (t) => [primaryKey({ columns: [t.ticker, t.sessionDate] })],
 );
 
+/** Indicator lines for the stock chart, written by the scanner (services/scanner/scanner/charts.py). */
+export interface ChartSeries {
+  sessions: string[];
+  ma: Record<string, (number | null)[]>;
+  volume_average: (number | null)[] | null;
+  rsi: (number | null)[] | null;
+  stoch_k: (number | null)[] | null;
+  stoch_d: (number | null)[] | null;
+  macd: (number | null)[] | null;
+  macd_signal: (number | null)[] | null;
+  macd_histogram: (number | null)[] | null;
+  levels: { high_52w: number; zone_low: number; rsi: [number, number]; stoch: [number, number] };
+  settings: { rsi: number; stoch: [number, number, number]; macd: [number, number, number] };
+  votes: Record<string, { buy: string[]; sell: string[] }>;
+}
+
+export const stockChartSeries = pgTable("stock_chart_series", {
+  ticker: text("ticker").primaryKey(),
+  sessionDate: date("session_date").notNull(),
+  series: jsonb("series").$type<ChartSeries>().notNull(),
+});
+
 export const stockScreenResults = pgTable(
   "stock_screen_results",
   {

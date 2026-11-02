@@ -202,6 +202,12 @@ def test_stock_funnel_day_by_day(conn: Conn) -> None:
     ).fetchall()
     assert [e[0] for e in events] == ["bought", "trailing_started", "sold"]
     assert days[295]["stock_events"] and not days[294]["stock_events"]
+    chart = conn.execute(
+        "SELECT session_date, jsonb_array_length(series -> 'sessions') FROM stock_chart_series "
+        "WHERE ticker = 'SYN'"
+    ).fetchone()
+    # The lines are the newest screen's (296); rerunning session 295 left them in place.
+    assert chart == (bars[296].session_date, 130)
     closed = conn.execute(
         "SELECT exit_session, exit_price, round(result_pct, 4), exit_votes ? 'stocks.ind_pivot', "
         "trailing_active FROM stock_signals WHERE id = %s",

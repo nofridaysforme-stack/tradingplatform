@@ -18,6 +18,7 @@ from decimal import Decimal
 from typing import Any
 
 from scanner import db
+from scanner.charts import chart_series
 from scanner.config import MASSIVE_HOST, Settings
 from scanner.data.base import StockDataProvider
 from scanner.data.massive import MassiveClient
@@ -169,6 +170,19 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
                 new_events += _follow_signal(conn, sig, by_ticker[sig["ticker"]], fired_for, rules)
 
     holdings = _follow_holdings(conn, by_ticker, fired_for, rules, session)
+
+    # Chart lines for the stocks an owner is likely to open: screened, watched, bought, held.
+    charted = (
+        set(results) | set(open_signals) | db.momentum_tickers_since(conn, window_start, session)
+    )
+    charted |= {h[2] for h in db.open_holdings(conn)}
+    charts = [
+        (t, session, chart_series(by_ticker[t], fired_for(t), rules))
+        for t in sorted(charted)
+        if by_ticker.get(t) and by_ticker[t][-1].session_date == session
+    ]
+    with conn.transaction():
+        db.upsert_chart_series(conn, charts)
     max_digest = int(rules.params("stocks.alert_watch")["max_in_digest"])
     joined.sort(key=lambda t: results[t].five.apr.get(10, Decimal(0)), reverse=True)
     return {

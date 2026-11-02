@@ -34,6 +34,11 @@
   --link: #2563c9;
   --link-hover: #1b4a99;
 
+  /* Indicator lines on the stock chart: always paired with a name in the legend. */
+  --chart-1: #2563c9;
+  --chart-2: #c27a00;
+  --chart-3: #8a63d2;
+
   --radius-control: 4px;
   --radius-badge: 3px;
   --radius-dialog: 6px;
@@ -59,6 +64,9 @@
   --health-ok: #4fc08d;
   --link: #7fa6ee;
   --link-hover: #a9c3f4;
+  --chart-1: #7fa6ee;
+  --chart-2: #e0a341;
+  --chart-3: #b9a4f5;
   color-scheme: dark;
 }
 
@@ -83,6 +91,9 @@
     --health-ok: #4fc08d;
     --link: #7fa6ee;
     --link-hover: #a9c3f4;
+    --chart-1: #7fa6ee;
+    --chart-2: #e0a341;
+    --chart-3: #b9a4f5;
     color-scheme: dark;
   }
 }
