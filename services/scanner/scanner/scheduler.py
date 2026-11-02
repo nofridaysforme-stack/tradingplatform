@@ -54,7 +54,11 @@ class Worker:
             else None
         )
         self.massive = (
-            MassiveClient(settings.massive_api_key.get_secret_value(), MASSIVE_HOST)
+            MassiveClient(
+                settings.massive_api_key.get_secret_value(),
+                MASSIVE_HOST,
+                calls_per_minute=settings.massive_calls_per_minute,
+            )
             if settings.massive_api_key
             else None
         )
@@ -160,8 +164,9 @@ class Worker:
             try:
                 return stock_eod.run(conn, massive, self.registry, session)
             except (ProviderAuthError, ProviderBlockedError):
-                # Massive's free plan refuses the same-day file until the day is over. The
-                # morning catch-up screens this session; a bad key fails loudly there.
+                # Massive's free plan refuses the same-day file until the day is over (the
+                # paid plans do not). The morning catch-up screens this session; a bad key fails
+                # loudly there.
                 return {"ready": False, "session": session.isoformat(), "deferred": True}
 
         detail = self._record("stock_eod", work)

@@ -3,8 +3,9 @@
 digest candidates and holdings that need an alert (sent from Phase 6).
 
 The morning catch-up (06:30 New York on weekdays) screens, oldest first, the finished
-sessions the evening run missed. On Massive's free plan the same-day file is refused (403)
-until the day is over, so there the catch-up is when each session is screened.
+sessions the evening run missed. The paid Massive plans publish the session's file the same
+evening; on the free plan it is refused (403) until the day is over, and the catch-up is when
+each session is screened.
 
     python -m scanner.jobs.stock_eod --date YYYY-MM-DD
 """
@@ -30,8 +31,11 @@ from scanner.strategies.stock_screener import DayBar, ScreenResult, screen
 from scanner.time import us_stock_holidays, us_stock_sessions_back
 
 log = logging.getLogger(__name__)
-# Calendar days of bars to load: covers 300 sessions with holidays.
+# Calendar days of bars the screen loads for every stock: covers 300 sessions with holidays,
+# more than the 252 the 52-week rules need.
 HISTORY_DAYS = 450
+# Calendar days the chart loads for the charted stocks: about five years (charts.py).
+CHART_HISTORY_DAYS = 1830
 # How far back the morning catch-up looks for sessions the evening run missed.
 CATCH_UP_SESSIONS = 5
 
@@ -176,10 +180,22 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
         set(results) | set(open_signals) | db.momentum_tickers_since(conn, window_start, session)
     )
     charted |= {h[2] for h in db.open_holdings(conn)}
+    # The screen reads HISTORY_DAYS for every stock; the chart reads up to CHART_HISTORY_DAYS
+    # for the charted ones only, with the same indicator code over the longer history.
+    long_bars: dict[str, list[DayBar]] = defaultdict(list)
+    chart_since = date.fromordinal(session.toordinal() - CHART_HISTORY_DAYS)
+    charted_now = sorted(
+        t for t in charted if by_ticker.get(t) and by_ticker[t][-1].session_date == session
+    )
+    for ticker, d, h, low, c, v, o in db.stock_bars_since(conn, chart_since, charted_now):
+        if d <= session:
+            long_bars[ticker].append(
+                DayBar(d, Decimal(h), Decimal(low), Decimal(c), int(v), Decimal(o))
+            )
     charts = [
-        (t, session, chart_series(by_ticker[t], fired_for(t), rules))
-        for t in sorted(charted)
-        if by_ticker.get(t) and by_ticker[t][-1].session_date == session
+        (t, session, chart_series(long_bars[t], sm.indicators(long_bars[t], rules), rules))
+        for t in charted_now
+        if long_bars.get(t)
     ]
     with conn.transaction():
         db.upsert_chart_series(conn, charts)
@@ -351,7 +367,11 @@ def main(argv: list[str] | None = None) -> None:
     with db.make_pool(settings.database_url, max_size=1) as pool, pool.connection() as conn:
         conn.autocommit = True
         db.check_schema(conn)
-        provider = MassiveClient(settings.massive_api_key.get_secret_value(), MASSIVE_HOST)
+        provider = MassiveClient(
+            settings.massive_api_key.get_secret_value(),
+            MASSIVE_HOST,
+            calls_per_minute=settings.massive_calls_per_minute,
+        )
         run_id = db.start_job(conn, "stock_eod", {"session": args.date.isoformat(), "manual": True})
         detail = run(conn, provider, Registry.load(conn), args.date)
         db.finish_job(conn, run_id, bool(detail.get("ready")), detail)

@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     oanda_account_id: str | None = None
     oanda_env: Literal["practice", "live"] = "practice"
     massive_api_key: SecretStr | None = None
+    # Massive calls per rolling minute, shared by every job (spec 04). The paid plans have no
+    # limit; 300 a minute keeps a full backfill to minutes. Set 5 on the free Basic plan.
+    massive_calls_per_minute: int = 300
     log_level: str = "info"
     # Notifications (spec 11). A channel without its settings is skipped, not an error.
     app_url: str = "http://localhost:3000"
