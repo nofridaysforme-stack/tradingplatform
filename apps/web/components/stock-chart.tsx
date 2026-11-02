@@ -91,7 +91,7 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
   useEffect(() => {
     const el = box.current;
     if (!el || bars.length === 0) return;
-    const color = { ink: css("--ink"), bg: css("--bg"), mute: css("--mute"), rule: css("--rule"), long: css("--long"), short: css("--short"), c1: css("--chart-1"), c2: css("--chart-2"), c3: css("--chart-3") };
+    const color = { ink: css("--ink"), bg: css("--bg"), mute: css("--mute"), rule: css("--rule"), long: css("--long"), short: css("--short"), c1: css("--chart-1"), c2: css("--chart-2"), c3: css("--chart-3"), up: css("--chart-up"), down: css("--chart-down") };
     const c: IChartApi = createChart(el, {
       autoSize: true,
       layout: {
@@ -112,12 +112,13 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
 
     // Price: candles, moving averages, the 52-week high and the zone, stops, and markers.
     const candles = c.addSeries(CandlestickSeries, {
-      upColor: color.bg,
-      downColor: color.ink,
-      borderUpColor: color.ink,
-      borderDownColor: color.ink,
-      wickUpColor: color.ink,
-      wickDownColor: color.ink,
+      // Green up and red down (owners 2026-11-02); the words and arrows carry Buy and Sell.
+      upColor: color.up,
+      downColor: color.down,
+      borderUpColor: color.up,
+      borderDownColor: color.down,
+      wickUpColor: color.up,
+      wickDownColor: color.down,
       priceLineVisible: true,
       priceLineStyle: LineStyle.Dashed,
       priceLineColor: color.mute,
@@ -137,14 +138,14 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
       candles.createPriceLine({ price: chart.levels.zone_low, color: color.mute, lineStyle: LineStyle.Dotted, lineWidth: 1, title: "10% zone", axisLabelVisible: true });
     }
     for (const b of buys.filter((x) => x.state === "open")) {
-      candles.createPriceLine({ price: b.stopNow, color: color.short, lineStyle: LineStyle.Dashed, lineWidth: 1, title: `Stop ${b.stopNow.toFixed(2)}`, axisLabelVisible: true });
+      candles.createPriceLine({ price: b.stopNow, color: color.down, lineStyle: LineStyle.Dashed, lineWidth: 1, title: `Stop ${b.stopNow.toFixed(2)}`, axisLabelVisible: true });
     }
     createSeriesMarkers(candles, priceMarkers(bars, buys, color));
 
     // Volume, with its average.
     const vp = pane("volume");
     c.addSeries(HistogramSeries, { priceFormat: { type: "volume" }, priceLineVisible: false, lastValueVisible: false }, vp).setData(
-      bars.map((b, i) => ({ time: b.time as Time, value: b.volume, color: i > 0 && b.close < bars[i - 1]!.close ? color.ink : color.rule })),
+      bars.map((b) => ({ time: b.time as Time, value: b.volume, color: b.close >= b.open ? color.up : color.down })),
     );
     if (chart?.volume_average) {
       const avg = c.addSeries(LineSeries, { color: color.c2, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, priceFormat: { type: "volume" } }, vp);
@@ -156,7 +157,7 @@ export function StockChart({ ticker, bars, chart, buys = [] }: { ticker: string;
     if (chart?.macd && pane("macd") >= 0) {
       const mp = pane("macd");
       c.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, mp).setData(
-        line(sessions, chart.macd_histogram).map((p) => ({ ...p, color: p.value >= 0 ? color.rule : color.mute })),
+        line(sessions, chart.macd_histogram).map((p) => ({ ...p, color: p.value >= 0 ? color.up : color.down })),
       );
       const m = c.addSeries(LineSeries, { color: color.c1, lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, mp);
       m.setData(line(sessions, chart.macd));
@@ -258,7 +259,7 @@ function legendsFor(panes: PaneKey[], bars: ChartBar[], chart: ChartSeries | nul
       items: [
         { name: "MACD", value: fmt(last(chart.macd), 3), color: c[0]! },
         { name: "Signal", value: fmt(last(chart.macd_signal), 3), color: c[1]! },
-        { name: "Histogram", value: fmt(last(chart.macd_histogram), 3), color: "var(--mute)" },
+        { name: "Histogram", value: fmt(last(chart.macd_histogram), 3), color: "var(--chart-3)" },
       ],
     };
   }
@@ -278,13 +279,13 @@ function legendsFor(panes: PaneKey[], bars: ChartBar[], chart: ChartSeries | nul
 }
 
 /** Buy and exit arrows with their words, and dots at the period's high and low. */
-function priceMarkers(bars: ChartBar[], buys: ChartBuy[], color: { long: string; ink: string; mute: string }): SeriesMarker<Time>[] {
+function priceMarkers(bars: ChartBar[], buys: ChartBuy[], color: { up: string; down: string; mute: string }): SeriesMarker<Time>[] {
   const inRange = new Set(bars.map((b) => b.time));
   const out: SeriesMarker<Time>[] = [];
   for (const b of buys) {
-    if (inRange.has(b.buySession)) out.push({ time: b.buySession as Time, position: "belowBar", shape: "arrowUp", color: color.long, text: "Buy" });
+    if (inRange.has(b.buySession)) out.push({ time: b.buySession as Time, position: "belowBar", shape: "arrowUp", color: color.up, text: "Buy" });
     if (b.exitSession && inRange.has(b.exitSession)) {
-      out.push({ time: b.exitSession as Time, position: "aboveBar", shape: "arrowDown", color: color.ink, text: EXIT_NAMES[b.state] ?? "Sell" });
+      out.push({ time: b.exitSession as Time, position: "aboveBar", shape: "arrowDown", color: color.down, text: EXIT_NAMES[b.state] ?? "Sell" });
     }
   }
   if (bars.length > 1) {
@@ -298,12 +299,12 @@ function priceMarkers(bars: ChartBar[], buys: ChartBuy[], color: { long: string;
 }
 
 /** A small dot on the sessions where an indicator voted to buy (below) or sell (above). */
-function voteDots(series: ISeriesApi<SeriesType>, chart: ChartSeries, key: string, color: { long: string; ink: string }) {
+function voteDots(series: ISeriesApi<SeriesType>, chart: ChartSeries, key: string, color: { up: string; down: string }) {
   const v = chart.votes[key];
   if (!v) return;
   const markers: SeriesMarker<Time>[] = [
-    ...v.buy.map((t) => ({ time: t as Time, position: "belowBar" as const, shape: "circle" as const, size: 0.4, color: color.long })),
-    ...v.sell.map((t) => ({ time: t as Time, position: "aboveBar" as const, shape: "circle" as const, size: 0.4, color: color.ink })),
+    ...v.buy.map((t) => ({ time: t as Time, position: "belowBar" as const, shape: "circle" as const, size: 0.4, color: color.up })),
+    ...v.sell.map((t) => ({ time: t as Time, position: "aboveBar" as const, shape: "circle" as const, size: 0.4, color: color.down })),
   ].sort((a, b) => (String(a.time) < String(b.time) ? -1 : 1));
   createSeriesMarkers(series, markers);
 }
