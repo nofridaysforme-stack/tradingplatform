@@ -38,6 +38,8 @@
   --chart-1: #2563c9;
   --chart-2: #c27a00;
   --chart-3: #8a63d2;
+  --chart-up: #1f9d6b;
+  --chart-down: #d9434f;
 
   --radius-control: 4px;
   --radius-badge: 3px;
@@ -67,6 +69,8 @@
   --chart-1: #7fa6ee;
   --chart-2: #e0a341;
   --chart-3: #b9a4f5;
+  --chart-up: #3fbf88;
+  --chart-down: #f0646e;
   color-scheme: dark;
 }
 
@@ -94,6 +98,8 @@
     --chart-1: #7fa6ee;
     --chart-2: #e0a341;
     --chart-3: #b9a4f5;
+    --chart-up: #3fbf88;
+    --chart-down: #f0646e;
     color-scheme: dark;
   }
 }

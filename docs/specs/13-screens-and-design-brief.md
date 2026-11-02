@@ -91,6 +91,8 @@ The chart stacks the indicators in panes under the candles, each pane titled wit
 | RSI | RSI with its 30 and 70 lines |
 | Stochastics | %K and %D with the 20 and 80 lines |
 
+Colors follow the client's example (owners 2026-11-02): green up and red down candles and volume bars, a green and red MACD histogram, and blue, gold, and purple lines, each named in its pane's title. Buys and exits are green and red arrows that also carry their words, so no signal depends on color alone.
+
 Phones open with price, volume, and MACD; "Show RSI and Stochastics" adds the other two. Wide screens open with all five. A small dot on an indicator's pane marks each session where it voted to buy (below the line) or sell (above). The lines are the scanner's own values (`stock_chart_series`, written each screen for screened, watched, bought, and held stocks), so the chart never shows a cross the votes did not count; other stocks show candles and volume until their next screen.
 
 ### 7. Holdings
