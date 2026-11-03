@@ -242,11 +242,18 @@ def vacuum_stock_bars(conn: Conn) -> None:
 
 
 def stock_sessions_present(conn: Conn, sessions: Iterable[date]) -> set[date]:
+    """The sessions already stored for the whole market. A split refetch stores a few tickers'
+    history on old dates, so a date with only some rows is not stored: it counts when it
+    holds at least half as many tickers as the fullest of the sessions asked about."""
     rows = conn.execute(
-        "SELECT DISTINCT session_date FROM stock_daily_bars WHERE session_date = ANY(%s)",
+        "SELECT session_date, count(*) FROM stock_daily_bars WHERE session_date = ANY(%s) "
+        "GROUP BY session_date",
         (list(sessions),),
-    )
-    return {r[0] for r in rows}
+    ).fetchall()
+    if not rows:
+        return set()
+    fullest = max(int(r[1]) for r in rows)
+    return {r[0] for r in rows if int(r[1]) * 2 >= fullest}
 
 
 def earliest_stock_session(conn: Conn) -> date | None:

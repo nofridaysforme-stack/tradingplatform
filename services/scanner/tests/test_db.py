@@ -216,6 +216,17 @@ def test_backfill_stocks_resumes_and_records_progress(conn: Conn) -> None:
     assert active == [("AAPL",)]
 
 
+def test_a_session_with_only_split_refetched_bars_is_not_stored(conn: Conn) -> None:
+    """A split refetch writes a few tickers' history on old dates; the backfill must still
+    load the whole market for those dates."""
+    full = [date(2026, 9, 24), date(2026, 9, 25)]
+    partial = date(2026, 9, 23)
+    db.upsert_stock_bars(conn, [_bar(t, d) for d in full for t in ("A", "B", "C", "D")])
+    db.upsert_stock_bars(conn, [_bar("A", partial)])
+    assert db.stock_sessions_present(conn, [partial, *full]) == set(full)
+    assert db.stock_sessions_present(conn, [date(2026, 9, 22)]) == set()
+
+
 def test_split_refetch_skips_stocks_outside_the_universe(conn: Conn) -> None:
     conn.execute("INSERT INTO stock_tickers (ticker, exchange) VALUES ('AAPL', 'XNAS')")
     assert refetch_split_tickers(conn, FakeMassive(set()), date(2026, 9, 29)) == []
