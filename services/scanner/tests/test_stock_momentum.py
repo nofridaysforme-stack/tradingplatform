@@ -352,6 +352,31 @@ def test_trailing_stop_worked_example() -> None:
     assert after_22.stop_now == D("20.900") and after_22.trailing_active
 
 
+def test_intraday_stop_trigger_uses_the_low_and_the_gap() -> None:
+    """Stop trigger "intraday" (owners 2026-11-03): the session's low reaching the stop exits
+    at the stop; a session that opens below the stop exits at the open. "close" is unchanged."""
+    entry = DayBar(date(2026, 10, 26), D("20.2"), D("19.8"), D("20"), 500_000, D("20"))
+    dip = DayBar(date(2026, 10, 27), D("20.1"), D("18.9"), D("19.5"), 500_000, D("19.8"))
+    gap = DayBar(date(2026, 10, 27), D("18.7"), D("18.2"), D("18.6"), 500_000, D("18.5"))
+    intraday = derive(RULES, {"stocks.stop_loss": {"trigger": "intraday"}})
+    p = sm.plan(D("20"), RULES)  # stop 19.00
+    assert sm.track([entry, dip], {}, 0, p, RULES).exit is None  # closed at 19.50
+    t = sm.track([entry, dip], {}, 0, p, intraday)
+    assert t.exit is not None and (t.exit.kind, t.exit.price) == ("stopped", D("19.000"))
+    g = sm.track([entry, gap], {}, 0, p, intraday)
+    assert g.exit is not None and g.exit.price == D("18.5")  # opened below the stop
+    assert sm.track([entry, gap], {}, 0, p, RULES).exit.price == D("18.6")  # type: ignore[union-attr]
+
+
+def test_intraday_trigger_applies_to_the_trailing_stop() -> None:
+    bars = closes([20.0, 22.0, 26.0])  # trailing starts at 22 and rises to 24.70
+    low_day = DayBar(date(2024, 1, 4), D("25.5"), D("24.5"), D("25.2"), 500_000, D("25.4"))
+    intraday = derive(RULES, {"stocks.stop_loss": {"trigger": "intraday"}})
+    t = sm.track([*bars, low_day], {}, 0, sm.plan(D("20"), intraday), intraday)
+    assert t.exit is not None and (t.exit.kind, t.exit.price) == ("trailing_stopped", D("24.700"))
+    assert sm.track([*bars, low_day], {}, 0, sm.plan(D("20"), RULES), RULES).exit is None
+
+
 def test_fixed_stop_beats_a_sell_vote_on_the_same_session() -> None:
     bars = closes([20.0, 19.5, 19.0, 18.0])
     fired = {k: fires(4, sell=[2]) for k in sm.INDICATORS}

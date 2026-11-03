@@ -490,8 +490,12 @@ def track(
     end: int | None = None,
 ) -> Track:
     """Follows a position from the session after entry_index to end (default: the last bar),
-    on closes only. Each session: the stop set by the previous close is checked first, then
-    the highest close, the trailing stop, the projection, and the sell vote (spec 08)."""
+    on closes by default. Each session: the stop set by the previous close is checked first,
+    then the highest close, the trailing stop, the projection, and the sell vote (spec 08).
+    With stocks.stop_loss trigger "intraday" the fixed and trailing stops are hit when the
+    session's low reaches them, exiting at the stop, or at the open when the session opened
+    below it (a gap)."""
+    intraday = rules.params(K + "stop_loss").get("trigger", "close") == "intraday"
     last = len(bars) - 1 if end is None else end
     trail = rules.params(K + "trailing_stop")
     trail_on = rules.enabled(K + "trailing_stop")
@@ -507,9 +511,14 @@ def track(
     window = window_of(K + "sell_vote", rules)
     for t in range(entry_index + 1, last + 1):
         close = bars[t].c
-        if stop is not None and close <= stop:
+        hit = stop is not None and (bars[t].l <= stop if intraday else close <= stop)
+        if stop is not None and hit:
             kind = "trailing_stopped" if trailing else "stopped"
-            exit_event = Event(kind, t, close, {"stop": str(stop)})
+            price = close
+            if intraday:
+                opened = bars[t].o
+                price = opened if opened is not None and opened <= stop else stop
+            exit_event = Event(kind, t, price, {"stop": str(stop)})
             events.append(exit_event)
             last = t
             break

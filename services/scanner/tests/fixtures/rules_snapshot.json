@@ -955,13 +955,14 @@
   },
   "stocks.stop_loss": {
    "counts_toward_minimum": false,
-   "description": "Until the trailing stop starts, a close at or below entry x (1 - stop_pct) is a stop exit.",
+   "description": "Until the trailing stop starts, the trade exits at entry x (1 - stop_pct). With trigger \"close\" a close at or below the stop exits at that close; with \"intraday\" the session's low reaching the stop exits at the stop, or at the open when the session opened below it. The trigger applies to the trailing stop too.",
    "enabled": true,
    "key": "stocks.stop_loss",
    "kind": "plan",
    "name": "Stop loss",
    "params": {
-    "stop_pct": 5
+    "stop_pct": 5,
+    "trigger": "close"
    },
    "params_schema": {
     "stop_pct": {
@@ -969,12 +970,20 @@
      "max": 50,
      "min": 0.5,
      "type": "percent"
+    },
+    "trigger": {
+     "default": "close",
+     "options": [
+      "close",
+      "intraday"
+     ],
+     "type": "enum"
     }
    },
    "source": "Owners 2026-10-08: 5% if the trade goes against us",
    "status": "approved",
    "strategy": "stocks",
-   "version": 1
+   "version": 2
   },
   "stocks.trailing_stop": {
    "counts_toward_minimum": false,
