@@ -143,7 +143,7 @@ All exits use daily closes, never intraday prices (open item A34). Each session 
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.stop_loss` | Approved | Until the trade has gained `trail_after_pct`: a close at or below entry x (1 - `stop_pct` / 100) is a **stop** exit. With `trigger` "intraday" the stop (and the trailing stop) is hit when the session's low reaches it, exiting at the stop, or at the open when the session opened below it (a gap); "close" is the rule in force (open item A34). | `stop_pct=5`, `trigger=close` |
+| `stocks.stop_loss` | Approved | Until the trade has gained `trail_after_pct`: a close at or below entry x (1 - `stop_pct` / 100) is a **stop** exit. With `trigger` "intraday" the stop (and the trailing stop) is hit when the session's low reaches it, exiting at the stop, or at the open when the session opened below it (a gap); "close" is the rule in force; the 2026-11-03 comparison kept it (open item A34). | `stop_pct=5`, `trigger=close` |
 | `stocks.trailing_stop` | Approved | Once the highest close since entry reaches entry x (1 + `trail_after_pct` / 100), the fixed stop is replaced by a trailing stop at the highest close x (1 - `trail_pct` / 100), rising as the price rises. A close at or below it is a **trailing stop** exit. The trailing stop never falls. | `trail_after_pct=10`, `trail_pct=5` |
 | `stocks.sell_vote` | Approved concept, provisional mirror | A **sell signal** exit when at least `min_votes` different sell indicators fired within the last `window_sessions` sessions. | `min_votes=3`, `window_sessions=3` |
 
