@@ -20,7 +20,7 @@ Start a new session with: "Read docs/handoff.md and CLAUDE.md, then continue."
 | Stock storage | Only the stock universe (active common stocks on NYSE, Nasdaq, NYSE American) and held stocks are stored. The backfill refreshes the ticker list first and purges other rows. | PR #27; spec 04 |
 | Telegram | Built and tested. Connecting the bot turns Telegram alerts on; disconnecting turns them off. Needs the bot and variables below before it works. | PR #28; spec 11 |
 | Stock screen timing | The owners moved to a paid Massive plan (2026-11-03), so the 18:30 run screens that evening and the 06:30 New York catch-up only fills gaps. On the free plan the same-day file is refused (403) and the catch-up screens each session the next morning; set `MASSIVE_CALLS_PER_MINUTE=5` there. The stock backfill loads five years (`--sessions 1260`). | Spec 16; `scanner/scheduler.py` |
-| Owner guide | `docs/owner-guide.pdf`, third edition (2026-11-05): 3 of 7 indicators, the 60-session watch list, same-evening results, the indicator chart, Health on mobile, and why stops use the close. Screenshots come from sample tickers (SMPA and others) screened by the real scanner code. Forex appears only as paused. | |
+| Owner guide | `docs/owner-guide.pdf`, third edition (2026-11-10): the Stocks page order with Today's qualifiers first, 3 of 7 indicators, the 60-session watch list, same-evening results, the indicator chart, Health on mobile, and why stops use the close. Screenshots come from sample tickers (SMPA and others) screened by the real scanner code. Forex appears only as paused. | |
 
 ## Waiting on the project owner (Railway and accounts)
 
