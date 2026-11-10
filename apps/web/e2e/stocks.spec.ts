@@ -15,9 +15,9 @@ const tickers = (page: import("@playwright/test").Page) =>
 
 test("stock results sort, filter, search, and switch sessions", async ({ page }) => {
   await page.goto("/stocks");
-  await expect(page.getByText(`Screen for the ${SESSION} session · 3 qualified · 1 on the watch list · 1 open buys`)).toBeVisible();
+  await expect(page.getByText(`Screen for the ${SESSION} session · 2 new · 3 qualified · 1 on the watch list · 1 open buys`)).toBeVisible();
   expect(await tickers(page)).toEqual(["E2EA", "E2EB", "E2EC"]); // APR 20 descending by default
-  await expect(page.getByRole("columnheader", { name: /APR 20/ })).toHaveAttribute("aria-sort", "descending");
+  await expect(page.getByRole("table", { name: /Screen results/ }).getByRole("columnheader", { name: /APR 20/ })).toHaveAttribute("aria-sort", "descending");
 
   await page.getByRole("link", { name: "Ticker", exact: true }).click();
   await page.waitForURL(/sort=ticker&dir=asc/);
@@ -36,8 +36,8 @@ test("stock results sort, filter, search, and switch sessions", async ({ page })
   expect(await tickers(page)).toEqual(["E2EC"]);
 
   await page.goto(`/stocks?session=${PREV_SESSION}`);
-  await expect(page.getByText(`Screen for the ${PREV_SESSION} session · 1 qualified`)).toBeVisible();
-  await expect(page.getByRole("row", { name: /E2EA.*Watching/ })).toBeVisible();
+  await expect(page.getByText(`Screen for the ${PREV_SESSION} session · 1 new · 1 qualified`)).toBeVisible();
+  await expect(page.getByRole("table", { name: /Screen results/ }).getByRole("row", { name: /E2EA.*Watching/ })).toBeVisible();
 
   await page.goto("/stocks");
   await page.getByLabel("Stage").selectOption("watching");
@@ -95,6 +95,19 @@ test("the stock chart shows the scanner's indicators in panes, with a toggle", a
   await frames.getByRole("button", { name: "Monthly" }).click();
   await expect(chart.getByText(/^Monthly bars for the last 3 months/)).toBeVisible();
   await expect(chart.getByText(/^Close 24\.80$/)).toBeVisible(); // 18.8 + 2 x 3
+});
+
+test("the stocks page lists today's first-time qualifiers first, then results, watch list, and buys", async ({ page }) => {
+  await page.goto("/stocks");
+  const headings = await page.getByRole("heading", { level: 2 }).allTextContents();
+  expect(headings).toEqual(["Today's qualifiers", "Screen results", "Watch list", "Open buys", "Closed buys"]);
+  // E2EA also qualified in the session before, so it is not new.
+  const fresh = page.getByRole("table", { name: /Today's qualifiers/ });
+  await expect(fresh.getByRole("row")).toHaveCount(3);
+  await expect(fresh.getByRole("row", { name: /E2EB.*Watching.*29\.80/ })).toBeVisible();
+  await expect(fresh.getByRole("row", { name: /E2EC.*Qualified.*12\.50/ })).toBeVisible();
+  await expect(fresh).not.toContainText("E2EA");
+  await expect(page.getByText(/ · 2 new · 3 qualified · /)).toBeVisible();
 });
 
 test("the stocks page shows open buys, the watch list, and closed buys", async ({ page }) => {

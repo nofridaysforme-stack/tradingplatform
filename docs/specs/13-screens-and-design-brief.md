@@ -73,10 +73,12 @@ Email field and "Email me a sign-in link". Confirmation state: "Check your email
 Per pair (pair switcher at top): daily, weekly, monthly floor pivots; PDH and PDL; the Fibonacci Pivot ladder with the range, chosen Fibonacci number, and all eight levels around the pivot; current price position on the ladder. Mobile: one pair at a time. Desktop: a grid of all pairs.
 
 ### 5. Stocks
-- Buys: open buys first (ticker, buy date, entry, stop now, highest close, projection, result so far), then recent closed buys with their exit reason and result.
-- Watch list: stocks waiting for their pullback, with how many indicators have voted in the window and which.
-- Table of the last session's results: ticker, stage (qualified, momentum, watching), trend status, close, distance below the 52-week high, APR, five-line values (5, 10, 20, 50 day ACC and APR). Filters by stage; sortable columns; search.
-- Session picker for past sessions.
+Sections in this order (owners, 2026-11-10):
+1. Today's qualifiers: the stocks that qualified in the session for the first time, meaning no earlier screen result exists for them (ticker, stage, close, distance below the 52-week high, 52-week APR, APR 20; best APR 20 first). Screen results start with the first live screen, so on that first session every stock counts as new.
+2. Screen results: the session's results table: ticker, stage (qualified, momentum, watching), trend status, close, 52-week high and low, APR, five-line values (5, 10, 20, 50 day ACC and APR). Filters by stage and trend; sortable columns; search; a session picker for past sessions, which also sets the session for today's qualifiers and the watch list.
+3. Watch list: stocks waiting for a buy, with how many indicators have voted in the window and which.
+4. Open buys (ticker, buy date, entry, stop now, highest close, projection, result so far).
+5. Closed buys, with their exit reason and result.
 
 ### 6. Stock detail
 Daily chart (6 months) with buys and exits marked, the five-line bar, each funnel stage with its values (pass or not), the seven indicators for the last sessions (fired or not, with values), history of stage changes and buys, "Add to holdings".
