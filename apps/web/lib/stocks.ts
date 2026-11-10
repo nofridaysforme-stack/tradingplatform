@@ -382,3 +382,39 @@ export async function watchList(session: string | null): Promise<WatchRow[]> {
     })
     .sort((a, b) => b.votes - a.votes || (b.apr10 ?? 0) - (a.apr10 ?? 0) || a.ticker.localeCompare(b.ticker));
 }
+
+export interface QualifierRow {
+  ticker: string;
+  name: string | null;
+  close: number;
+  high_52w: number;
+  apr_52w: number;
+  apr20: number | null;
+  stage: Stage;
+}
+
+/** Stocks that qualified in `session` for the first time: no earlier screen result exists for
+ * them (spec 13). Best 20-session APR first. */
+export async function todaysQualifiers(session: string | null): Promise<QualifierRow[]> {
+  if (!session) return [];
+  const rows = await db
+    .select({ r: stockScreenResults, name: stockTickers.name })
+    .from(stockScreenResults)
+    .leftJoin(stockTickers, eq(stockTickers.ticker, stockScreenResults.ticker))
+    .where(
+      and(
+        eq(stockScreenResults.sessionDate, session),
+        dsql`not exists (select 1 from stock_screen_results p where p.ticker = ${stockScreenResults.ticker} and p.session_date < ${session})`,
+      ),
+    )
+    .orderBy(dsql`${stockScreenResults.apr20} desc nulls last`, asc(stockScreenResults.ticker));
+  return rows.map(({ r, name }) => ({
+    ticker: r.ticker,
+    name,
+    close: Number(r.close),
+    high_52w: Number(r.high52w),
+    apr_52w: Number(r.apr52w),
+    apr20: n(r.apr20),
+    stage: stageOf(r),
+  }));
+}
