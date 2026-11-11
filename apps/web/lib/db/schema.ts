@@ -341,6 +341,8 @@ export interface MomentumEvidence {
 export interface DayEvidence {
   buy: Evidence;
   sell: Evidence;
+  /** Sessions the buy vote counted that day: window_sessions, or wider around the qualifying date. */
+  buy_window?: number;
   momentum?: MomentumEvidence;
 }
 export type StockSignalState = "open" | "stopped" | "trailing_stopped" | "sold";

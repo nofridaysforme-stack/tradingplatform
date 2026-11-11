@@ -10,7 +10,7 @@ Revised 2026-10-08. The earlier version ended at "trend confirmed" with a 30 per
 universe -> liquidity filter -> Stage 1 Qualify (Rules 1, 2, 3)
          -> Stage 2 10-week momentum on the week's close (5 of 10 weeks at 455%)
          -> Stage 3 Watch list (up to 60 sessions, about 3 months, waits for the buy vote)
-         -> Stage 4 Buy (3 of 7 indicators within 3 sessions)
+         -> Stage 4 Buy (3 of 7 indicators within 3 sessions; from 4 sessions before the qualifying date during the 4 sessions after it)
          -> Stage 5 Hold (35% projection shown, not an exit)
          -> Stage 6 Sell (fixed stop, trailing stop, or 3 of 7 sell indicators)
 owner holdings -> the same stops and sell vote, on the owner's purchase price
@@ -123,7 +123,7 @@ Seven indicators, each a separate rule. Since 2026-10-29 each one follows its st
 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
-| `stocks.buy_vote` | Approved | A watched stock gets a **buy** when at least `min_votes` different buy indicators fired within the last `window_sessions` sessions, counting today, at any distance from its 52-week high (owners 2026-10-29: a qualified stock is already in its pullback). With `require_volume`, a volume spike must be among them and `min_votes` counts the others. | `min_votes=3`, `window_sessions=3`, `require_volume=false` |
+| `stocks.buy_vote` | Approved | A watched stock gets a **buy** when at least `min_votes` different buy indicators fired within the last `window_sessions` sessions, counting today, at any distance from its 52-week high (owners 2026-10-29: a qualified stock is already in its pullback). From the qualifying date through `qualify_after_sessions` sessions after it, the window reaches back to `qualify_before_sessions` sessions before the qualifying date, so votes that fired just before the stock qualified count (owners 2026-11-11: "look at the previous 4 sessions and following 4 sessions"). After that the stock stays watched and the usual window applies. With `require_volume`, a volume spike must be among them and `min_votes` counts the others. | `min_votes=3`, `window_sessions=3`, `qualify_before_sessions=4`, `qualify_after_sessions=4`, `require_volume=false` |
 
 Each indicator counts once in the window however often it fired. At most one open buy per stock; a stock that is bought leaves the watch list until the buy closes.
 
@@ -144,12 +144,12 @@ All exits use daily closes, never intraday prices (open item A34). Each session 
 | Key | Status | Rule | Defaults |
 |---|---|---|---|
 | `stocks.stop_loss` | Approved | Until the trade has gained `trail_after_pct`: a close at or below entry x (1 - `stop_pct` / 100) is a **stop** exit. With `trigger` "intraday" the stop (and the trailing stop) is hit when the session's low reaches it, exiting at the stop, or at the open when the session opened below it (a gap); "close" is the rule in force; the 2026-11-03 comparison kept it (open item A34). | `stop_pct=5`, `trigger=close` |
-| `stocks.trailing_stop` | Approved | Once the highest close since entry reaches entry x (1 + `trail_after_pct` / 100), the fixed stop is replaced by a trailing stop at the highest close x (1 - `trail_pct` / 100), rising as the price rises. A close at or below it is a **trailing stop** exit. The trailing stop never falls. | `trail_after_pct=10`, `trail_pct=5` |
+| `stocks.trailing_stop` | Approved | Once the highest close since entry reaches entry x (1 + `trail_after_pct` / 100), the stop becomes the highest close x (1 - `trail_pct` / 100), rising as the price rises. The stop never falls: while that is still below the fixed stop, the fixed stop stays. A close at or below it is a **trailing stop** exit. Owners 2026-11-11: start at a 5 percent gain and trail 10 percent (was 10 and 5). | `trail_after_pct=5`, `trail_pct=10` |
 | `stocks.sell_vote` | Approved concept, provisional mirror | A **sell signal** exit when at least `min_votes` different sell indicators fired within the last `window_sessions` sessions. | `min_votes=3`, `window_sessions=3` |
 
 The stop is checked against the levels set by the previous session's close, then the highest close is updated. When a stop and a sell vote happen on the same session, the stop is the reason recorded.
 
-Worked example: buy at 20.00. Fixed stop 19.00. The stock closes at 22.00 (+10 percent): the trailing stop starts at 20.90. It climbs to 26.00: the stop is 24.70. A close of 24.70 or lower exits at that close, +23.5 percent. Once the trailing stop is active the worst exit is about 4.5 percent above entry, because the highest close is at least 10 percent up.
+Worked example: buy at 20.00. Fixed stop 19.00. The stock closes at 21.00 (+5 percent): the trailing stop starts, but 10 percent under 21.00 is 18.90, so the stop stays at 19.00. At 22.00 it is 19.80. It climbs to 26.00: the stop is 23.40. A close of 23.40 or lower exits at that close, +17 percent. The trailing stop passes the entry price once the highest close is about 11.1 percent up.
 
 The portal only alerts. Owners place and move any actual order or stop with their broker (CLAUDE.md rule 7).
 

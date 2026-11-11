@@ -139,14 +139,16 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
         else:
             day = watch_day(ticker)
         row = r.as_row(version_set)
-        values = sm.today_values(bars, fired, rules, is_open)
+        values = sm.today_values(bars, fired, rules, is_open, sm.buy_window(bars, day, rules))
         values["momentum"]["qualifying"] = day.qualifying.isoformat() if day.qualifying else None
         row.update(momentum=day.momentum, watching=day.watching, indicators=values)
         rows.append(row)
         if day.joined:
             joined.append(ticker)
         if sm.is_buy(bars, fired, day, rules):
-            buys.append(_buy_row(ticker, bars, fired, today, rules))
+            buys.append(
+                _buy_row(ticker, bars, fired, today, rules, sm.buy_window(bars, day, rules))
+            )
     # A watched stock stays watched, and can be bought, on sessions when it does not qualify
     # (spec 08 Stage 3). Those are the stocks with a qualifying date inside the watch window.
     window_start = session - timedelta(days=watch_sessions * 7 // 5 + 14)
@@ -158,7 +160,8 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
             continue
         day = watch_day(ticker)
         if sm.is_buy(bars, fired_for(ticker), day, rules):
-            buys.append(_buy_row(ticker, bars, fired_for(ticker), len(bars) - 1, rules))
+            window = sm.buy_window(bars, day, rules)
+            buys.append(_buy_row(ticker, bars, fired_for(ticker), len(bars) - 1, rules, window))
     with conn.transaction():
         db.upsert_screen_results(conn, rows)
 
@@ -214,13 +217,18 @@ def screen_session(conn: db.Conn, rules: RuleSet, session: date) -> dict[str, An
 
 
 def _buy_row(
-    ticker: str, bars: list[DayBar], fired: dict[str, sm.Fired], i: int, rules: RuleSet
+    ticker: str,
+    bars: list[DayBar],
+    fired: dict[str, sm.Fired],
+    i: int,
+    rules: RuleSet,
+    window: int,
 ) -> dict[str, Any]:
-    """A buy on session i, with the evidence it stores (CLAUDE.md rule 3)."""
+    """A buy on session i, with the evidence it stores (CLAUDE.md rule 3). window is the buy
+    vote's window that session (sm.buy_window)."""
     entry = bars[i].c
     p = sm.plan(entry, rules)
-    window = sm.window_of("stocks.buy_vote", rules)
-    found = sm.buy_votes(bars, fired, i, rules)
+    found = sm.buy_votes(bars, fired, i, rules, window)
     stop = p.stop_initial if p.stop_initial is not None else Decimal(0)
     keys = ["stocks.momentum", "stocks.watch", "stocks.buy_vote", "stocks.projection",
             "stocks.stop_loss", "stocks.trailing_stop", "stocks.sell_vote",
