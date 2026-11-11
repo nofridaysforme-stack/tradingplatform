@@ -414,10 +414,28 @@ def step(
     return Day(i, result, mom, state.watching, state.watching and not was, since)
 
 
+def buy_window(bars: Sequence[DayBar], day: Day, rules: RuleSet) -> int:
+    """Sessions the buy vote counts on day.index. Usually window_sessions; from the qualifying
+    date through qualify_after_sessions after it, the window reaches back to
+    qualify_before_sessions before the qualifying date (owners 2026-11-11)."""
+    p = rules.params(K + "buy_vote")
+    window = int(p["window_sessions"])
+    if day.qualifying is None:
+        return window
+    q = session_index(bars, day.qualifying)
+    after = int(p.get("qualify_after_sessions", 0))
+    if q is None or day.index < q or day.index - q > after:
+        return window
+    start = q - int(p.get("qualify_before_sessions", 0))
+    return max(window, day.index - start + 1)
+
+
 def buy_votes(
-    bars: Sequence[DayBar], fired: dict[str, Fired], i: int, rules: RuleSet
-) -> list[Vote]:
-    return votes(bars, fired, i, "buy", window_of(K + "buy_vote", rules), rules)
+    bars: Sequence[DayBar], fired: dict[str, Fired], i: int, rules: RuleSet,
+    window: int | None = None,
+) -> list[Vote]:  # fmt: skip
+    w = window_of(K + "buy_vote", rules) if window is None else window
+    return votes(bars, fired, i, "buy", w, rules)
 
 
 def is_buy(bars: Sequence[DayBar], fired: dict[str, Fired], day: Day, rules: RuleSet) -> bool:
@@ -425,7 +443,8 @@ def is_buy(bars: Sequence[DayBar], fired: dict[str, Fired], day: Day, rules: Rul
     high (owners 2026-10-29: a qualified stock is already in its pullback)."""
     if not day.watching:
         return False
-    return vote_passes(buy_votes(bars, fired, day.index, rules), K + "buy_vote", rules)
+    found = buy_votes(bars, fired, day.index, rules, buy_window(bars, day, rules))
+    return vote_passes(found, K + "buy_vote", rules)
 
 
 # Holding a position: projection, stops, sell vote (stages 5 and 6)
@@ -527,7 +546,10 @@ def track(
             trailing = True
             events.append(Event("trailing_started", t, close, {"highest_close": str(highest)}))
         if trailing:
-            stop = highest * (1 - trail_pct)
+            # The stop never falls: it leaves the fixed stop only once trail_pct under the
+            # highest close is higher (owners 2026-11-11: start at 5% up, trail 10%).
+            trail_stop = highest * (1 - trail_pct)
+            stop = trail_stop if stop is None else max(stop, trail_stop)
         if projection_at is None and close >= p.projection:
             projection_at = t
             events.append(Event("projection_reached", t, close))
@@ -575,12 +597,16 @@ def evidence(
 
 
 def today_values(
-    bars: Sequence[DayBar], fired: dict[str, Fired], rules: RuleSet, is_open: IsOpen
-) -> dict[str, Any]:
-    """The last session's buy and sell evidence, stored on the screen result."""
+    bars: Sequence[DayBar], fired: dict[str, Fired], rules: RuleSet, is_open: IsOpen,
+    buy_window: int | None = None,
+) -> dict[str, Any]:  # fmt: skip
+    """The last session's buy and sell evidence, stored on the screen result. buy_window is
+    the window the buy vote used that day (default window_sessions)."""
     i = len(bars) - 1
+    bw = window_of(K + "buy_vote", rules) if buy_window is None else buy_window
     return {
-        "buy": evidence(bars, fired, i, "buy", window_of(K + "buy_vote", rules), rules),
+        "buy": evidence(bars, fired, i, "buy", bw, rules),
+        "buy_window": bw,
         "sell": evidence(bars, fired, i, "sell", window_of(K + "sell_vote", rules), rules),
         "momentum": momentum_evidence(bars, rules, is_open),
     }

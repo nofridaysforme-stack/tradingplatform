@@ -71,7 +71,7 @@ def replay(
         day = sm.step(ticker, bars, i, rules, state, is_open)
         joins += day.joined
         if sm.is_buy(bars, fired, day, rules):
-            found = sm.buy_votes(bars, fired, i, rules)
+            found = sm.buy_votes(bars, fired, i, rules, sm.buy_window(bars, day, rules))
             p = sm.plan(bars[i].c, rules)
             t = sm.track(bars, fired, i, p, rules)
             ex = t.exit

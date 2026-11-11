@@ -386,13 +386,15 @@
   },
   "stocks.buy_vote": {
    "counts_toward_minimum": false,
-   "description": "A watched stock is bought when at least min_votes different buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high. With require_volume, a volume spike must be among them and min_votes counts the others.",
+   "description": "A watched stock is bought when at least min_votes different buy indicators fired within the last window_sessions sessions, at any distance from its 52-week high. From the qualifying date through qualify_after_sessions sessions after it, the window reaches back to qualify_before_sessions sessions before the qualifying date. With require_volume, a volume spike must be among them and min_votes counts the others.",
    "enabled": true,
    "key": "stocks.buy_vote",
    "kind": "gate",
    "name": "Buy vote",
    "params": {
     "min_votes": 3,
+    "qualify_after_sessions": 4,
+    "qualify_before_sessions": 4,
     "require_volume": false,
     "window_sessions": 3
    },
@@ -402,6 +404,18 @@
      "max": 5,
      "min": 1,
      "type": "integer"
+    },
+    "qualify_after_sessions": {
+     "default": 4,
+     "max": 20,
+     "min": 0,
+     "type": "sessions"
+    },
+    "qualify_before_sessions": {
+     "default": 4,
+     "max": 20,
+     "min": 0,
+     "type": "sessions"
     },
     "require_volume": {
      "default": false,
@@ -417,7 +431,7 @@
    "source": "Owners 2026-10-08: 3 of 5 indicators, a window of 3 trading days; 2026-10-29: no pullback zone check, 3 of 7 with volume",
    "status": "approved",
    "strategy": "stocks",
-   "version": 3
+   "version": 4
   },
   "stocks.five_line": {
    "counts_toward_minimum": false,
@@ -987,24 +1001,24 @@
   },
   "stocks.trailing_stop": {
    "counts_toward_minimum": false,
-   "description": "Once the highest close since entry is trail_after_pct above entry, the stop is trail_pct below the highest close and never falls. A close at or below it is a trailing stop exit.",
+   "description": "Once the highest close since entry is trail_after_pct above entry, the stop is trail_pct below the highest close and never falls: it stays at the fixed stop until trail_pct below the highest close is higher. A close at or below it is a trailing stop exit.",
    "enabled": true,
    "key": "stocks.trailing_stop",
    "kind": "plan",
    "name": "Trailing stop",
    "params": {
-    "trail_after_pct": 10,
-    "trail_pct": 5
+    "trail_after_pct": 5,
+    "trail_pct": 10
    },
    "params_schema": {
     "trail_after_pct": {
-     "default": 10,
+     "default": 5,
      "max": 500,
      "min": 0,
      "type": "percent"
     },
     "trail_pct": {
-     "default": 5,
+     "default": 10,
      "max": 50,
      "min": 0.5,
      "type": "percent"
@@ -1013,7 +1027,7 @@
    "source": "Owners 2026-10-08: after it has gained 10%, a trailing stop set at 5%",
    "status": "approved",
    "strategy": "stocks",
-   "version": 1
+   "version": 2
   },
   "stocks.trend_confirmed": {
    "counts_toward_minimum": false,

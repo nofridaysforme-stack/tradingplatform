@@ -334,22 +334,69 @@ def test_a_watched_stock_can_be_bought_below_the_pullback_zone() -> None:
 
 
 def test_trailing_stop_worked_example() -> None:
-    """Spec 08: buy at 20.00, fixed stop 19.00; at 22.00 the trailing stop starts at 20.90;
-    at 26.00 it is 24.70; a close of 24.70 exits there, +23.5 percent."""
-    bars = closes([20.0, 21.0, 22.0, 26.0, 25.0, 24.70, 30.0])
+    """Spec 08 (owners 2026-11-11): buy at 20.00, fixed stop 19.00. At 21.00 (5 percent up) the
+    trailing stop starts, but 10 percent under 21.00 is 18.90, below the fixed stop, so the stop
+    stays at 19.00 (it never falls). At 26.00 it is 23.40; a close of 23.40 exits, +17 percent."""
+    bars = closes([20.0, 21.0, 22.0, 26.0, 25.0, 23.40, 30.0])
     p = sm.plan(D("20.0"), RULES)
     assert (p.stop_initial, p.projection) == (D("19.000"), D("27.00"))
     t = sm.track(bars, {}, 0, p, RULES)
     assert t.exit is not None and (t.exit.kind, t.exit.index, t.exit.price) == (
+        "trailing_stopped", 5, D("23.4"),
+    )  # fmt: skip
+    assert sm.result_pct(p.entry, t.exit.price) == D("0.17")
+    assert [(e.kind, e.index) for e in t.events] == [
+        ("trailing_started", 1), ("trailing_stopped", 5),
+    ]  # fmt: skip
+    after_21 = sm.track(bars, {}, 0, p, RULES, end=1)
+    assert after_21.trailing_active and after_21.stop_now == D("19.000")
+    after_22 = sm.track(bars, {}, 0, p, RULES, end=2)
+    assert after_22.stop_now == D("19.800")  # 10 percent under 22.00, above the fixed stop
+
+
+def test_the_previous_trailing_settings_still_work() -> None:
+    """The settings before 2026-11-11 (start at 10 percent up, trail 5 percent) as a version."""
+    old = derive(RULES, {"stocks.trailing_stop": {"trail_after_pct": 10, "trail_pct": 5}})
+    bars = closes([20.0, 21.0, 22.0, 26.0, 25.0, 24.70, 30.0])
+    t = sm.track(bars, {}, 0, sm.plan(D("20.0"), old), old)
+    assert t.exit is not None and (t.exit.kind, t.exit.index, t.exit.price) == (
         "trailing_stopped", 5, D("24.7"),
     )  # fmt: skip
-    assert sm.result_pct(p.entry, t.exit.price) == D("0.235")
     assert [(e.kind, e.index) for e in t.events] == [
         ("trailing_started", 2), ("trailing_stopped", 5),
     ]  # fmt: skip
-    assert t.events[0].detail == {"highest_close": "22.0"}
-    after_22 = sm.track(bars, {}, 0, p, RULES, end=2)
-    assert after_22.stop_now == D("20.900") and after_22.trailing_active
+
+
+def test_buy_window_reaches_back_4_sessions_around_the_qualifying_date() -> None:
+    """Owners 2026-11-11: from the qualifying date through 4 sessions after it, buy votes count
+    from 4 sessions before the qualifying date; after that the usual 3-session window."""
+    bars = closes([20.0] * 30)
+    q = 15
+    fired = {
+        k: fires(30, [i]) for k, i in zip(sm.INDICATORS[:3], [q - 4, q - 3, q - 1], strict=True)
+    }
+
+    def day(i: int, qualifying: int | None = q) -> sm.Day:
+        when = bars[qualifying].session_date if qualifying is not None else None
+        return sm.Day(i, None, False, True, False, when)
+
+    assert sm.buy_window(bars, day(q), RULES) == 5
+    assert sm.is_buy(bars, fired, day(q), RULES)
+    assert sm.buy_window(bars, day(q + 4), RULES) == 9
+    assert sm.is_buy(bars, fired, day(q + 4), RULES)
+    assert sm.buy_window(bars, day(q + 5), RULES) == 3
+    assert not sm.is_buy(bars, fired, day(q + 5), RULES)
+    assert not sm.is_buy(bars, fired, day(q, qualifying=None), RULES)
+    # A vote 5 sessions before the qualifying date is outside the window.
+    early = {
+        k: fires(30, [i]) for k, i in zip(sm.INDICATORS[:3], [q - 5, q - 3, q - 1], strict=True)
+    }
+    assert not sm.is_buy(bars, early, day(q), RULES)
+    # Without the new settings (window 3 only), the same votes are not a buy on the qualifying date.
+    narrow = derive(
+        RULES, {"stocks.buy_vote": {"qualify_before_sessions": 0, "qualify_after_sessions": 0}}
+    )
+    assert not sm.is_buy(bars, fired, day(q), narrow)
 
 
 def test_intraday_stop_trigger_uses_the_low_and_the_gap() -> None:
@@ -369,11 +416,11 @@ def test_intraday_stop_trigger_uses_the_low_and_the_gap() -> None:
 
 
 def test_intraday_trigger_applies_to_the_trailing_stop() -> None:
-    bars = closes([20.0, 22.0, 26.0])  # trailing starts at 22 and rises to 24.70
-    low_day = DayBar(date(2024, 1, 4), D("25.5"), D("24.5"), D("25.2"), 500_000, D("25.4"))
+    bars = closes([20.0, 22.0, 26.0])  # trailing starts at 22 and rises to 23.40
+    low_day = DayBar(date(2024, 1, 4), D("25.5"), D("23.3"), D("25.2"), 500_000, D("25.4"))
     intraday = derive(RULES, {"stocks.stop_loss": {"trigger": "intraday"}})
     t = sm.track([*bars, low_day], {}, 0, sm.plan(D("20"), intraday), intraday)
-    assert t.exit is not None and (t.exit.kind, t.exit.price) == ("trailing_stopped", D("24.700"))
+    assert t.exit is not None and (t.exit.kind, t.exit.price) == ("trailing_stopped", D("23.400"))
     assert sm.track([*bars, low_day], {}, 0, sm.plan(D("20"), RULES), RULES).exit is None
 
 
